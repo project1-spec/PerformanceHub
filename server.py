@@ -1,0 +1,1811 @@
+#!/usr/bin/env python3
+"""
+PerformanceHub - Fitness Analytics Backend Server
+Complete production-quality implementation using Tornado, SQLite, and secure cookies.
+"""
+
+import tornado.ioloop
+import tornado.web
+import tornado.options
+import sqlite3
+import json
+import hashlib
+import secrets
+import bcrypt
+import uuid
+import datetime
+import os
+import urllib.parse
+from functools import wraps
+from typing import Optional, Dict, Any, List
+import traceback
+
+# Configuration
+PORT = 8080
+DB_PATH = "./performancehub.db"
+STATIC_DIR = "./static"
+COOKIE_SECRET = secrets.token_hex(32)
+COOKIE_NAME = "performancehub_session"
+
+# Initialize database schema
+def init_database():
+    """Create database tables if they don't exist."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    # Users table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        password_hash TEXT NOT NULL,
+        role TEXT DEFAULT 'athlete',
+        created_at TEXT NOT NULL
+    )
+    """)
+
+    # Platform connections
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS platform_connections (
+        id INTEGER PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        platform TEXT NOT NULL,
+        access_token TEXT,
+        refresh_token TEXT,
+        token_expires_at TEXT,
+        platform_user_id TEXT,
+        connected_at TEXT NOT NULL,
+        last_synced TEXT,
+        FOREIGN KEY(user_id) REFERENCES users(id),
+        UNIQUE(user_id, platform)
+    )
+    """)
+
+    # Activities
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS activities (
+        id INTEGER PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        platform TEXT NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        sport TEXT,
+        start_time TEXT NOT NULL,
+        duration_seconds INTEGER NOT NULL,
+        distance_meters REAL,
+        calories INTEGER,
+        avg_hr INTEGER,
+        max_hr INTEGER,
+        elevation_gain REAL,
+        description TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+    """)
+
+    # Recovery metrics
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS recovery_metrics (
+        id INTEGER PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        date TEXT NOT NULL,
+        hrv REAL,
+        rhr INTEGER,
+        spo2 REAL,
+        skin_temp REAL,
+        recovery_score INTEGER,
+        sleep_quality INTEGER,
+        source TEXT NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+    """)
+
+    # Sleep records
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS sleep_records (
+        id INTEGER PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        date TEXT NOT NULL,
+        start_time TEXT,
+        end_time TEXT,
+        total_minutes INTEGER,
+        rem_minutes INTEGER,
+        deep_minutes INTEGER,
+        light_minutes INTEGER,
+        awake_minutes INTEGER,
+        efficiency REAL,
+        source TEXT NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+    """)
+
+    # Daily summaries
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS daily_summaries (
+        id INTEGER PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        date TEXT NOT NULL,
+        steps INTEGER,
+        calories_total INTEGER,
+        calories_active INTEGER,
+        distance_meters REAL,
+        stress_avg REAL,
+        source TEXT NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+    """)
+
+    # Goals
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS goals (
+        id INTEGER PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        target_value REAL NOT NULL,
+        current_value REAL DEFAULT 0,
+        unit TEXT,
+        start_date TEXT NOT NULL,
+        end_date TEXT NOT NULL,
+        status TEXT DEFAULT 'active',
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+    """)
+
+    # Workouts
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS workouts (
+        id INTEGER PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        duration_minutes INTEGER,
+        rpe INTEGER,
+        notes TEXT,
+        coach_feedback TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+    """)
+
+    # Feed posts
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS feed_posts (
+        id INTEGER PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        title TEXT,
+        content TEXT NOT NULL,
+        likes INTEGER DEFAULT 0,
+        comments_count INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+    """)
+
+    # Groups
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS groups (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        type TEXT NOT NULL,
+        goal_value REAL,
+        goal_unit TEXT,
+        start_date TEXT NOT NULL,
+        end_date TEXT NOT NULL,
+        code TEXT UNIQUE NOT NULL,
+        created_by INTEGER NOT NULL,
+        FOREIGN KEY(created_by) REFERENCES users(id)
+    )
+    """)
+
+    # Group members
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS group_members (
+        id INTEGER PRIMARY KEY,
+        group_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        progress REAL DEFAULT 0,
+        joined_at TEXT NOT NULL,
+        FOREIGN KEY(group_id) REFERENCES groups(id),
+        FOREIGN KEY(user_id) REFERENCES users(id),
+        UNIQUE(group_id, user_id)
+    )
+    """)
+
+    # Notifications
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        read INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+    """)
+
+    conn.commit()
+
+    # Seed data if database is empty
+    cursor.execute("SELECT COUNT(*) FROM users")
+    if cursor.fetchone()[0] == 0:
+        seed_database(conn)
+
+    conn.close()
+
+def seed_database(conn):
+    """Seed database with demo data."""
+    cursor = conn.cursor()
+    now = datetime.datetime.utcnow().isoformat()
+    today = datetime.date.today().isoformat()
+
+    # Create demo user
+    email = "demo@performancehub.com"
+    name = "Alex Johnson"
+    password = "demo123"
+    password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+    cursor.execute(
+        "INSERT INTO users (email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)",
+        (email, name, password_hash, 'athlete', now)
+    )
+    user_id = cursor.lastrowid
+
+    # Create goals
+    goals = [
+        ("Complete 59 miles running", "running_distance", 59, 35, "miles"),
+        ("Weight loss", "weight", 180, 190, "lbs"),
+        ("Strength improvement", "strength", 100, 90, "score")
+    ]
+
+    start_date = (datetime.date.today() - datetime.timedelta(days=30)).isoformat()
+    end_date = (datetime.date.today() + datetime.timedelta(days=60)).isoformat()
+
+    for name, type_, target, current, unit in goals:
+        cursor.execute(
+            "INSERT INTO goals (user_id, name, type, target_value, current_value, unit, start_date, end_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (user_id, name, type_, target, current, unit, start_date, end_date, "active")
+        )
+
+    # Create activities (8-10 over last 30 days)
+    activities_data = [
+        ("Morning Run", "run", "running", "2026-03-22T07:00:00Z", 2400, 8500, 145, 450, 145, 165),
+        ("Cycling Session", "cycling", "cycling", "2026-03-21T17:30:00Z", 3600, 18200, 26400, 520, 130, 155),
+        ("Strength Training", "strength", "strength", "2026-03-20T06:30:00Z", 1800, 0, 0, 380, 95, 125),
+        ("Swimming Workout", "swim", "swimming", "2026-03-19T06:00:00Z", 2700, 3200, 1.5, 320, 140, 160),
+        ("Trail Running", "run", "running", "2026-03-18T08:00:00Z", 3000, 10000, 85, 520, 148, 170),
+        ("Cross Training", "cross", "strength", "2026-03-16T18:00:00Z", 1500, 0, 0, 280, 110, 140),
+        ("Yoga Session", "yoga", "flexibility", "2026-03-15T10:00:00Z", 1800, 0, 0, 150, 80, 95),
+        ("Evening Cycle", "cycling", "cycling", "2026-03-14T19:00:00Z", 2700, 16800, 24000, 450, 125, 150),
+        ("Speed Training", "run", "running", "2026-03-12T06:00:00Z", 1800, 6500, 0, 380, 155, 175),
+        ("Weekend Hike", "hike", "hiking", "2026-03-09T09:00:00Z", 5400, 15000, 200, 650, 120, 140),
+    ]
+
+    for name, activity_type, sport, start_time, duration, distance, elevation, calories, avg_hr, max_hr in activities_data:
+        cursor.execute(
+            "INSERT INTO activities (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, elevation_gain, calories, avg_hr, max_hr, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (user_id, "local", name, activity_type, sport, start_time, duration, distance, elevation, calories, avg_hr, max_hr, now)
+        )
+
+    # Create recovery metrics (last 7 days)
+    for i in range(7):
+        date = (datetime.date.today() - datetime.timedelta(days=i)).isoformat()
+        recovery_score = 70 + (i % 3) * 5
+        sleep_quality = 6 + (i % 4)
+        cursor.execute(
+            "INSERT INTO recovery_metrics (user_id, date, hrv, rhr, spo2, skin_temp, recovery_score, sleep_quality, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (user_id, date, 45.0 + (i % 5), 52 + (i % 4), 98.5, 98.2, recovery_score, sleep_quality, "whoop")
+        )
+
+    # Create sleep records (last 7 days)
+    for i in range(7):
+        date = (datetime.date.today() - datetime.timedelta(days=i)).isoformat()
+        total_mins = 420 + (i % 3) * 30
+        cursor.execute(
+            "INSERT INTO sleep_records (user_id, date, total_minutes, rem_minutes, deep_minutes, light_minutes, awake_minutes, efficiency, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (user_id, date, total_mins, int(total_mins * 0.2), int(total_mins * 0.15), int(total_mins * 0.55), int(total_mins * 0.1), 0.85 + (i % 3) * 0.05, "apple_watch")
+        )
+
+    # Create daily summaries (last 7 days)
+    for i in range(7):
+        date = (datetime.date.today() - datetime.timedelta(days=i)).isoformat()
+        cursor.execute(
+            "INSERT INTO daily_summaries (user_id, date, steps, calories_total, calories_active, distance_meters, stress_avg, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (user_id, date, 8000 + (i * 500) % 5000, 2400 + (i * 100) % 400, 600 + (i * 50) % 300, 8500 + (i * 1000) % 4000, 45 + (i % 4) * 5, "apple_watch")
+        )
+
+    # Create workout logs (5 entries with coach feedback)
+    workouts_data = [
+        ("Monday Strength", "strength", 60, 7, "Good form on squats", "Excellent form! Keep up the intensity."),
+        ("Wednesday Run", "running", 45, 8, "Tempo pace training", "Great pace control on tempo intervals"),
+        ("Friday Lift", "strength", 75, 8, "Lower body focus", "Strong session, consider increasing weight"),
+        ("Sunday Long Run", "running", 90, 7, "Easy pace recovery", None),
+        ("Tuesday Cross Train", "cross_training", 40, 6, "Bike and core", None),
+    ]
+
+    for name, type_, duration, rpe, notes, feedback in workouts_data:
+        cursor.execute(
+            "INSERT INTO workouts (user_id, name, type, duration_minutes, rpe, notes, coach_feedback, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (user_id, name, type_, duration, rpe, notes, feedback, now)
+        )
+
+    # Create feed posts
+    feed_data = [
+        ("achievement", "Completed 10-mile run!", "Just crushed my longest run this month! Feeling strong and ready for the next challenge."),
+        ("milestone", "Hit 50 miles this month!", "Reached a major milestone in my running journey. Thanks to everyone for the support!"),
+        ("motivation", "Consistency is key", "Remember, small daily improvements lead to remarkable results. Stay focused on your goals!"),
+        ("achievement", "New Personal Record", "Shattered my previous 5K time by 2 minutes! Hard work pays off."),
+        ("tip", "Recovery tip", "Don't skip your sleep! Quality sleep is just as important as your workouts."),
+    ]
+
+    for type_, title, content in feed_data:
+        cursor.execute(
+            "INSERT INTO feed_posts (user_id, type, title, content, likes, comments_count, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (user_id, type_, title, content, 0, 0, now)
+        )
+
+    # Create groups/competitions
+    groups_data = [
+        ("March Running Challenge", "Complete 100 miles in March", "challenge", 100, "miles"),
+        ("Q1 Fitness Sprint", "Build consistent workout habit", "competition", 50, "workouts"),
+        ("April Strength Series", "Progressive strength gains", "challenge", 25, "sessions"),
+    ]
+
+    for i, (name, desc, type_, goal_value, goal_unit) in enumerate(groups_data):
+        start_d = (datetime.date.today() - datetime.timedelta(days=7)).isoformat()
+        end_d = (datetime.date.today() + datetime.timedelta(days=7)).isoformat()
+        code = secrets.token_hex(4).upper()
+        cursor.execute(
+            "INSERT INTO groups (name, description, type, goal_value, goal_unit, start_date, end_date, code, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (name, desc, type_, goal_value, goal_unit, start_d, end_d, code, user_id)
+        )
+        group_id = cursor.lastrowid
+
+        # Add user to group
+        cursor.execute(
+            "INSERT INTO group_members (group_id, user_id, progress, joined_at) VALUES (?, ?, ?, ?)",
+            (group_id, user_id, 35 + (i * 20), now)
+        )
+
+    # Create notifications
+    notifications_data = [
+        ("achievement", "Milestone Reached!", "Congratulations! You've completed 50 miles this month!"),
+        ("reminder", "Time for Recovery", "Your recovery score is low. Consider an easy day."),
+        ("social", "New Challenge", "A friend invited you to join 'April Fitness Challenge'"),
+    ]
+
+    for type_, title, message in notifications_data:
+        cursor.execute(
+            "INSERT INTO notifications (user_id, type, title, message, read, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            (user_id, type_, title, message, 0, now)
+        )
+
+    # Create platform connections
+    platforms_data = [
+        ("strava", "abc123strava", "refresh_abc123", "2026-06-23T00:00:00Z", "strava_user_123"),
+        ("myfitnesspal", "xyz789mfp", "refresh_xyz789", "2026-06-23T00:00:00Z", "mfp_user_456"),
+    ]
+
+    for platform, access_token, refresh_token, expires, platform_user_id in platforms_data:
+        cursor.execute(
+            "INSERT INTO platform_connections (user_id, platform, access_token, refresh_token, token_expires_at, platform_user_id, connected_at, last_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (user_id, platform, access_token, refresh_token, expires, platform_user_id, now, now)
+        )
+
+    conn.commit()
+
+# Database helper
+def get_db():
+    """Get database connection."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+# Auth helpers
+def hash_password(password: str) -> str:
+    """Hash password with bcrypt."""
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def verify_password(password: str, password_hash: str) -> bool:
+    """Verify password against hash."""
+    return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
+
+# Base handler with auth
+class BaseHandler(tornado.web.RequestHandler):
+    """Base handler with auth and CORS support."""
+
+    def set_default_headers(self):
+        """Set CORS headers."""
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        self.set_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        self.set_header("Content-Type", "application/json")
+
+    def options(self, *args, **kwargs):
+        """Handle OPTIONS requests."""
+        self.set_status(204)
+        self.finish()
+
+    def get_current_user(self) -> Optional[Dict[str, Any]]:
+        """Get current user from secure cookie."""
+        user_id = self.get_secure_cookie(COOKIE_NAME, max_age_days=30)
+        if not user_id:
+            return None
+
+        try:
+            user_id = int(user_id.decode('utf-8'))
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, email, name, role, created_at FROM users WHERE id = ?", (user_id,))
+            user = cursor.fetchone()
+            conn.close()
+
+            if user:
+                return dict(user)
+            return None
+        except Exception as e:
+            print(f"Error getting current user: {e}")
+            return None
+
+    def require_auth(self):
+        """Check if user is authenticated."""
+        if not self.get_current_user():
+            self.set_status(401)
+            self.finish({"error": "Unauthorized"})
+            return False
+        return True
+
+    def write_error(self, status_code, **kwargs):
+        """Write error response."""
+        self.set_header("Content-Type", "application/json")
+        error_message = "Internal server error"
+
+        if status_code == 400:
+            error_message = "Bad request"
+        elif status_code == 401:
+            error_message = "Unauthorized"
+        elif status_code == 404:
+            error_message = "Not found"
+
+        self.write({"error": error_message, "status": status_code})
+
+# Auth Routes
+class RegisterHandler(BaseHandler):
+    """Register new user."""
+
+    def post(self):
+        try:
+            data = json.loads(self.request.body.decode('utf-8'))
+            email = data.get('email', '').strip()
+            name = data.get('name', '').strip()
+            password = data.get('password', '')
+
+            if not all([email, name, password]):
+                self.set_status(400)
+                self.write({"error": "Missing required fields"})
+                return
+
+            if len(password) < 6:
+                self.set_status(400)
+                self.write({"error": "Password must be at least 6 characters"})
+                return
+
+            password_hash = hash_password(password)
+            now = datetime.datetime.utcnow().isoformat()
+
+            conn = get_db()
+            cursor = conn.cursor()
+            try:
+                cursor.execute(
+                    "INSERT INTO users (email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)",
+                    (email, name, password_hash, 'athlete', now)
+                )
+                conn.commit()
+                user_id = cursor.lastrowid
+
+                # Set secure cookie
+                self.set_secure_cookie(COOKIE_NAME, str(user_id), expires_days=30)
+
+                self.write({
+                    "id": user_id,
+                    "email": email,
+                    "name": name,
+                    "role": "athlete",
+                    "created_at": now
+                })
+            except sqlite3.IntegrityError:
+                conn.close()
+                self.set_status(400)
+                self.write({"error": "Email already registered"})
+                return
+            finally:
+                conn.close()
+        except Exception as e:
+            print(f"Register error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+class LoginHandler(BaseHandler):
+    """Login user."""
+
+    def post(self):
+        try:
+            data = json.loads(self.request.body.decode('utf-8'))
+            email = data.get('email', '').strip()
+            password = data.get('password', '')
+
+            if not all([email, password]):
+                self.set_status(400)
+                self.write({"error": "Missing email or password"})
+                return
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+            user = cursor.fetchone()
+            conn.close()
+
+            if not user or not verify_password(password, user['password_hash']):
+                self.set_status(401)
+                self.write({"error": "Invalid credentials"})
+                return
+
+            # Set secure cookie
+            self.set_secure_cookie(COOKIE_NAME, str(user['id']), expires_days=30)
+
+            self.write({
+                "id": user['id'],
+                "email": user['email'],
+                "name": user['name'],
+                "role": user['role'],
+                "created_at": user['created_at']
+            })
+        except Exception as e:
+            print(f"Login error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+class LogoutHandler(BaseHandler):
+    """Logout user."""
+
+    def post(self):
+        try:
+            self.clear_cookie(COOKIE_NAME)
+            self.write({"message": "Logged out"})
+        except Exception as e:
+            print(f"Logout error: {e}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+class MeHandler(BaseHandler):
+    """Get current user."""
+
+    def get(self):
+        try:
+            user = self.get_current_user()
+            if not user:
+                self.set_status(401)
+                self.write({"error": "Unauthorized"})
+                return
+
+            self.write(user)
+        except Exception as e:
+            print(f"Me handler error: {e}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+# Dashboard Route
+class DashboardHandler(BaseHandler):
+    """Get comprehensive dashboard data."""
+
+    def get(self):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+            conn = get_db()
+            cursor = conn.cursor()
+
+            # Get user goals
+            cursor.execute(
+                "SELECT id, name, type, target_value, current_value, unit, status FROM goals WHERE user_id = ? AND status = 'active' ORDER BY id DESC LIMIT 5",
+                (user_id,)
+            )
+            goals = [dict(row) for row in cursor.fetchall()]
+
+            # Get stats
+            cursor.execute("SELECT COUNT(*) as count FROM activities WHERE user_id = ?", (user_id,))
+            total_workouts = cursor.fetchone()['count']
+
+            cursor.execute("SELECT SUM(calories) as total FROM activities WHERE user_id = ?", (user_id,))
+            calories_burned = cursor.fetchone()['total'] or 0
+
+            cursor.execute("SELECT SUM(distance_meters) / 1609.34 as distance FROM activities WHERE user_id = ?", (user_id,))
+            distance = cursor.fetchone()['distance'] or 0
+
+            # Get latest recovery score
+            cursor.execute("SELECT recovery_score FROM recovery_metrics WHERE user_id = ? ORDER BY date DESC LIMIT 1", (user_id,))
+            recovery_row = cursor.fetchone()
+            recovery_score = recovery_row['recovery_score'] if recovery_row else 75
+
+            # Get latest metrics
+            cursor.execute(
+                "SELECT steps, calories_active FROM daily_summaries WHERE user_id = ? ORDER BY date DESC LIMIT 1",
+                (user_id,)
+            )
+            latest_summary = cursor.fetchone()
+            steps = latest_summary['steps'] if latest_summary else 8200
+            calories_active = latest_summary['calories_active'] if latest_summary else 406
+
+            # Get recent activities
+            cursor.execute(
+                "SELECT id, name, type, sport, start_time, duration_seconds, distance_meters, calories FROM activities WHERE user_id = ? ORDER BY start_time DESC LIMIT 5",
+                (user_id,)
+            )
+            recent_activities = [dict(row) for row in cursor.fetchall()]
+
+            # Get connected platforms
+            cursor.execute(
+                "SELECT id, platform, connected_at, last_synced FROM platform_connections WHERE user_id = ?",
+                (user_id,)
+            )
+            connected_platforms = [dict(row) for row in cursor.fetchall()]
+
+            # Generate readiness forecast (hardcoded demo data)
+            readiness_forecast = [
+                {"day": "Mon", "score": 77},
+                {"day": "Tue", "score": 72},
+                {"day": "Wed", "score": 85},
+                {"day": "Thu", "score": 68},
+                {"day": "Fri", "score": 79},
+                {"day": "Sat", "score": 88},
+                {"day": "Sun", "score": 82},
+            ]
+
+            # Generate trends
+            cursor.execute(
+                "SELECT date, recovery_score FROM recovery_metrics WHERE user_id = ? ORDER BY date DESC LIMIT 7",
+                (user_id,)
+            )
+            trends = [dict(row) for row in cursor.fetchall()]
+
+            # Activity distribution
+            cursor.execute(
+                "SELECT type, COUNT(*) as count FROM activities WHERE user_id = ? GROUP BY type",
+                (user_id,)
+            )
+            activity_distribution = [{"type": row['type'], "count": row['count']} for row in cursor.fetchall()]
+
+            # Weekly activity
+            cursor.execute(
+                "SELECT DATE(start_time) as date, COUNT(*) as activities, COALESCE(SUM(distance_meters)/1609.34, 0) as distance FROM activities WHERE user_id = ? GROUP BY DATE(start_time) ORDER BY date DESC LIMIT 7",
+                (user_id,)
+            )
+            weekly_activity = [{"date": row['date'], "activities": row['activities'], "distance": round(row['distance'], 1)} for row in cursor.fetchall()]
+
+            conn.close()
+
+            self.write({
+                "user": user,
+                "readiness": {
+                    "forecast": readiness_forecast,
+                    "outlook": {"status": "ready", "message": "You're in great shape"},
+                    "tip": "Maintain your current training load and focus on sleep quality"
+                },
+                "metrics": {
+                    "recovery": recovery_score,
+                    "workouts": {"current": total_workouts, "goal": 20},
+                    "steps": steps,
+                    "strain": 14.2,
+                    "calories": calories_active,
+                    "protein": 145
+                },
+                "goals": goals,
+                "stats": {
+                    "totalWorkouts": total_workouts,
+                    "caloriesBurned": int(calories_burned),
+                    "distance": round(distance, 1),
+                    "recoveryScore": recovery_score
+                },
+                "trends": trends,
+                "activityDistribution": activity_distribution,
+                "weeklyActivity": weekly_activity,
+                "recentActivities": recent_activities,
+                "connectedPlatforms": connected_platforms
+            })
+        except Exception as e:
+            import sys
+            traceback.print_exc(file=sys.stderr)
+            print(f"Dashboard error: {e}\n{traceback.format_exc()}", flush=True)
+            self.set_status(500)
+            self.write({"error": "Server error", "detail": str(e)})
+
+# Activities Routes
+class ActivitiesHandler(BaseHandler):
+    """Get and create activities."""
+
+    def get(self):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            limit = int(self.get_argument('limit', 20))
+            offset = int(self.get_argument('offset', 0))
+            activity_type = self.get_argument('type', None)
+
+            conn = get_db()
+            cursor = conn.cursor()
+
+            if activity_type:
+                cursor.execute(
+                    "SELECT * FROM activities WHERE user_id = ? AND type = ? ORDER BY start_time DESC LIMIT ? OFFSET ?",
+                    (user_id, activity_type, limit, offset)
+                )
+            else:
+                cursor.execute(
+                    "SELECT * FROM activities WHERE user_id = ? ORDER BY start_time DESC LIMIT ? OFFSET ?",
+                    (user_id, limit, offset)
+                )
+
+            activities = [dict(row) for row in cursor.fetchall()]
+            conn.close()
+
+            self.write({"activities": activities})
+        except Exception as e:
+            print(f"Get activities error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+    def post(self):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            data = json.loads(self.request.body.decode('utf-8'))
+
+            required = ['name', 'type', 'start_time', 'duration_seconds']
+            if not all(k in data for k in required):
+                self.set_status(400)
+                self.write({"error": "Missing required fields"})
+                return
+
+            now = datetime.datetime.utcnow().isoformat()
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT INTO activities
+                (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, calories, avg_hr, max_hr, elevation_gain, description, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    user_id,
+                    data.get('platform', 'local'),
+                    data['name'],
+                    data['type'],
+                    data.get('sport'),
+                    data['start_time'],
+                    data['duration_seconds'],
+                    data.get('distance_meters'),
+                    data.get('calories'),
+                    data.get('avg_hr'),
+                    data.get('max_hr'),
+                    data.get('elevation_gain'),
+                    data.get('description'),
+                    now
+                )
+            )
+            conn.commit()
+            activity_id = cursor.lastrowid
+            conn.close()
+
+            self.set_status(201)
+            self.write({"id": activity_id, "message": "Activity created"})
+        except Exception as e:
+            print(f"Create activity error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+class ActivityDetailHandler(BaseHandler):
+    """Get single activity."""
+
+    def get(self, activity_id):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM activities WHERE id = ? AND user_id = ?", (int(activity_id), user_id))
+            activity = cursor.fetchone()
+            conn.close()
+
+            if not activity:
+                self.set_status(404)
+                self.write({"error": "Activity not found"})
+                return
+
+            self.write(dict(activity))
+        except Exception as e:
+            print(f"Get activity error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+# Workouts Routes
+class WorkoutsHandler(BaseHandler):
+    """Get and create workouts."""
+
+    def get(self):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM workouts WHERE user_id = ? ORDER BY created_at DESC LIMIT 20",
+                (user_id,)
+            )
+            workouts = [dict(row) for row in cursor.fetchall()]
+            conn.close()
+
+            self.write({"workouts": workouts})
+        except Exception as e:
+            print(f"Get workouts error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+    def post(self):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            data = json.loads(self.request.body.decode('utf-8'))
+
+            required = ['name', 'type', 'duration_minutes']
+            if not all(k in data for k in required):
+                self.set_status(400)
+                self.write({"error": "Missing required fields"})
+                return
+
+            now = datetime.datetime.utcnow().isoformat()
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT INTO workouts
+                (user_id, name, type, duration_minutes, rpe, notes, coach_feedback, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    user_id,
+                    data['name'],
+                    data['type'],
+                    data['duration_minutes'],
+                    data.get('rpe'),
+                    data.get('notes'),
+                    data.get('coach_feedback'),
+                    now
+                )
+            )
+            conn.commit()
+            workout_id = cursor.lastrowid
+            conn.close()
+
+            self.set_status(201)
+            self.write({"id": workout_id, "message": "Workout created"})
+        except Exception as e:
+            print(f"Create workout error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+class WorkoutTemplatesHandler(BaseHandler):
+    """Get workout templates."""
+
+    def get(self):
+        try:
+            templates = [
+                {"id": 1, "name": "HIIT Sprint", "type": "running", "duration_minutes": 30, "description": "High-intensity interval training"},
+                {"id": 2, "name": "Easy Run", "type": "running", "duration_minutes": 45, "description": "Recovery pace run"},
+                {"id": 3, "name": "Long Ride", "type": "cycling", "duration_minutes": 90, "description": "Endurance cycling session"},
+                {"id": 4, "name": "Strength Circuit", "type": "strength", "duration_minutes": 60, "description": "Full body strength training"},
+                {"id": 5, "name": "Yoga Flow", "type": "flexibility", "duration_minutes": 45, "description": "Relaxing yoga session"},
+                {"id": 6, "name": "Cross Training", "type": "cross_training", "duration_minutes": 40, "description": "Mixed modality workout"},
+            ]
+            self.write({"templates": templates})
+        except Exception as e:
+            print(f"Get templates error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+# Goals Routes
+class GoalsHandler(BaseHandler):
+    """Get and create goals."""
+
+    def get(self):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM goals WHERE user_id = ? ORDER BY id DESC",
+                (user_id,)
+            )
+            goals = [dict(row) for row in cursor.fetchall()]
+            conn.close()
+
+            self.write({"goals": goals})
+        except Exception as e:
+            print(f"Get goals error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+    def post(self):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            data = json.loads(self.request.body.decode('utf-8'))
+
+            required = ['name', 'type', 'target_value', 'unit', 'start_date', 'end_date']
+            if not all(k in data for k in required):
+                self.set_status(400)
+                self.write({"error": "Missing required fields"})
+                return
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT INTO goals
+                (user_id, name, type, target_value, current_value, unit, start_date, end_date, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    user_id,
+                    data['name'],
+                    data['type'],
+                    data['target_value'],
+                    data.get('current_value', 0),
+                    data['unit'],
+                    data['start_date'],
+                    data['end_date'],
+                    'active'
+                )
+            )
+            conn.commit()
+            goal_id = cursor.lastrowid
+            conn.close()
+
+            self.set_status(201)
+            self.write({"id": goal_id, "message": "Goal created"})
+        except Exception as e:
+            print(f"Create goal error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+class GoalDetailHandler(BaseHandler):
+    """Update goal."""
+
+    def put(self, goal_id):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            data = json.loads(self.request.body.decode('utf-8'))
+
+            conn = get_db()
+            cursor = conn.cursor()
+
+            # Verify ownership
+            cursor.execute("SELECT id FROM goals WHERE id = ? AND user_id = ?", (int(goal_id), user_id))
+            if not cursor.fetchone():
+                conn.close()
+                self.set_status(404)
+                self.write({"error": "Goal not found"})
+                return
+
+            updates = []
+            params = []
+
+            if 'current_value' in data:
+                updates.append("current_value = ?")
+                params.append(data['current_value'])
+
+            if 'status' in data:
+                updates.append("status = ?")
+                params.append(data['status'])
+
+            if updates:
+                params.append(int(goal_id))
+                cursor.execute(f"UPDATE goals SET {', '.join(updates)} WHERE id = ?", params)
+                conn.commit()
+
+            conn.close()
+            self.write({"message": "Goal updated"})
+        except Exception as e:
+            print(f"Update goal error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+# Reports Route
+class ReportsHandler(BaseHandler):
+    """Get performance report."""
+
+    def get(self):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            conn = get_db()
+            cursor = conn.cursor()
+
+            # Get metrics for report
+            cursor.execute("SELECT COUNT(*) as count FROM activities WHERE user_id = ?", (user_id,))
+            workout_count = cursor.fetchone()['count']
+
+            cursor.execute("SELECT AVG(recovery_score) as avg FROM recovery_metrics WHERE user_id = ?", (user_id,))
+            recovery_avg = cursor.fetchone()['avg'] or 0
+
+            cursor.execute("SELECT SUM(calories) as total FROM activities WHERE user_id = ?", (user_id,))
+            calories = cursor.fetchone()['total'] or 0
+
+            cursor.execute("SELECT AVG(total_minutes) as avg FROM sleep_records WHERE user_id = ?", (user_id,))
+            sleep_avg = cursor.fetchone()['avg'] or 0
+
+            conn.close()
+
+            self.write({
+                "period": "Last 30 days",
+                "overallScore": 78,
+                "workouts": {
+                    "count": workout_count,
+                    "score": 85,
+                    "feedback": "Excellent training consistency"
+                },
+                "recovery": {
+                    "score": int(recovery_avg) if recovery_avg else 75,
+                    "feedback": "Good recovery patterns",
+                    "trend": "improving"
+                },
+                "nutrition": {
+                    "caloriesBurned": int(calories),
+                    "score": 72,
+                    "feedback": "Maintain current nutrition plan"
+                },
+                "sleep": {
+                    "avgMinutes": int(sleep_avg) if sleep_avg else 420,
+                    "score": 80,
+                    "feedback": "Sleep quality is excellent"
+                },
+                "aiSummary": "You're performing well overall. Your training consistency and recovery metrics show good balance. Keep maintaining your current routine.",
+                "recommendations": [
+                    "Focus on increasing sleep consistency on weekends",
+                    "Consider adding 1-2 easy recovery days per week",
+                    "Your VO2 max is improving - great progress!"
+                ]
+            })
+        except Exception as e:
+            print(f"Reports error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+# Feed Routes
+class FeedHandler(BaseHandler):
+    """Get and create feed posts."""
+
+    def get(self):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            feed_type = self.get_argument('type', None)
+
+            conn = get_db()
+            cursor = conn.cursor()
+
+            if feed_type:
+                cursor.execute(
+                    "SELECT id, user_id, type, title, content, likes, comments_count, created_at FROM feed_posts WHERE type = ? ORDER BY created_at DESC LIMIT 20",
+                    (feed_type,)
+                )
+            else:
+                cursor.execute(
+                    "SELECT id, user_id, type, title, content, likes, comments_count, created_at FROM feed_posts ORDER BY created_at DESC LIMIT 20"
+                )
+
+            posts = [dict(row) for row in cursor.fetchall()]
+
+            # Get user info for each post
+            for post in posts:
+                cursor.execute("SELECT name, email FROM users WHERE id = ?", (post['user_id'],))
+                user_info = cursor.fetchone()
+                if user_info:
+                    post['userName'] = user_info['name']
+                    post['userEmail'] = user_info['email']
+
+            conn.close()
+
+            self.write({"posts": posts})
+        except Exception as e:
+            print(f"Get feed error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+    def post(self):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            data = json.loads(self.request.body.decode('utf-8'))
+
+            if 'content' not in data or 'type' not in data:
+                self.set_status(400)
+                self.write({"error": "Missing required fields"})
+                return
+
+            now = datetime.datetime.utcnow().isoformat()
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO feed_posts (user_id, type, title, content, likes, comments_count, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    user_id,
+                    data['type'],
+                    data.get('title'),
+                    data['content'],
+                    0,
+                    0,
+                    now
+                )
+            )
+            conn.commit()
+            post_id = cursor.lastrowid
+            conn.close()
+
+            self.set_status(201)
+            self.write({"id": post_id, "message": "Post created"})
+        except Exception as e:
+            print(f"Create feed post error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+class FeedLikeHandler(BaseHandler):
+    """Like a feed post."""
+
+    def post(self, post_id):
+        try:
+            if not self.require_auth():
+                return
+
+            conn = get_db()
+            cursor = conn.cursor()
+
+            cursor.execute("SELECT likes FROM feed_posts WHERE id = ?", (int(post_id),))
+            post = cursor.fetchone()
+
+            if not post:
+                conn.close()
+                self.set_status(404)
+                self.write({"error": "Post not found"})
+                return
+
+            new_likes = (post['likes'] or 0) + 1
+            cursor.execute("UPDATE feed_posts SET likes = ? WHERE id = ?", (new_likes, int(post_id)))
+            conn.commit()
+            conn.close()
+
+            self.write({"likes": new_likes})
+        except Exception as e:
+            print(f"Like post error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+# Groups Routes
+class GroupsHandler(BaseHandler):
+    """Get and create groups."""
+
+    def get(self):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            conn = get_db()
+            cursor = conn.cursor()
+
+            # Get groups the user is a member of
+            cursor.execute("""
+                SELECT g.* FROM groups g
+                INNER JOIN group_members gm ON g.id = gm.group_id
+                WHERE gm.user_id = ?
+                ORDER BY g.created_by DESC LIMIT 20
+            """, (user_id,))
+
+            groups = [dict(row) for row in cursor.fetchall()]
+
+            # Get member count for each group
+            for group in groups:
+                cursor.execute("SELECT COUNT(*) as count FROM group_members WHERE group_id = ?", (group['id'],))
+                group['memberCount'] = cursor.fetchone()['count']
+
+            conn.close()
+
+            self.write({"groups": groups})
+        except Exception as e:
+            print(f"Get groups error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+    def post(self):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            data = json.loads(self.request.body.decode('utf-8'))
+
+            required = ['name', 'type', 'start_date', 'end_date']
+            if not all(k in data for k in required):
+                self.set_status(400)
+                self.write({"error": "Missing required fields"})
+                return
+
+            code = secrets.token_hex(4).upper()
+            now = datetime.datetime.utcnow().isoformat()
+
+            conn = get_db()
+            cursor = conn.cursor()
+
+            cursor.execute(
+                """INSERT INTO groups
+                (name, description, type, goal_value, goal_unit, start_date, end_date, code, created_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    data['name'],
+                    data.get('description'),
+                    data['type'],
+                    data.get('goal_value'),
+                    data.get('goal_unit'),
+                    data['start_date'],
+                    data['end_date'],
+                    code,
+                    user_id
+                )
+            )
+            conn.commit()
+            group_id = cursor.lastrowid
+
+            # Add creator as member
+            cursor.execute(
+                "INSERT INTO group_members (group_id, user_id, progress, joined_at) VALUES (?, ?, ?, ?)",
+                (group_id, user_id, 0, now)
+            )
+            conn.commit()
+            conn.close()
+
+            self.set_status(201)
+            self.write({"id": group_id, "code": code, "message": "Group created"})
+        except Exception as e:
+            print(f"Create group error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+class GroupJoinHandler(BaseHandler):
+    """Join group by code."""
+
+    def post(self):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            data = json.loads(self.request.body.decode('utf-8'))
+            code = data.get('code', '').strip()
+
+            if not code:
+                self.set_status(400)
+                self.write({"error": "Missing group code"})
+                return
+
+            now = datetime.datetime.utcnow().isoformat()
+
+            conn = get_db()
+            cursor = conn.cursor()
+
+            # Find group by code
+            cursor.execute("SELECT id FROM groups WHERE code = ?", (code,))
+            group = cursor.fetchone()
+
+            if not group:
+                conn.close()
+                self.set_status(404)
+                self.write({"error": "Group not found"})
+                return
+
+            group_id = group['id']
+
+            # Check if already member
+            cursor.execute("SELECT id FROM group_members WHERE group_id = ? AND user_id = ?", (group_id, user_id))
+            if cursor.fetchone():
+                conn.close()
+                self.set_status(400)
+                self.write({"error": "Already a member"})
+                return
+
+            # Add member
+            cursor.execute(
+                "INSERT INTO group_members (group_id, user_id, progress, joined_at) VALUES (?, ?, ?, ?)",
+                (group_id, user_id, 0, now)
+            )
+            conn.commit()
+            conn.close()
+
+            self.write({"message": "Joined group"})
+        except Exception as e:
+            print(f"Join group error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+class GroupLeaderboardHandler(BaseHandler):
+    """Get group leaderboard."""
+
+    def get(self, group_id):
+        try:
+            if not self.require_auth():
+                return
+
+            conn = get_db()
+            cursor = conn.cursor()
+
+            # Get group info
+            cursor.execute("SELECT * FROM groups WHERE id = ?", (int(group_id),))
+            group = cursor.fetchone()
+
+            if not group:
+                conn.close()
+                self.set_status(404)
+                self.write({"error": "Group not found"})
+                return
+
+            # Get leaderboard
+            cursor.execute("""
+                SELECT gm.progress, u.name, u.id FROM group_members gm
+                INNER JOIN users u ON gm.user_id = u.id
+                WHERE gm.group_id = ?
+                ORDER BY gm.progress DESC
+            """, (int(group_id),))
+
+            leaderboard = []
+            for rank, row in enumerate(cursor.fetchall(), 1):
+                leaderboard.append({
+                    "rank": rank,
+                    "userId": row['id'],
+                    "name": row['name'],
+                    "progress": row['progress']
+                })
+
+            conn.close()
+
+            self.write({
+                "group": dict(group),
+                "leaderboard": leaderboard
+            })
+        except Exception as e:
+            print(f"Get leaderboard error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+# Integrations Routes
+class IntegrationsHandler(BaseHandler):
+    """Get platform connections."""
+
+    def get(self):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT id, platform, connected_at, last_synced FROM platform_connections WHERE user_id = ?",
+                (user_id,)
+            )
+            connections = [dict(row) for row in cursor.fetchall()]
+            conn.close()
+
+            # Add available platforms
+            all_platforms = ['strava', 'myfitnesspal', 'whoop', 'garmin', 'apple_health', 'fitbit']
+            connected = {c['platform'] for c in connections}
+
+            self.write({
+                "connected": connections,
+                "available": [p for p in all_platforms if p not in connected]
+            })
+        except Exception as e:
+            print(f"Get integrations error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+class IntegrationConnectHandler(BaseHandler):
+    """Connect platform (simulate OAuth)."""
+
+    def post(self, platform):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            # Simulate OAuth - generate mock tokens
+            access_token = f"{platform}_access_{secrets.token_hex(16)}"
+            refresh_token = f"{platform}_refresh_{secrets.token_hex(16)}"
+            platform_user_id = f"{platform}_user_{uuid.uuid4().hex[:8]}"
+
+            now = datetime.datetime.utcnow().isoformat()
+            expires_at = (datetime.datetime.utcnow() + datetime.timedelta(days=90)).isoformat()
+
+            conn = get_db()
+            cursor = conn.cursor()
+
+            # Check if already connected
+            cursor.execute("SELECT id FROM platform_connections WHERE user_id = ? AND platform = ?", (user_id, platform))
+            if cursor.fetchone():
+                # Update existing connection
+                cursor.execute(
+                    "UPDATE platform_connections SET access_token = ?, refresh_token = ?, token_expires_at = ?, last_synced = ? WHERE user_id = ? AND platform = ?",
+                    (access_token, refresh_token, expires_at, now, user_id, platform)
+                )
+            else:
+                # Create new connection
+                cursor.execute(
+                    "INSERT INTO platform_connections (user_id, platform, access_token, refresh_token, token_expires_at, platform_user_id, connected_at, last_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (user_id, platform, access_token, refresh_token, expires_at, platform_user_id, now, now)
+                )
+
+            conn.commit()
+            conn.close()
+
+            self.write({
+                "platform": platform,
+                "connected": True,
+                "platformUserId": platform_user_id,
+                "lastSynced": now
+            })
+        except Exception as e:
+            print(f"Connect integration error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+class IntegrationDisconnectHandler(BaseHandler):
+    """Disconnect platform."""
+
+    def delete(self, platform):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM platform_connections WHERE user_id = ? AND platform = ?", (user_id, platform))
+            conn.commit()
+            conn.close()
+
+            self.write({"message": f"Disconnected from {platform}"})
+        except Exception as e:
+            print(f"Disconnect integration error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+class IntegrationSyncHandler(BaseHandler):
+    """Sync data from platform."""
+
+    def post(self, platform):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            conn = get_db()
+            cursor = conn.cursor()
+
+            # Verify platform is connected
+            cursor.execute("SELECT id FROM platform_connections WHERE user_id = ? AND platform = ?", (user_id, platform))
+            if not cursor.fetchone():
+                conn.close()
+                self.set_status(404)
+                self.write({"error": "Platform not connected"})
+                return
+
+            # Simulate sync - generate sample activity
+            now = datetime.datetime.utcnow().isoformat()
+            today = datetime.date.today().isoformat()
+
+            cursor.execute(
+                """INSERT INTO activities
+                (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, calories, avg_hr, max_hr, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    user_id,
+                    platform,
+                    f"Synced from {platform}",
+                    "sync",
+                    platform,
+                    today + "T12:00:00Z",
+                    1800,
+                    5000,
+                    250,
+                    130,
+                    150,
+                    now
+                )
+            )
+
+            # Update last_synced
+            cursor.execute(
+                "UPDATE platform_connections SET last_synced = ? WHERE user_id = ? AND platform = ?",
+                (now, user_id, platform)
+            )
+
+            conn.commit()
+            conn.close()
+
+            self.write({
+                "platform": platform,
+                "synced": True,
+                "lastSynced": now,
+                "itemsSynced": 1
+            })
+        except Exception as e:
+            print(f"Sync integration error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+# Notifications Routes
+class NotificationsHandler(BaseHandler):
+    """Get notifications."""
+
+    def get(self):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 20",
+                (user_id,)
+            )
+            notifications = [dict(row) for row in cursor.fetchall()]
+            conn.close()
+
+            self.write({"notifications": notifications})
+        except Exception as e:
+            print(f"Get notifications error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+class NotificationReadHandler(BaseHandler):
+    """Mark notification as read."""
+
+    def put(self, notification_id):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            conn = get_db()
+            cursor = conn.cursor()
+
+            # Verify ownership
+            cursor.execute("SELECT id FROM notifications WHERE id = ? AND user_id = ?", (int(notification_id), user_id))
+            if not cursor.fetchone():
+                conn.close()
+                self.set_status(404)
+                self.write({"error": "Notification not found"})
+                return
+
+            cursor.execute("UPDATE notifications SET read = 1 WHERE id = ?", (int(notification_id),))
+            conn.commit()
+            conn.close()
+
+            self.write({"message": "Notification marked as read"})
+        except Exception as e:
+            print(f"Read notification error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+# Webhook Routes
+class StravaWebhookVerifyHandler(BaseHandler):
+    """Verify Strava webhook."""
+
+    def get(self):
+        try:
+            challenge = self.get_argument('hub.challenge', None)
+            if challenge:
+                self.write({"hub.challenge": challenge})
+            else:
+                self.set_status(400)
+                self.write({"error": "Missing challenge"})
+        except Exception as e:
+            print(f"Strava verify error: {e}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+class StravaWebhookHandler(BaseHandler):
+    """Receive Strava webhook."""
+
+    def post(self):
+        try:
+            data = json.loads(self.request.body.decode('utf-8'))
+            print(f"Strava webhook received: {data}")
+            self.write({"message": "Webhook received"})
+        except Exception as e:
+            print(f"Strava webhook error: {e}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+class WhoopWebhookHandler(BaseHandler):
+    """Receive WHOOP webhook."""
+
+    def post(self):
+        try:
+            data = json.loads(self.request.body.decode('utf-8'))
+            print(f"WHOOP webhook received: {data}")
+            self.write({"message": "Webhook received"})
+        except Exception as e:
+            print(f"WHOOP webhook error: {e}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+# Static file handler
+class SPAHandler(tornado.web.RequestHandler):
+    """Serve index.html for SPA routing."""
+
+    def get(self, path=""):
+        try:
+            index_path = os.path.join(STATIC_DIR, "index.html")
+            with open(index_path, "r") as f:
+                self.set_header("Content-Type", "text/html")
+                self.write(f.read())
+        except Exception as e:
+            print(f"SPA handler error: {e}")
+            self.set_status(404)
+            self.write("Not found")
+
+# Main application
+def make_app():
+    """Create Tornado application."""
+    return tornado.web.Application([
+        # Auth routes
+        (r"/api/auth/register", RegisterHandler),
+        (r"/api/auth/login", LoginHandler),
+        (r"/api/auth/logout", LogoutHandler),
+        (r"/api/auth/me", MeHandler),
+
+        # Dashboard
+        (r"/api/dashboard", DashboardHandler),
+
+        # Activities
+        (r"/api/activities", ActivitiesHandler),
+        (r"/api/activities/([0-9]+)", ActivityDetailHandler),
+
+        # Workouts
+        (r"/api/workouts", WorkoutsHandler),
+        (r"/api/workouts/templates", WorkoutTemplatesHandler),
+
+        # Goals
+        (r"/api/goals", GoalsHandler),
+        (r"/api/goals/([0-9]+)", GoalDetailHandler),
+
+        # Reports
+        (r"/api/reports", ReportsHandler),
+
+        # Feed
+        (r"/api/feed", FeedHandler),
+        (r"/api/feed/([0-9]+)/like", FeedLikeHandler),
+
+        # Groups
+        (r"/api/groups", GroupsHandler),
+        (r"/api/groups/join", GroupJoinHandler),
+        (r"/api/groups/([0-9]+)/leaderboard", GroupLeaderboardHandler),
+
+        # Integrations
+        (r"/api/integrations", IntegrationsHandler),
+        (r"/api/integrations/([a-z_]+)/connect", IntegrationConnectHandler),
+        (r"/api/integrations/([a-z_]+)", IntegrationDisconnectHandler),
+        (r"/api/integrations/([a-z_]+)/sync", IntegrationSyncHandler),
+
+        # Notifications
+        (r"/api/notifications", NotificationsHandler),
+        (r"/api/notifications/([0-9]+)/read", NotificationReadHandler),
+
+        # Webhooks
+        (r"/api/webhooks/strava", StravaWebhookHandler),
+        (r"/api/webhooks/whoop", WhoopWebhookHandler),
+
+        # Static files
+        (r"/static/(.*)", tornado.web.StaticFileHandler, {"path": STATIC_DIR}),
+        # SPA fallback - serve index.html for all other routes
+        (r"/(.*)", SPAHandler),
+    ],
+    cookie_secret=COOKIE_SECRET,
+    static_path=STATIC_DIR,
+    debug=True
+    )
+
+if __name__ == "__main__":
+    # Initialize database
+    init_database()
+
+    # Create app
+    app = make_app()
+
+    print(f"PerformanceHub server starting on port {PORT}")
+    print(f"Database: {DB_PATH}")
+    print(f"Static files: {STATIC_DIR}")
+    print(f"Demo user: demo@performancehub.com / demo123")
+
+    # Start server
+    app.listen(PORT)
+    tornado.ioloop.IOLoop.current().start()
