@@ -1055,35 +1055,43 @@
       const data = reportsData || {};
 
       const renderGauge = (score, label, status) => {
-        const gaugeData = [
-          { name: label, value: score, fill: score >= 75 ? '#10B981' : score >= 65 ? '#FBBF24' : '#EF4444' },
-          { name: 'remaining', value: 100 - score, fill: '#e5e7eb' },
-        ];
+        const color = score >= 75 ? '#10B981' : score >= 65 ? '#FBBF24' : '#EF4444';
+        const cx = 70, cy = 70, r = 60, thickness = 15;
+        const innerR = r - thickness;
+        const pct = Math.min(100, Math.max(0, score)) / 100;
+        const describeArc = (startDeg, endDeg, outerR, innerRadius) => {
+          const toRad = (d) => (d * Math.PI) / 180;
+          const sx = cx + outerR * Math.cos(toRad(startDeg));
+          const sy = cy - outerR * Math.sin(toRad(startDeg));
+          const ex = cx + outerR * Math.cos(toRad(endDeg));
+          const ey = cy - outerR * Math.sin(toRad(endDeg));
+          const ix = cx + innerRadius * Math.cos(toRad(endDeg));
+          const iy = cy - innerRadius * Math.sin(toRad(endDeg));
+          const isx = cx + innerRadius * Math.cos(toRad(startDeg));
+          const isy = cy - innerRadius * Math.sin(toRad(startDeg));
+          const sweep = startDeg - endDeg;
+          const largeArc = sweep > 180 ? 1 : 0;
+          return [
+            `M ${sx} ${sy}`,
+            `A ${outerR} ${outerR} 0 ${largeArc} 1 ${ex} ${ey}`,
+            `L ${ix} ${iy}`,
+            `A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${isx} ${isy}`,
+            'Z'
+          ].join(' ');
+        };
+        const bgPath = describeArc(180, 0, r, innerR);
+        const endAngle = 180 - (pct * 180);
+        const valuePath = pct > 0 ? describeArc(180, Math.max(0, endAngle), r, innerR) : '';
 
         return (
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex flex-col items-center">
-              <div style={{ position: 'relative', width: 140, height: 90 }}>
-                <ResponsiveContainer width="100%" height={90}>
-                  <PieChart>
-                    <Pie
-                      data={gaugeData}
-                      cx="50%"
-                      cy="100%"
-                      startAngle={180}
-                      endAngle={0}
-                      innerRadius={45}
-                      outerRadius={60}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {gaugeData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-                <div style={{ position: 'absolute', bottom: 4, left: 0, right: 0, textAlign: 'center' }}>
+              <div style={{ position: 'relative', width: 140, height: 80 }}>
+                <svg width="140" height="80" viewBox="0 0 140 80">
+                  <path d={bgPath} fill="#e5e7eb" />
+                  {pct > 0 && <path d={valuePath} fill={color} />}
+                </svg>
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, textAlign: 'center' }}>
                   <span className="text-3xl font-bold text-gray-900">{score}</span>
                 </div>
               </div>
