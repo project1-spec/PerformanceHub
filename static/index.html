@@ -1765,9 +1765,7 @@
       const [settingsData, setSettingsData] = useState(null);
       const [loading, setLoading] = useState(true);
       const [error, setError] = useState('');
-      const [tab, setTab] = useState('integrations');
-
-      const [oauthMessage, setOauthMessage] = useState('');
+      const ['integrations', 'notifications', 'appearance', 'security', 'privacy'] = useState('');
 
       useEffect(() => {
         // Check for OAuth callback params
