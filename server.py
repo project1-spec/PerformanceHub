@@ -656,10 +656,32 @@ class DashboardHandler(BaseHandler):
 
             # Get recent activities
             cursor.execute(
-                "SELECT id, name, type, sport, start_time, duration_seconds, distance_meters, calories FROM activities WHERE user_id = ? ORDER BY start_time DESC LIMIT 5",
+                "SELECT id, platform, name, type, sport, start_time, duration_seconds, distance_meters, calories FROM activities WHERE user_id = ? ORDER BY start_time DESC LIMIT 5",
                 (user_id,)
             )
-            recent_activities = [dict(row) for row in cursor.fetchall()]
+            recent_activities_raw = [dict(row) for row in cursor.fetchall()]
+            recent_activities = []
+            for act in recent_activities_raw:
+                # Format distance from meters to km
+                dist_km = round((act.get('distance_meters') or 0) / 1000, 1)
+                # Format duration from seconds to minutes
+                dur_min = round((act.get('duration_seconds') or 0) / 60)
+                # Calculate timeAgo
+                try:
+                    st = datetime.datetime.fromisoformat(act.get('start_time', ''))
+                    delta = datetime.datetime.now() - st
+                    if delta.days > 0:
+                        time_ago = f"{delta.days}d ago"
+                    elif delta.seconds >= 3600:
+                        time_ago = f"{delta.seconds // 3600}h ago"
+                    else:
+                        time_ago = f"{delta.seconds // 60}m ago"
+                except Exception:
+                    time_ago = "recently"
+                act['distance'] = dist_km
+                act['duration'] = dur_min
+                act['timeAgo'] = time_ago
+                recent_activities.append(act)
 
             # Get connected platforms
             cursor.execute(
