@@ -1,0 +1,2097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PerformanceHub - Fitness Analytics</title>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/recharts@2/umd/Recharts.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(46, 117, 182, 0.3);
+      border-radius: 50%;
+      border-top-color: #2E75B6;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .gauge-container {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      margin: 0 auto;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, createContext, useContext } = React;
+    const { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } = window.Recharts;
+
+    // ============================================================================
+    // SVG Icons
+    // ============================================================================
+    const Icons = {
+      Home: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+      ),
+      Dumbbell: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M6 4h12M4 4v16M20 4v16M6 20h12" />
+        </svg>
+      ),
+      FileText: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="12" y1="13" x2="12" y2="17" />
+          <line x1="12" y1="13" x2="16" y2="13" />
+        </svg>
+      ),
+      Target: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10" />
+          <circle cx="12" cy="12" r="6" />
+          <circle cx="12" cy="12" r="2" />
+        </svg>
+      ),
+      Users: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+      ),
+      Rss: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16" />
+          <circle cx="5" cy="19" r="1" />
+        </svg>
+      ),
+      BarChart3: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="12" y1="3" x2="12" y2="15" />
+          <line x1="18" y1="6" x2="18" y2="15" />
+          <line x1="6" y1="9" x2="6" y2="15" />
+          <path d="M4 20h16" />
+        </svg>
+      ),
+      Bell: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
+      ),
+      Settings: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m3.08 3.08l4.24 4.24M1 12h6m6 0h6m-17.78 7.78l4.24-4.24m3.08-3.08l4.24-4.24" />
+        </svg>
+      ),
+      User: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      ),
+      LogOut: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+      ),
+      RefreshCw: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polyline points="23 4 23 10 17 10" />
+          <polyline points="1 20 1 14 7 14" />
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36M20.49 15a9 9 0 0 1-14.85 3.36" />
+        </svg>
+      ),
+      Download: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+      ),
+      Plus: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      ),
+      Heart: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+        </svg>
+      ),
+      MessageCircle: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      ),
+      Share2: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="18" cy="5" r="3" />
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="19" r="3" />
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+        </svg>
+      ),
+      ChevronRight: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      ),
+      Trophy: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M6 9H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2" />
+          <path d="M6 9c0 1 1 3 6 3s6-2 6-3" />
+          <path d="M6 9v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9" />
+          <path d="M9 5v2M15 5v2" />
+        </svg>
+      ),
+      Medal: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="7" cy="8" r="5" />
+          <circle cx="17" cy="8" r="5" />
+          <path d="M7 13v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-5" />
+        </svg>
+      ),
+      Activity: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+        </svg>
+      ),
+      Flame: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M8.5 14.5A4.5 4.5 0 0 0 12 19a4 4 0 0 1-4.5-4.5" />
+          <path d="M12 2v5m0 0a5 5 0 0 1 5 5c0 5-3 7.5-5 7.5s-5-2.5-5-7.5a5 5 0 0 1 5-5" />
+        </svg>
+      ),
+      Footprints: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M4 15s1-1 2-1s1.5.5 2 1l.5-7a1.5 1.5 0 0 1 3 0l.5 7c.5-.5 1-1 2-1s2 1 2 1" />
+          <path d="M12 13v8M8 21h8" />
+        </svg>
+      ),
+      Moon: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      ),
+      Zap: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+        </svg>
+      ),
+      TrendingUp: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polyline points="23 6 13.5 15.5 8.5 10.5 1 17" />
+          <polyline points="17 6 23 6 23 12" />
+        </svg>
+      ),
+      TrendingDown: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" />
+          <polyline points="17 18 23 18 23 12" />
+        </svg>
+      ),
+      Check: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      ),
+      AlertTriangle: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3.04h16.94a2 2 0 0 0 1.71-3.04l-8.47-14.14a2 2 0 0 0-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+      ),
+      Clock: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      ),
+      MapPin: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+          <circle cx="12" cy="10" r="3" />
+        </svg>
+      ),
+      Link2: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M15 7h3a5 5 0 0 1 5 5 5 5 0 0 1-5 5h-3m-6 0H6a5 5 0 0 1-5-5 5 5 0 0 1 5-5h3" />
+          <line x1="8" y1="12" x2="16" y2="12" />
+        </svg>
+      ),
+      X: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      ),
+    };
+
+    // ============================================================================
+    // Auth Context
+    // ============================================================================
+    const AuthContext = createContext(null);
+
+    const AuthProvider = ({ children }) => {
+      const [user, setUser] = useState(null);
+      const [loading, setLoading] = useState(true);
+
+      useEffect(() => {
+        const checkAuth = async () => {
+          try {
+            const res = await fetch('/api/auth/me');
+            if (res.ok) {
+              const data = await res.json();
+              setUser(data);
+            } else {
+              setUser(null);
+            }
+          } catch (err) {
+            console.error('Auth check failed:', err);
+            setUser(null);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        checkAuth();
+      }, []);
+
+      const login = async (email, password) => {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (!res.ok) {
+          throw new Error('Login failed');
+        }
+
+        const data = await res.json();
+        setUser(data.user);
+        return data;
+      };
+
+      const register = async (name, email, password) => {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password }),
+        });
+
+        if (!res.ok) {
+          throw new Error('Registration failed');
+        }
+
+        const data = await res.json();
+        setUser(data.user);
+        return data;
+      };
+
+      const logout = async () => {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        setUser(null);
+        window.location.hash = '#/login';
+      };
+
+      return (
+        <AuthContext.Provider value={{ user, setUser, loading, login, register, logout }}>
+          {children}
+        </AuthContext.Provider>
+      );
+    };
+
+    const useAuth = () => useContext(AuthContext);
+
+    // ============================================================================
+    // Pages
+    // ============================================================================
+
+    // Login Page
+    const LoginPage = () => {
+      const [email, setEmail] = useState('demo@performancehub.com');
+      const [password, setPassword] = useState('demo123');
+      const [error, setError] = useState('');
+      const [loading, setLoading] = useState(false);
+      const { login } = useAuth();
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        try {
+          await login(email, password);
+          window.location.hash = '#/';
+        } catch (err) {
+          setError(err.message || 'Login failed');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-600 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md p-8">
+            <h1 className="text-3xl font-bold text-primary-900 mb-2">PerformanceHub</h1>
+            <p className="text-gray-600 mb-6">Fitness Analytics Platform</p>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="demo@performancehub.com"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="demo123"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
+              >
+                {loading ? <span className="spinner" /> : 'Sign In'}
+              </button>
+            </form>
+
+            <p className="text-center text-gray-600 mt-6">
+              Don't have an account?{' '}
+              <a href="#/register" className="text-primary-600 hover:text-primary-700 font-medium">
+                Sign Up
+              </a>
+            </p>
+          </div>
+        </div>
+      );
+    };
+
+    // Register Page
+    const RegisterPage = () => {
+      const [name, setName] = useState('');
+      const [email, setEmail] = useState('');
+      const [password, setPassword] = useState('');
+      const [confirmPassword, setConfirmPassword] = useState('');
+      const [error, setError] = useState('');
+      const [loading, setLoading] = useState(false);
+      const { register } = useAuth();
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+
+        if (password !== confirmPassword) {
+          setError('Passwords do not match');
+          return;
+        }
+
+        setLoading(true);
+
+        try {
+          await register(name, email, password);
+          window.location.hash = '#/';
+        } catch (err) {
+          setError(err.message || 'Registration failed');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-600 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md p-8">
+            <h1 className="text-3xl font-bold text-primary-900 mb-2">PerformanceHub</h1>
+            <p className="text-gray-600 mb-6">Create Your Account</p>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">Full Name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="John Doe"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">Confirm Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
+              >
+                {loading ? <span className="spinner" /> : 'Create Account'}
+              </button>
+            </form>
+
+            <p className="text-center text-gray-600 mt-6">
+              Already have an account?{' '}
+              <a href="#/login" className="text-primary-600 hover:text-primary-700 font-medium">
+                Sign In
+              </a>
+            </p>
+          </div>
+        </div>
+      );
+    };
+
+    // Dashboard Page
+    const DashboardPage = () => {
+      const { user } = useAuth();
+      const [dashboardData, setDashboardData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+
+      useEffect(() => {
+        const fetchDashboard = async () => {
+          try {
+            const res = await fetch('/api/dashboard');
+            if (!res.ok) throw new Error('Failed to fetch dashboard');
+            const data = await res.json();
+            setDashboardData(data);
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchDashboard();
+      }, []);
+
+      if (loading) {
+        return (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="spinner" />
+          </div>
+        );
+      }
+
+      if (error) {
+        return (
+          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">
+            Error: {error}
+          </div>
+        );
+      }
+
+      const data = dashboardData || {};
+
+      return (
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user?.name}!</h1>
+            {data.connectedPlatform && (
+              <span className="bg-blue-100 text-primary-600 px-3 py-1 rounded-full text-sm font-medium">
+                Connected: {data.connectedPlatform}
+              </span>
+            )}
+          </div>
+
+          {/* Quick Actions */}
+          <div className="grid grid-cols-4 gap-4">
+            <button className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2">
+              <Icons.Plus /> Log Workout
+            </button>
+            <button className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2">
+              <Icons.RefreshCw /> Sync Data
+            </button>
+            <button className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2">
+              <Icons.BarChart3 /> AI Report
+            </button>
+            <button className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2">
+              <Icons.Rss /> Activity Feed
+            </button>
+          </div>
+
+          {/* AI Readiness Insights */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">AI Readiness Insights</h2>
+
+            {/* 7-day forecast */}
+            <div className="flex gap-2 mb-6 overflow-x-auto">
+              {(data.weekForecast || []).map((day, idx) => (
+                <div key={idx} className="flex flex-col items-center gap-2 min-w-fit">
+                  <span className="text-xs font-medium text-gray-600">{day.day}</span>
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm font-bold text-white ${
+                      day.score >= 75
+                        ? 'bg-green-500'
+                        : day.score >= 65
+                        ? 'bg-yellow-500'
+                        : 'bg-orange-500'
+                    }`}
+                  >
+                    {day.score}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Week's Outlook */}
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              {data.weekOutlook && (
+                <>
+                  <div className="bg-blue-50 rounded p-3">
+                    <p className="text-xs text-gray-600 font-medium">Optimal Training Days</p>
+                    <p className="text-lg font-bold text-primary-600">{data.weekOutlook.optimalDays}</p>
+                  </div>
+                  <div className="bg-blue-50 rounded p-3">
+                    <p className="text-xs text-gray-600 font-medium">Peak Performance Day</p>
+                    <p className="text-lg font-bold text-primary-600">{data.weekOutlook.peakDay}</p>
+                  </div>
+                  <div className="bg-red-50 rounded p-3">
+                    <p className="text-xs text-gray-600 font-medium">Overtraining Risk</p>
+                    <p className="text-lg font-bold text-red-600">{data.weekOutlook.overtrainingRisk}%</p>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* AI Tip */}
+            <p className="text-sm text-gray-700">
+              💡 <strong>AI Tip:</strong> {data.aiTip || 'Stay consistent with your training routine.'}
+            </p>
+          </div>
+
+          {/* Key Performance Metrics */}
+          <div className="grid grid-cols-4 gap-4">
+            {/* Recovery */}
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-gray-600 text-sm font-medium">Recovery</span>
+                <Icons.Heart />
+              </div>
+              <p className="text-3xl font-bold text-gray-900">{data.recovery?.percentage || '85'}%</p>
+              <p className="text-xs text-green-600 mt-2">+8% vs last week</p>
+            </div>
+
+            {/* Workouts */}
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-gray-600 text-sm font-medium">Workouts</span>
+                <Icons.Dumbbell />
+              </div>
+              <p className="text-3xl font-bold text-gray-900">{data.workouts?.completed || '10'} / {data.workouts?.goal || '6'}</p>
+              <p className="text-xs text-green-600 mt-1">This week</p>
+              <p className="text-xs text-gray-600 mt-1">+2 vs last week</p>
+            </div>
+
+            {/* Steps & Strain */}
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-gray-600 text-sm font-medium">Steps & Strain</span>
+                <Icons.Zap />
+              </div>
+              <p className="text-3xl font-bold text-gray-900">{data.stepsStrain?.steps || '8.2'}k / {data.stepsStrain?.strain || '14.2'}</p>
+              <p className="text-xs text-red-600 mt-2">-5% vs last week</p>
+            </div>
+
+            {/* Nutrition */}
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-gray-600 text-sm font-medium">Nutrition</span>
+                <Icons.Flame />
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{data.nutrition?.calories || '406'} cal</p>
+              <p className="text-xs text-gray-600">{data.nutrition?.protein || '145'}g protein</p>
+              <p className="text-xs text-green-600 mt-1">+3% vs last week</p>
+            </div>
+          </div>
+
+          {/* Goal Progress */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Goal Progress</h2>
+            <div className="space-y-4">
+              {(data.goals || []).slice(0, 3).map((goal, idx) => (
+                <div key={idx}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-gray-900 font-medium">{goal.name}</span>
+                    <span className="text-gray-600 text-sm">{goal.progress}% / {goal.target}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-primary-600 h-2 rounded-full"
+                      style={{ width: `${goal.progress}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Stats Row */}
+          <div className="grid grid-cols-4 gap-4">
+            {[
+              { label: 'Total Workouts', value: '128', icon: Icons.Dumbbell },
+              { label: 'Calories Burned', value: '24,500', icon: Icons.Flame },
+              { label: 'Distance (mi)', value: '156', icon: Icons.Footprints },
+              { label: 'Recovery Score', value: '92', icon: Icons.Heart },
+            ].map((stat, idx) => (
+              <div key={idx} className="bg-white rounded-lg shadow p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-gray-600 text-sm font-medium">{stat.label}</p>
+                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                </div>
+                <div className="text-primary-600 opacity-50">
+                  <stat.icon />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Performance Trends */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Performance Trends (7 days)</h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={data.trendData || []}>
+                <defs>
+                  <linearGradient id="colorCalories" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2E75B6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#2E75B6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Area
+                  type="monotone"
+                  dataKey="calories"
+                  stroke="#2E75B6"
+                  fillOpacity={1}
+                  fill="url(#colorCalories)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Activity Distribution */}
+          <div className="grid grid-cols-2 gap-6">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Activity Distribution</h2>
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={data.activityDistribution || []}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, value }) => `${name}: ${value}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {(data.activityDistribution || []).map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={['#2E75B6', '#27B4C4', '#F59E0B', '#10B981', '#EF4444'][index % 5]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Weekly Activity Summary */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Weekly Activity</h2>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={data.weeklyActivity || []}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="distance" fill="#2E75B6" />
+                  <Bar dataKey="workouts" fill="#27B4C4" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Recent Activities */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Activities</h2>
+            <div className="space-y-3">
+              {(data.recentActivities || []).map((activity, idx) => (
+                <div key={idx} className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded">
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-bold ${
+                      activity.platform === 'strava'
+                        ? 'bg-orange-500'
+                        : activity.platform === 'whoop'
+                        ? 'bg-teal-500'
+                        : 'bg-blue-500'
+                    }`}
+                  >
+                    {activity.platform.toUpperCase().substring(0, 2)}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{activity.name}</p>
+                    <p className="text-xs text-gray-600">
+                      {activity.distance}km • {activity.duration} min
+                    </p>
+                  </div>
+                  <p className="text-xs text-gray-500">{activity.timeAgo}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // Workouts Page
+    const WorkoutsPage = () => {
+      const [workoutsData, setWorkoutsData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+      const [tab, setTab] = useState('history');
+
+      useEffect(() => {
+        const fetchWorkouts = async () => {
+          try {
+            const res = await fetch('/api/workouts');
+            if (!res.ok) throw new Error('Failed to fetch workouts');
+            const data = await res.json();
+            setWorkoutsData(data);
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchWorkouts();
+      }, []);
+
+      if (loading) {
+        return (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="spinner" />
+          </div>
+        );
+      }
+
+      if (error) {
+        return (
+          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">
+            Error: {error}
+          </div>
+        );
+      }
+
+      const data = workoutsData || {};
+
+      return (
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-gray-900">Workout Log</h1>
+            <button className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
+              <Icons.Plus /> Start Workout
+            </button>
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { label: 'This Week', value: data.thisWeek || '7', icon: Icons.Activity },
+              { label: 'Total Time', value: data.totalTime || '420 min', icon: Icons.Clock },
+              { label: 'Avg Intensity', value: data.avgIntensity || 'High', icon: Icons.Zap },
+            ].map((stat, idx) => (
+              <div key={idx} className="bg-white rounded-lg shadow p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-gray-600 text-sm font-medium">{stat.label}</p>
+                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                </div>
+                <div className="text-primary-600 opacity-50">
+                  <stat.icon />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-4 border-b border-gray-200">
+            <button
+              onClick={() => setTab('history')}
+              className={`px-4 py-2 font-medium ${
+                tab === 'history'
+                  ? 'text-primary-600 border-b-2 border-primary-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              History
+            </button>
+            <button
+              onClick={() => setTab('templates')}
+              className={`px-4 py-2 font-medium ${
+                tab === 'templates'
+                  ? 'text-primary-600 border-b-2 border-primary-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Templates
+            </button>
+          </div>
+
+          {/* History Tab */}
+          {tab === 'history' && (
+            <div className="space-y-4">
+              {(data.workoutHistory || []).map((workout, idx) => (
+                <div key={idx} className="bg-white rounded-lg shadow p-4">
+                  <div className="flex items-start gap-4">
+                    <div className="text-primary-600 mt-1">
+                      <Icons.Activity />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-bold text-gray-900">{workout.name}</h3>
+                        <span className="text-xs text-gray-600">{workout.date}</span>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">{workout.duration} min • RPE: {workout.rpe}</p>
+                      {workout.notes && <p className="text-sm text-gray-700 mb-2">{workout.notes}</p>}
+                      <div className="flex gap-2">
+                        <span className="bg-blue-100 text-primary-600 text-xs px-2 py-1 rounded">
+                          {workout.type}
+                        </span>
+                      </div>
+                      {workout.coachFeedback && (
+                        <div className="mt-3 bg-blue-50 border-l-4 border-primary-600 p-3">
+                          <p className="text-xs font-medium text-primary-600 mb-1">Coach Feedback</p>
+                          <p className="text-sm text-gray-700">{workout.coachFeedback}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Templates Tab */}
+          {tab === 'templates' && (
+            <div className="grid grid-cols-4 gap-4">
+              {(data.templates || []).map((template, idx) => (
+                <div key={idx} className="bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-lg transition">
+                  <h3 className="font-bold text-gray-900 mb-2">{template.name}</h3>
+                  <p className="text-sm text-gray-600 mb-3">{template.duration} min</p>
+                  <p className="text-xs text-gray-600 mb-3">{template.description}</p>
+                  <button className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+                    Start
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // Reports Page
+    const ReportsPage = () => {
+      const [reportsData, setReportsData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+      const [timeRange, setTimeRange] = useState('7days');
+
+      useEffect(() => {
+        const fetchReports = async () => {
+          try {
+            const res = await fetch(`/api/reports?range=${timeRange}`);
+            if (!res.ok) throw new Error('Failed to fetch reports');
+            const data = await res.json();
+            setReportsData(data);
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchReports();
+      }, [timeRange]);
+
+      if (loading) {
+        return (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="spinner" />
+          </div>
+        );
+      }
+
+      if (error) {
+        return (
+          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">
+            Error: {error}
+          </div>
+        );
+      }
+
+      const data = reportsData || {};
+
+      const renderGauge = (score, label, status) => {
+        const gaugeData = [
+          { name: label, value: score, fill: score >= 75 ? '#10B981' : score >= 65 ? '#FBBF24' : '#EF4444' },
+          { name: 'remaining', value: 100 - score, fill: '#e5e7eb' },
+        ];
+
+        return (
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex flex-col items-center">
+              <div className="gauge-container">
+                <ResponsiveContainer width="100%" height={120}>
+                  <PieChart>
+                    <Pie
+                      data={gaugeData}
+                      cx="50%"
+                      cy="50%"
+                      startAngle={180}
+                      endAngle={0}
+                      innerRadius={50}
+                      outerRadius={60}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {gaugeData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-3xl font-bold text-gray-900">{score}</span>
+                  <span className="text-xs text-gray-600">{label}</span>
+                </div>
+              </div>
+              {status && (
+                <span className="mt-2 bg-green-100 text-green-700 text-xs px-2 py-1 rounded">
+                  {status}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      };
+
+      return (
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
+            <div className="flex gap-4">
+              <select
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="7days">Last 7 Days</option>
+                <option value="30days">Last 30 Days</option>
+                <option value="90days">Last 90 Days</option>
+              </select>
+              <button className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+                Generate AI Report
+              </button>
+            </div>
+          </div>
+
+          {/* Score Gauges */}
+          <div className="grid grid-cols-4 gap-4">
+            {renderGauge(data.overallScore || 82, 'Overall', 'On Track')}
+            {renderGauge(data.exerciseScore || 88, 'Exercise', null)}
+            {renderGauge(data.recoveryScore || 75, 'Recovery', null)}
+            {renderGauge(data.nutritionScore || 72, 'Nutrition', null)}
+          </div>
+
+          {/* AI Performance Summary */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">AI Performance Summary</h2>
+            <p className="text-xs text-gray-600 mb-4">Generated {data.generatedDate || 'today'}</p>
+            <p className="text-gray-700 leading-relaxed">{data.summary || 'Your fitness performance is excellent this week. You maintained consistency across all metrics with a strong focus on recovery and nutrition. Continue this momentum for optimal results.'}</p>
+          </div>
+
+          {/* Weekly Highlights and Focus Areas */}
+          <div className="grid grid-cols-2 gap-6">
+            {/* Highlights */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Weekly Highlights</h2>
+              <ul className="space-y-3">
+                {(data.highlights || []).map((highlight, idx) => (
+                  <li key={idx} className="flex items-start gap-3">
+                    <div className="text-green-600 mt-1 flex-shrink-0">
+                      <Icons.Check />
+                    </div>
+                    <span className="text-gray-700">{highlight}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Areas to Focus */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Areas to Focus On</h2>
+              <ul className="space-y-3">
+                {(data.focusAreas || []).map((area, idx) => (
+                  <li key={idx} className="flex items-start gap-3">
+                    <div className="text-yellow-600 mt-1 flex-shrink-0">
+                      <Icons.AlertTriangle />
+                    </div>
+                    <span className="text-gray-700">{area}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // Goals Page
+    const GoalsPage = () => {
+      const [goalsData, setGoalsData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+
+      useEffect(() => {
+        const fetchGoals = async () => {
+          try {
+            const res = await fetch('/api/goals');
+            if (!res.ok) throw new Error('Failed to fetch goals');
+            const data = await res.json();
+            setGoalsData(data);
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchGoals();
+      }, []);
+
+      if (loading) {
+        return (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="spinner" />
+          </div>
+        );
+      }
+
+      if (error) {
+        return (
+          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">
+            Error: {error}
+          </div>
+        );
+      }
+
+      const data = goalsData || {};
+
+      return (
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-gray-900">Goals</h1>
+            <button className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
+              <Icons.Plus /> New Goal
+            </button>
+          </div>
+
+          {/* Goals Cards */}
+          <div className="space-y-4">
+            {(data.goals || []).map((goal, idx) => {
+              const progressColor =
+                goal.progress >= 75
+                  ? 'bg-green-600'
+                  : goal.progress >= 50
+                  ? 'bg-yellow-600'
+                  : 'bg-red-600';
+
+              const statusColor =
+                goal.status === 'Completed'
+                  ? 'bg-green-100 text-green-700'
+                  : goal.status === 'In Progress'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-gray-100 text-gray-700';
+
+              return (
+                <div key={idx} className="bg-white rounded-lg shadow p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start gap-4">
+                      <div className="text-primary-600 text-2xl">
+                        {goal.icon === 'target' && <Icons.Target />}
+                        {goal.icon === 'dumbbell' && <Icons.Dumbbell />}
+                        {goal.icon === 'heart' && <Icons.Heart />}
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900">{goal.name}</h3>
+                        <p className="text-sm text-gray-600">{goal.target}</p>
+                      </div>
+                    </div>
+                    <span className={`text-xs font-semibold px-3 py-1 rounded-full ${statusColor}`}>
+                      {goal.status}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-600">Progress</span>
+                        <span className="text-sm font-medium text-gray-900">{goal.progress}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div className={`${progressColor} h-3 rounded-full`} style={{ width: `${goal.progress}%` }} />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">
+                        {goal.current} / {goal.target}
+                      </span>
+                      <button className="text-primary-600 hover:text-primary-700 text-sm font-semibold">
+                        Update Progress
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    };
+
+    // Groups Page
+    const GroupsPage = () => {
+      const [groupsData, setGroupsData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+      const [tab, setTab] = useState('competitions');
+
+      useEffect(() => {
+        const fetchGroups = async () => {
+          try {
+            const res = await fetch(`/api/groups?tab=${tab}`);
+            if (!res.ok) throw new Error('Failed to fetch groups');
+            const data = await res.json();
+            setGroupsData(data);
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchGroups();
+      }, [tab]);
+
+      if (loading) {
+        return (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="spinner" />
+          </div>
+        );
+      }
+
+      if (error) {
+        return (
+          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">
+            Error: {error}
+          </div>
+        );
+      }
+
+      const data = groupsData || {};
+
+      return (
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-gray-900">Groups & Challenges</h1>
+            <div className="flex gap-2">
+              <button className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+                Join with Code
+              </button>
+              <button className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+                Create Group
+              </button>
+            </div>
+          </div>
+
+          {/* Tab Bar */}
+          <div className="flex gap-4 border-b border-gray-200">
+            {['competitions', 'leaderboard', 'mygroups', 'discover'].map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`px-4 py-2 font-medium capitalize ${
+                  tab === t
+                    ? 'text-primary-600 border-b-2 border-primary-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {t === 'mygroups' ? 'My Groups' : t}
+              </button>
+            ))}
+          </div>
+
+          {/* Competitions / Content */}
+          <div className="grid grid-cols-2 gap-6">
+            {(data.items || []).map((item, idx) => (
+              <div key={idx} className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">{item.name}</h3>
+                    <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                  </div>
+                  {item.badge && (
+                    <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-semibold">
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+
+                {item.daysLeft && (
+                  <p className="text-xs text-gray-600 mb-3">{item.daysLeft} days left</p>
+                )}
+
+                {item.goal && <p className="text-sm text-gray-700 mb-4">{item.goal}</p>}
+
+                {/* Leaderboard */}
+                {item.leaderboard && (
+                  <div className="space-y-2 mb-4">
+                    {item.leaderboard.slice(0, 3).map((entry, i) => (
+                      <div key={i} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
+                        <div className="w-6 text-center">
+                          {i === 0 && <Icons.Trophy className="text-yellow-500" />}
+                          {i === 1 && <Icons.Medal className="text-gray-400" />}
+                          {i === 2 && <Icons.Medal className="text-orange-400" />}
+                          {i > 2 && <span className="text-xs font-bold">{i + 1}</span>}
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-primary-600 text-white text-xs font-bold flex items-center justify-center">
+                          {entry.initials}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">{entry.name}</p>
+                          <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
+                            <div
+                              className="bg-primary-600 h-1 rounded-full"
+                              style={{ width: `${entry.progress}%` }}
+                            />
+                          </div>
+                        </div>
+                        <span className="text-xs font-semibold text-gray-600">{entry.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button className="w-full text-primary-600 hover:text-primary-700 font-semibold text-sm">
+                  View Full Leaderboard →
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    // Feed Page
+    const FeedPage = () => {
+      const [feedData, setFeedData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+      const [filter, setFilter] = useState('all');
+
+      useEffect(() => {
+        const fetchFeed = async () => {
+          try {
+            const res = await fetch(`/api/feed?filter=${filter}`);
+            if (!res.ok) throw new Error('Failed to fetch feed');
+            const data = await res.json();
+            setFeedData(data);
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchFeed();
+      }, [filter]);
+
+      if (loading) {
+        return (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="spinner" />
+          </div>
+        );
+      }
+
+      if (error) {
+        return (
+          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">
+            Error: {error}
+          </div>
+        );
+      }
+
+      const data = feedData || {};
+
+      const badgeColor = (type) => {
+        switch (type) {
+          case 'Achievement':
+            return 'bg-yellow-100 text-yellow-700';
+          case 'Workout':
+            return 'bg-green-100 text-green-700';
+          default:
+            return 'bg-blue-100 text-blue-700';
+        }
+      };
+
+      return (
+        <div className="max-w-2xl mx-auto space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-gray-900">Activity Feed</h1>
+            <button className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
+              <Icons.Plus /> Post Update
+            </button>
+          </div>
+
+          {/* Filter Tabs */}
+          <div className="flex gap-2 overflow-x-auto">
+            {['all', 'workouts', 'achievements', 'goals', 'challenges'].map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-4 py-2 rounded-full font-medium whitespace-nowrap capitalize ${
+                  filter === f
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+
+          {/* Feed Items */}
+          <div className="space-y-4">
+            {(data.items || []).map((item, idx) => (
+              <div key={idx} className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-start gap-4 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-primary-600 text-white text-sm font-bold flex items-center justify-center">
+                    {item.initials}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-gray-900">{item.name}</p>
+                      <span className={`text-xs font-semibold px-2 py-1 rounded ${badgeColor(item.type)}`}>
+                        {item.type}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600">{item.date}</p>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <h3 className="font-bold text-gray-900 mb-1">{item.title}</h3>
+                  <p className="text-gray-700">{item.description}</p>
+                </div>
+
+                <div className="flex items-center gap-4 pt-4 border-t border-gray-200">
+                  <button className="flex items-center gap-2 text-gray-600 hover:text-red-600 transition">
+                    <Icons.Heart />
+                    <span className="text-xs">{item.likes}</span>
+                  </button>
+                  <button className="flex items-center gap-2 text-gray-600 hover:text-primary-600 transition">
+                    <Icons.MessageCircle />
+                    <span className="text-xs">{item.comments}</span>
+                  </button>
+                  <button className="flex items-center gap-2 text-gray-600 hover:text-primary-600 transition">
+                    <Icons.Share2 />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    // Analyze Page
+    const AnalyzePage = () => {
+      const [analyzeData, setAnalyzeData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+      const [timeRange, setTimeRange] = useState('30days');
+      const [tab, setTab] = useState('trends');
+
+      useEffect(() => {
+        const fetchAnalyze = async () => {
+          try {
+            const res = await fetch(`/api/analyze?range=${timeRange}`);
+            if (!res.ok) throw new Error('Failed to fetch analyze data');
+            const data = await res.json();
+            setAnalyzeData(data);
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchAnalyze();
+      }, [timeRange]);
+
+      if (loading) {
+        return (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="spinner" />
+          </div>
+        );
+      }
+
+      if (error) {
+        return (
+          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">
+            Error: {error}
+          </div>
+        );
+      }
+
+      const data = analyzeData || {};
+
+      return (
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
+            <select
+              value={timeRange}
+              onChange={(e) => setTimeRange(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="30days">Last 30 Days</option>
+              <option value="60days">Last 60 Days</option>
+              <option value="90days">Last 90 Days</option>
+            </select>
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-4 gap-4">
+            {[
+              { label: 'Monthly Trend', value: data.monthlyTrend || '+12%', icon: Icons.TrendingUp, color: 'green' },
+              { label: 'Total Activities', value: data.totalActivities || '24', icon: Icons.Activity, color: 'blue' },
+              { label: 'Data Points', value: data.dataPoints || '156', icon: Icons.BarChart3, color: 'purple' },
+              { label: 'Platforms Connected', value: data.platformsConnected || '1/4', icon: Icons.Link2, color: 'orange' },
+            ].map((stat, idx) => {
+              const bgColor =
+                stat.color === 'green'
+                  ? 'bg-green-50'
+                  : stat.color === 'blue'
+                  ? 'bg-blue-50'
+                  : stat.color === 'purple'
+                  ? 'bg-purple-50'
+                  : 'bg-orange-50';
+
+              return (
+                <div key={idx} className={`${bgColor} rounded-lg p-4`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-600 text-sm font-medium">{stat.label}</p>
+                      <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                    </div>
+                    <div className="text-primary-600 opacity-50">
+                      <stat.icon />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-4 border-b border-gray-200">
+            {['trends', 'insights', 'datasources'].map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`px-4 py-2 font-medium capitalize ${
+                  tab === t
+                    ? 'text-primary-600 border-b-2 border-primary-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {t === 'datasources' ? 'Data Sources' : t}
+              </button>
+            ))}
+          </div>
+
+          {/* Trends Tab */}
+          {tab === 'trends' && (
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Performance Over Time</h2>
+              <ResponsiveContainer width="100%" height={400}>
+                <AreaChart data={data.trendData || []}>
+                  <defs>
+                    <linearGradient id="colorPerf" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#2E75B6" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#2E75B6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Area
+                    type="monotone"
+                    dataKey="performance"
+                    stroke="#2E75B6"
+                    fillOpacity={1}
+                    fill="url(#colorPerf)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Insights Tab */}
+          {tab === 'insights' && (
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Key Insights</h2>
+              <ul className="space-y-3">
+                {(data.insights || []).map((insight, idx) => (
+                  <li key={idx} className="flex items-start gap-3 p-3 bg-blue-50 rounded">
+                    <Icons.Check className="text-primary-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-700">{insight}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Data Sources Tab */}
+          {tab === 'datasources' && (
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Connected Data Sources</h2>
+              <div className="space-y-3">
+                {(data.dataSources || []).map((source, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 border border-gray-200 rounded">
+                    <div>
+                      <p className="font-medium text-gray-900">{source.name}</p>
+                      <p className="text-xs text-gray-600">Last synced: {source.lastSync}</p>
+                    </div>
+                    <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded">
+                      Connected
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // Settings Page
+    const SettingsPage = () => {
+      const [settingsData, setSettingsData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+      const [tab, setTab] = useState('integrations');
+
+      useEffect(() => {
+        const fetchSettings = async () => {
+          try {
+            const res = await fetch('/api/settings');
+            if (!res.ok) throw new Error('Failed to fetch settings');
+            const data = await res.json();
+            setSettingsData(data);
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchSettings();
+      }, []);
+
+      const handleConnect = async (platform) => {
+        try {
+          const res = await fetch(`/api/integrations/${platform}/connect`, {
+            method: 'POST',
+          });
+          if (res.ok) {
+            // Refresh settings
+            const res2 = await fetch('/api/settings');
+            if (res2.ok) {
+              const data = await res2.json();
+              setSettingsData(data);
+            }
+          }
+        } catch (err) {
+          console.error('Connect failed:', err);
+        }
+      };
+
+      const handleDisconnect = async (platform) => {
+        try {
+          const res = await fetch(`/api/integrations/${platform}`, {
+            method: 'DELETE',
+          });
+          if (res.ok) {
+            // Refresh settings
+            const res2 = await fetch('/api/settings');
+            if (res2.ok) {
+              const data = await res2.json();
+              setSettingsData(data);
+            }
+          }
+        } catch (err) {
+          console.error('Disconnect failed:', err);
+        }
+      };
+
+      if (loading) {
+        return (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="spinner" />
+          </div>
+        );
+      }
+
+      if (error) {
+        return (
+          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">
+            Error: {error}
+          </div>
+        );
+      }
+
+      const data = settingsData || {};
+
+      const platformInfo = {
+        strava: { name: 'Strava', color: 'bg-orange-100', textColor: 'text-orange-600', category: 'Activity Tracking', badge: 'Connected', badgeColor: 'bg-green-100 text-green-700', lastSync: '2 hours ago' },
+        whoop: { name: 'WHOOP', color: 'bg-teal-100', textColor: 'text-teal-600', category: 'Recovery & Sleep', badge: 'Premium', badgeColor: 'bg-purple-100 text-purple-700' },
+        garmin: { name: 'Garmin Connect', color: 'bg-blue-100', textColor: 'text-blue-600', category: 'Activity Tracking', badge: null, badgeColor: null },
+        peloton: { name: 'Peloton', color: 'bg-red-100', textColor: 'text-red-600', category: 'Training', badge: null, badgeColor: null },
+        myfitnesspal: { name: 'MyFitnessPal', color: 'bg-green-100', textColor: 'text-green-600', category: 'Nutrition', badge: 'Connected', badgeColor: 'bg-green-100 text-green-700', lastSync: '1 hour ago' },
+        applehealth: { name: 'Apple Health', color: 'bg-gray-100', textColor: 'text-gray-600', category: 'Health Platform', badge: null, badgeColor: null },
+      };
+
+      return (
+        <div className="space-y-6">
+          {/* Header */}
+          <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+
+          {/* Tabs */}
+          <div className="flex gap-4 border-b border-gray-200 overflow-x-auto">
+            {['integrations', 'notifications', 'appearance', 'security', 'privacy'].map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`px-4 py-2 font-medium capitalize whitespace-nowrap ${
+                  tab === t
+                    ? 'text-primary-600 border-b-2 border-primary-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {t === 'privacy' ? 'Data & Privacy' : t}
+              </button>
+            ))}
+          </div>
+
+          {/* Integrations Tab */}
+          {tab === 'integrations' && (
+            <div className="space-y-6">
+              {/* Category Filter */}
+              <div className="flex gap-2 overflow-x-auto">
+                {['All', 'Activity Tracking', 'Health Platform', 'Recovery & Sleep', 'Training', 'Nutrition'].map((cat) => (
+                  <button
+                    key={cat}
+                    className="px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 whitespace-nowrap"
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              {/* Platforms Grid */}
+              <div className="grid grid-cols-3 gap-4">
+                {Object.entries(platformInfo).map(([key, info]) => {
+                  const isConnected = data.connectedPlatforms?.includes(key);
+
+                  return (
+                    <div key={key} className="bg-white rounded-lg shadow p-4">
+                      <div className={`${info.color} ${info.textColor} w-12 h-12 rounded-lg flex items-center justify-center mb-3 font-bold text-lg`}>
+                        {info.name.substring(0, 1)}
+                      </div>
+
+                      <h3 className="font-bold text-gray-900 mb-1">{info.name}</h3>
+                      <p className="text-xs text-gray-600 mb-3">{info.category}</p>
+
+                      {info.badge && (
+                        <span className={`text-xs font-semibold px-2 py-1 rounded mb-2 block ${info.badgeColor}`}>
+                          {isConnected ? 'Connected' : info.badge}
+                        </span>
+                      )}
+
+                      {isConnected && info.lastSync && (
+                        <p className="text-xs text-gray-600 mb-3">Last synced: {info.lastSync}</p>
+                      )}
+
+                      <div className="space-y-2 mb-3">
+                        <p className="text-xs text-gray-600">Data types: Activities, Routes</p>
+                      </div>
+
+                      {isConnected ? (
+                        <div className="flex gap-2">
+                          <button className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-semibold py-2 px-3 rounded transition">
+                            Settings
+                          </button>
+                          <button
+                            onClick={() => handleDisconnect(key)}
+                            className="bg-red-100 hover:bg-red-200 text-red-700 text-xs font-semibold py-2 px-3 rounded transition"
+                          >
+                            <Icons.X />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleConnect(key)}
+                          className="w-full bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold py-2 px-4 rounded transition"
+                        >
+                          Connect
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Other Tabs - Placeholder */}
+          {tab === 'notifications' && (
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Notification Preferences</h2>
+              <p className="text-gray-600">Notification settings coming soon...</p>
+            </div>
+          )}
+
+          {tab === 'appearance' && (
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Appearance</h2>
+              <p className="text-gray-600">Appearance settings coming soon...</p>
+            </div>
+          )}
+
+          {tab === 'security' && (
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Security</h2>
+              <p className="text-gray-600">Security settings coming soon...</p>
+            </div>
+          )}
+
+          {tab === 'privacy' && (
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Data & Privacy</h2>
+              <p className="text-gray-600">Privacy settings coming soon...</p>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // ============================================================================
+    // Main App
+    // ============================================================================
+
+    const App = () => {
+      const { user, loading } = useAuth();
+      const [currentHash, setCurrentHash] = useState(window.location.hash);
+      const [notificationCount, setNotificationCount] = useState(3);
+
+      useEffect(() => {
+        const handleHashChange = () => {
+          setCurrentHash(window.location.hash);
+        };
+
+        window.addEventListener('hashchange', handleHashChange);
+        return () => window.removeEventListener('hashchange', handleHashChange);
+      }, []);
+
+      if (loading) {
+        return (
+          <div className="flex items-center justify-center min-h-screen bg-white">
+            <div className="spinner" />
+          </div>
+        );
+      }
+
+      // Route to appropriate page
+      const page = currentHash.slice(2) || '/';
+
+      if (!user && page !== 'login' && page !== 'register') {
+        return <LoginPage />;
+      }
+
+      if (!user) {
+        if (page === 'register') {
+          return <RegisterPage />;
+        }
+        return <LoginPage />;
+      }
+
+      // Authenticated pages
+      const renderPage = () => {
+        if (page === '/' || page === '') return <DashboardPage />;
+        if (page === 'workouts') return <WorkoutsPage />;
+        if (page === 'reports') return <ReportsPage />;
+        if (page === 'goals') return <GoalsPage />;
+        if (page === 'groups') return <GroupsPage />;
+        if (page === 'feed') return <FeedPage />;
+        if (page === 'analyze') return <AnalyzePage />;
+        if (page === 'settings') return <SettingsPage />;
+        return <DashboardPage />;
+      };
+
+      return (
+        <div className="min-h-screen bg-gray-50">
+          {/* Top Navigation Bar */}
+          <nav className="bg-primary-800 text-white shadow-lg sticky top-0 z-50">
+            <div className="px-6 py-4">
+              <div className="flex items-center justify-between">
+                {/* Logo */}
+                <div className="flex items-center gap-2 font-bold text-xl">
+                  <Icons.Activity />
+                  PerformanceHub
+                </div>
+
+                {/* Nav Links */}
+                <div className="flex items-center gap-6">
+                  {['/', 'workouts', 'reports', 'goals', 'groups', 'feed', 'analyze'].map((href) => {
+                    const label = {
+                      '/': 'Dashboard',
+                      'workouts': 'Workouts',
+                      'reports': 'Reports',
+                      'goals': 'Goals',
+                      'groups': 'Groups',
+                      'feed': 'Feed',
+                      'analyze': 'Analyze',
+                    }[href];
+
+                    const isActive = currentHash === `#${href}` || (href === '/' && (currentHash === '' || currentHash === '#/'));
+
+                    return (
+                      <a
+                        key={href}
+                        href={`#${href}`}
+                        className={`text-sm font-medium transition ${
+                          isActive
+                            ? 'text-white'
+                            : 'text-blue-100 hover:text-white'
+                        }`}
+                      >
+                        {label}
+                      </a>
+                    );
+                  })}
+                </div>
+
+                {/* Right Side: Notification, Settings, User */}
+                <div className="flex items-center gap-4">
+                  <button className="relative">
+                    <Icons.Bell />
+                    {notificationCount > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                        {notificationCount}
+                      </span>
+                    )}
+                  </button>
+
+                  <a href="#/settings" className="hover:text-blue-100 transition">
+                    <Icons.Settings />
+                  </a>
+
+                  <div className="flex items-center gap-2 border-l border-blue-400 pl-4">
+                    <div className="w-8 h-8 rounded-full bg-blue-300 text-primary-900 text-xs font-bold flex items-center justify-center">
+                      {user.name
+                        .split(' ')
+                        .map((n) => n[0])
+                        .join('')}
+                    </div>
+                    <span className="text-sm">{user.name}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Secondary Bar */}
+            <div className="bg-primary-700 px-6 py-2 flex items-center justify-between text-sm">
+              <div className="flex items-center gap-4">
+                <select className="bg-transparent text-white focus:outline-none text-xs">
+                  <option>Last 7 Days</option>
+                  <option>Last 30 Days</option>
+                  <option>Last 90 Days</option>
+                </select>
+                <button className="text-blue-100 hover:text-white transition">
+                  <Icons.RefreshCw />
+                </button>
+                <button className="text-blue-100 hover:text-white transition">
+                  <Icons.Download />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <a href="#/settings" className="text-blue-100 hover:text-white transition text-xs">
+                  Switch to Coach
+                </a>
+                <button
+                  onClick={() => {
+                    fetch('/api/auth/logout', { method: 'POST' })
+                      .then(() => {
+                        window.location.hash = '#/login';
+                        window.location.reload();
+                      })
+                      .catch(console.error);
+                  }}
+                  className="text-blue-100 hover:text-white transition text-xs"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          </nav>
+
+          {/* Main Content */}
+          <main className="px-6 py-6">
+            <div className="max-w-7xl mx-auto">
+              {renderPage()}
+            </div>
+          </main>
+        </div>
+      );
+    };
+
+    // ============================================================================
+    // Render App
+    // ============================================================================
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    );
+  </script>
+</body>
+</html>
