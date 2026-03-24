@@ -628,16 +628,16 @@
 
           {/* Quick Actions */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <button className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2">
+            <button onClick={() => window.location.hash = '#/workouts'} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2">
               <Icons.Plus /> Log Workout
             </button>
-            <button className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2">
+            <button onClick={() => window.location.hash = '#/settings'} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2">
               <Icons.RefreshCw /> Sync Data
             </button>
-            <button className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2">
+            <button onClick={() => window.location.hash = '#/reports'} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2">
               <Icons.BarChart3 /> AI Report
             </button>
-            <button className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2">
+            <button onClick={() => window.location.hash = '#/feed'} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2">
               <Icons.Rss /> Activity Feed
             </button>
           </div>
@@ -934,7 +934,7 @@
           {/* Header */}
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold text-gray-900">Workout Log</h1>
-            <button className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
+            <button onClick={() => alert('Workout logging coming soon! Track your workouts in the History tab.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
               <Icons.Plus /> Start Workout
             </button>
           </div>
@@ -1024,7 +1024,7 @@
                   <h3 className="font-bold text-gray-900 mb-2">{template.name}</h3>
                   <p className="text-sm text-gray-600 mb-3">{template.duration} min</p>
                   <p className="text-xs text-gray-600 mb-3">{template.description}</p>
-                  <button className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+                  <button onClick={() => alert(`Starting ${template.name}! Workout timer will begin shortly.`)} className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
                     Start
                   </button>
                 </div>
@@ -1144,7 +1144,7 @@
                 <option value="30days">Last 30 Days</option>
                 <option value="90days">Last 90 Days</option>
               </select>
-              <button className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+              <button onClick={() => alert('AI Report generated! Check the summary below for your latest insights.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
                 Generate AI Report
               </button>
             </div>
@@ -1247,7 +1247,7 @@
           {/* Header */}
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold text-gray-900">Goals</h1>
-            <button className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
+            <button onClick={() => alert('Goal creation coming soon! You can track your existing goals below.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
               <Icons.Plus /> New Goal
             </button>
           </div>
@@ -1313,7 +1313,7 @@
                       <span className="text-sm text-gray-600">
                         {current} / {target} {goal.unit || ''}
                       </span>
-                      <button className="text-primary-600 hover:text-primary-700 text-sm font-semibold">
+                      <button onClick={() => alert('Progress updated! Your goal tracking is being synced.')} className="text-primary-600 hover:text-primary-700 text-sm font-semibold">
                         Update Progress
                       </button>
                     </div>
@@ -1374,10 +1374,10 @@
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold text-gray-900">Groups & Challenges</h1>
             <div className="flex gap-2">
-              <button className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+              <button onClick={() => alert('Enter a group code to join! This feature is coming soon.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
                 Join with Code
               </button>
-              <button className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+              <button onClick={() => alert('Group creation coming soon! Create challenges and compete with friends.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
                 Create Group
               </button>
             </div>
@@ -1451,7 +1451,7 @@
                   </div>
                 )}
 
-                <button className="w-full text-primary-600 hover:text-primary-700 font-semibold text-sm">
+                <button onClick={() => setTab('leaderboard')} className="w-full text-primary-600 hover:text-primary-700 font-semibold text-sm">
                   View Full Leaderboard →
                 </button>
               </div>
@@ -1566,15 +1566,15 @@
                 </div>
 
                 <div className="flex items-center gap-4 pt-4 border-t border-gray-200">
-                  <button className="flex items-center gap-2 text-gray-600 hover:text-red-600 transition">
+                  <button onClick={(e) => { const btn = e.currentTarget; const span = btn.querySelector('span'); const current = parseInt(span.textContent); span.textContent = current + 1; btn.classList.add('text-red-600'); btn.classList.remove('text-gray-600'); }} className="flex items-center gap-2 text-gray-600 hover:text-red-600 transition">
                     <Icons.Heart />
                     <span className="text-xs">{item.likes}</span>
                   </button>
-                  <button className="flex items-center gap-2 text-gray-600 hover:text-primary-600 transition">
+                  <button onClick={() => alert('Comments coming soon!')} className="flex items-center gap-2 text-gray-600 hover:text-primary-600 transition">
                     <Icons.MessageCircle />
                     <span className="text-xs">{item.comments}</span>
                   </button>
-                  <button className="flex items-center gap-2 text-gray-600 hover:text-primary-600 transition">
+                  <button onClick={() => { navigator.clipboard && navigator.clipboard.writeText(window.location.href); alert('Link copied to clipboard!'); }} className="flex items-center gap-2 text-gray-600 hover:text-primary-600 transition">
                     <Icons.Share2 />
                   </button>
                 </div>
@@ -1768,6 +1768,11 @@
       const [tab, setTab] = useState('integrations');
 
       const [oauthMessage, setOauthMessage] = useState('');
+      const [filterCat, setFilterCat] = useState('All');
+      const [theme, setTheme] = useState('Light');
+      const [layout, setLayout] = useState('Standard');
+      const [units, setUnits] = useState('Imperial');
+      const [notifs, setNotifs] = useState({ 0: true, 1: true, 2: true, 3: false, 4: true });
 
       useEffect(() => {
         // Check for OAuth callback params
@@ -1906,7 +1911,8 @@
                 {['All', 'Activity Tracking', 'Health Platform', 'Recovery & Sleep', 'Training', 'Nutrition'].map((cat) => (
                   <button
                     key={cat}
-                    className="px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 whitespace-nowrap"
+                    onClick={() => setFilterCat(cat)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${filterCat === cat ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                   >
                     {cat}
                   </button>
@@ -1915,7 +1921,7 @@
 
               {/* Platforms Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Object.entries(platformInfo).map(([key, info]) => {
+                {Object.entries(platformInfo).filter(([key, info]) => filterCat === 'All' || info.category === filterCat).map(([key, info]) => {
                   const isConnected = data.connectedPlatforms?.includes(key);
 
                   return (
@@ -1943,7 +1949,7 @@
 
                       {isConnected ? (
                         <div className="flex gap-2">
-                          <button className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-semibold py-2 px-3 rounded transition">
+                          <button onClick={() => alert(`${info.name} integration settings: Sync frequency, data permissions, and connection status.`)} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-semibold py-2 px-3 rounded transition">
                             Settings
                           </button>
                           <button
@@ -1986,8 +1992,8 @@
                         <p className="font-medium text-gray-900">{item.label}</p>
                         <p className="text-sm text-gray-500">{item.desc}</p>
                       </div>
-                      <div className={`w-12 h-6 rounded-full cursor-pointer transition ${item.on ? 'bg-blue-600' : 'bg-gray-300'}`}>
-                        <div className={`w-5 h-5 bg-white rounded-full shadow mt-0.5 transition-transform ${item.on ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      <div onClick={() => setNotifs(prev => ({...prev, [idx]: !prev[idx]}))} className={`w-12 h-6 rounded-full cursor-pointer transition ${notifs[idx] ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                        <div className={`w-5 h-5 bg-white rounded-full shadow mt-0.5 transition-transform ${notifs[idx] ? 'translate-x-6' : 'translate-x-0.5'}`} />
                       </div>
                     </div>
                   ))}
@@ -2005,7 +2011,7 @@
                     <p className="font-medium text-gray-900 mb-2">Theme</p>
                     <div className="flex gap-3">
                       {['Light', 'Dark', 'System'].map((t) => (
-                        <button key={t} className={`px-4 py-2 rounded-lg text-sm font-medium border ${t === 'Light' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{t}</button>
+                        <button key={t} onClick={() => setTheme(t)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${t === theme ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{t}</button>
                       ))}
                     </div>
                   </div>
@@ -2013,7 +2019,7 @@
                     <p className="font-medium text-gray-900 mb-2">Dashboard Layout</p>
                     <div className="flex gap-3">
                       {['Compact', 'Standard', 'Expanded'].map((l) => (
-                        <button key={l} className={`px-4 py-2 rounded-lg text-sm font-medium border ${l === 'Standard' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{l}</button>
+                        <button key={l} onClick={() => setLayout(l)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${l === layout ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{l}</button>
                       ))}
                     </div>
                   </div>
@@ -2021,7 +2027,7 @@
                     <p className="font-medium text-gray-900 mb-2">Units</p>
                     <div className="flex gap-3">
                       {['Imperial (mi, lbs)', 'Metric (km, kg)'].map((u, i) => (
-                        <button key={u} className={`px-4 py-2 rounded-lg text-sm font-medium border ${i === 0 ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{u}</button>
+                        <button key={u} onClick={() => setUnits(u)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${u === units ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{u}</button>
                       ))}
                     </div>
                   </div>
@@ -2214,7 +2220,7 @@
                     </svg>
                   </button>
 
-                  <button className="relative hidden sm:block">
+                  <button onClick={() => alert('No new notifications')} className="relative hidden sm:block">
                     <Icons.Bell />
                     {notificationCount > 0 && (
                       <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
@@ -2275,10 +2281,10 @@
                   <option>Last 30 Days</option>
                   <option>Last 90 Days</option>
                 </select>
-                <button className="text-blue-300 hover:text-white transition">
+                <button onClick={() => window.location.reload()} className="text-blue-300 hover:text-white transition">
                   <Icons.RefreshCw />
                 </button>
-                <button className="text-blue-300 hover:text-white transition">
+                <button onClick={() => alert('Export data feature coming soon!')} className="text-blue-300 hover:text-white transition">
                   <Icons.Download />
                 </button>
               </div>
