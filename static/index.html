@@ -24,17 +24,31 @@
         extend: {
           colors: {
             primary: {
-              50: '#eff6ff',
-              100: '#dbeafe',
-              200: '#bfdbfe',
-              300: '#93c5fd',
-              400: '#60a5fa',
-              500: '#3b82f6',
-              600: '#2563eb',
-              700: '#1d4ed8',
-              800: '#1e40af',
-              900: '#1e3a8a',
+              50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
+              400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
+              800: '#1e40af', 900: '#1e3a8a',
+            },
+            dark: {
+              50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1',
+              400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155',
+              800: '#1e293b', 900: '#0f172a', 950: '#020617',
+            },
+            accent: {
+              teal: '#14b8a6', green: '#22c55e', purple: '#8b5cf6',
+              orange: '#f97316', pink: '#ec4899', cyan: '#06b6d4',
             }
+          },
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          },
+          borderRadius: {
+            '2xl': '1rem', '3xl': '1.5rem',
+          },
+          boxShadow: {
+            'glow-blue': '0 0 20px rgba(59,130,246,0.15)',
+            'glow-teal': '0 0 20px rgba(20,184,166,0.15)',
+            'glow-green': '0 0 20px rgba(34,197,94,0.15)',
+            'glow-purple': '0 0 20px rgba(139,92,246,0.15)',
           }
         }
       }
@@ -49,36 +63,73 @@
   <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
 
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: rgba(30,41,59,0.8);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-blue: #3b82f6;
+      --accent-teal: #14b8a6;
+      --accent-green: #22c55e;
+      --accent-purple: #8b5cf6;
+      --border-color: #334155;
+      --glass-border: rgba(148,163,184,0.1);
     }
-
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+      background: var(--bg-primary) !important;
+      color: var(--text-primary) !important;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
     }
-
-    .spinner {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid rgba(46, 117, 182, 0.3);
-      border-radius: 50%;
-      border-top-color: #2E75B6;
-      animation: spin 1s ease-in-out infinite;
+    .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+    .animate-slide-up { animation: slideUp 0.4s ease-out; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+    @keyframes gradientFlow { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+    .glass-card {
+      background: var(--bg-card) !important;
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border) !important;
+      border-radius: 16px !important;
+      transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
     }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    .glass-card:hover {
+      border-color: rgba(59,130,246,0.3) !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      transform: translateY(-2px);
     }
-
-    .gauge-container {
-      position: relative;
-      width: 120px;
-      height: 120px;
-      margin: 0 auto;
+    .gradient-text {
+      background: linear-gradient(135deg, #3b82f6, #14b8a6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
+    .progress-glow {
+      background: linear-gradient(90deg, #3b82f6, #14b8a6, #3b82f6);
+      background-size: 200% 100%;
+      animation: shimmer 3s linear infinite;
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-primary); }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    .stat-glow-blue { box-shadow: inset 0 0 0 1px rgba(59,130,246,0.2), 0 0 20px rgba(59,130,246,0.05); }
+    .stat-glow-green { box-shadow: inset 0 0 0 1px rgba(34,197,94,0.2), 0 0 20px rgba(34,197,94,0.05); }
+    .stat-glow-purple { box-shadow: inset 0 0 0 1px rgba(139,92,246,0.2), 0 0 20px rgba(139,92,246,0.05); }
+    .stat-glow-teal { box-shadow: inset 0 0 0 1px rgba(20,184,166,0.2), 0 0 20px rgba(20,184,166,0.05); }
+    .stat-glow-orange { box-shadow: inset 0 0 0 1px rgba(249,115,22,0.2), 0 0 20px rgba(249,115,22,0.05); }
+    input, select, textarea {
+      background: var(--bg-secondary) !important;
+      border-color: var(--border-color) !important;
+      color: var(--text-primary) !important;
+    }
+    input::placeholder { color: var(--text-muted) !important; }
   </style>
 </head>
 <body>
@@ -407,9 +458,9 @@
 
       return (
         <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-600 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md p-8">
-            <h1 className="text-3xl font-bold text-primary-900 mb-2">PerformanceHub</h1>
-            <p className="text-gray-600 mb-6">Fitness Analytics Platform</p>
+          <div className="glass-card-2xl w-full max-w-md p-8">
+            <h1 className="text-3xl font-bold text-primary-900 mb-2" style={{background:"linear-gradient(135deg,#3b82f6,#14b8a6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>PerformanceHub</h1>
+            <p className="text-dark-300 mb-6">Fitness Analytics Platform</p>
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
@@ -419,25 +470,25 @@
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-gray-700 font-medium mb-2">Email</label>
+                <label className="block text-dark-200 font-medium mb-2">Email</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="demo@performancehub.com"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-2 border border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-gray-700 font-medium mb-2">Password</label>
+                <label className="block text-dark-200 font-medium mb-2">Password</label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="demo123"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-2 border border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400"
                   required
                 />
               </div>
@@ -445,13 +496,13 @@
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
+                className="w-full bg-primary-600 hover:bg-primary-500 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
               >
                 {loading ? <span className="spinner" /> : 'Sign In'}
               </button>
             </form>
 
-            <p className="text-center text-gray-600 mt-6">
+            <p className="text-center text-dark-300 mt-6">
               Don't have an account?{' '}
               <a href="#/register" className="text-primary-600 hover:text-primary-700 font-medium">
                 Sign Up
@@ -495,9 +546,9 @@
 
       return (
         <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-600 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md p-8">
+          <div className="glass-card-2xl w-full max-w-md p-8">
             <h1 className="text-3xl font-bold text-primary-900 mb-2">PerformanceHub</h1>
-            <p className="text-gray-600 mb-6">Create Your Account</p>
+            <p className="text-dark-300 mb-6">Create Your Account</p>
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
@@ -507,47 +558,47 @@
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-gray-700 font-medium mb-2">Full Name</label>
+                <label className="block text-dark-200 font-medium mb-2">Full Name</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="John Doe"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-2 border border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-gray-700 font-medium mb-2">Email</label>
+                <label className="block text-dark-200 font-medium mb-2">Email</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your@email.com"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-2 border border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-gray-700 font-medium mb-2">Password</label>
+                <label className="block text-dark-200 font-medium mb-2">Password</label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-2 border border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-gray-700 font-medium mb-2">Confirm Password</label>
+                <label className="block text-dark-200 font-medium mb-2">Confirm Password</label>
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-2 border border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400"
                   required
                 />
               </div>
@@ -555,13 +606,13 @@
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
+                className="w-full bg-primary-600 hover:bg-primary-500 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
               >
                 {loading ? <span className="spinner" /> : 'Create Account'}
               </button>
             </form>
 
-            <p className="text-center text-gray-600 mt-6">
+            <p className="text-center text-dark-300 mt-6">
               Already have an account?{' '}
               <a href="#/login" className="text-primary-600 hover:text-primary-700 font-medium">
                 Sign In
@@ -618,9 +669,9 @@
         <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user?.name}!</h1>
+            <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-dark-300">Welcome back, {user?.name}!</h1>
             {data.connectedPlatform && (
-              <span className="bg-blue-100 text-primary-600 px-3 py-1 rounded-full text-sm font-medium">
+              <span className="bg-primary-800/30 text-primary-600 px-3 py-1 rounded-full text-sm font-medium">
                 Connected: {data.connectedPlatform}
               </span>
             )}
@@ -628,33 +679,33 @@
 
           {/* Quick Actions */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <button onClick={() => window.location.hash = '#/workouts'} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2">
+            <button onClick={() => window.location.hash = '#/workouts'} className="bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-lg shadow-primary-600/25 hover:shadow-primary-500/40 hover:-translate-y-0.5 flex items-center justify-center gap-2">
               <Icons.Plus /> Log Workout
             </button>
-            <button onClick={() => window.location.hash = '#/settings'} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2">
+            <button onClick={() => window.location.hash = '#/settings'} className="bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-lg shadow-teal-600/25 hover:shadow-teal-500/40 hover:-translate-y-0.5 flex items-center justify-center gap-2">
               <Icons.RefreshCw /> Sync Data
             </button>
-            <button onClick={() => window.location.hash = '#/reports'} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2">
+            <button onClick={() => window.location.hash = '#/reports'} className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-lg shadow-purple-600/25 hover:shadow-purple-500/40 hover:-translate-y-0.5 flex items-center justify-center gap-2">
               <Icons.BarChart3 /> AI Report
             </button>
-            <button onClick={() => window.location.hash = '#/feed'} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2">
+            <button onClick={() => window.location.hash = '#/feed'} className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-lg shadow-orange-600/25 hover:shadow-orange-500/40 hover:-translate-y-0.5 flex items-center justify-center gap-2">
               <Icons.Rss /> Activity Feed
             </button>
           </div>
 
           {/* AI Readiness Insights */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">AI Readiness Insights</h2>
+          <div className="glass-card p-6">
+            <h2 className="text-xl font-bold text-dark-50 mb-4">AI Readiness Insights</h2>
 
             {/* 7-day forecast */}
             <div className="flex gap-2 mb-6 overflow-x-auto">
               {(data.weekForecast || []).map((day, idx) => (
                 <div key={idx} className="flex flex-col items-center gap-2 min-w-fit">
-                  <span className="text-xs font-medium text-gray-600">{day.day}</span>
+                  <span className="text-xs font-medium text-dark-300">{day.day}</span>
                   <span
                     className={`px-3 py-1 rounded-full text-sm font-bold text-white ${
                       day.score >= 75
-                        ? 'bg-green-500'
+                        ? 'bg-emerald-500'
                         : day.score >= 65
                         ? 'bg-yellow-500'
                         : 'bg-orange-500'
@@ -670,24 +721,24 @@
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
               {data.weekOutlook && (
                 <>
-                  <div className="bg-blue-50 rounded p-3">
-                    <p className="text-xs text-gray-600 font-medium">Optimal Training Days</p>
+                  <div className="bg-primary-900/30 rounded p-3">
+                    <p className="text-xs text-dark-300 font-medium">Optimal Training Days</p>
                     <p className="text-lg font-bold text-primary-600">{data.weekOutlook.optimalDays}</p>
                   </div>
-                  <div className="bg-blue-50 rounded p-3">
-                    <p className="text-xs text-gray-600 font-medium">Peak Performance Day</p>
+                  <div className="bg-primary-900/30 rounded p-3">
+                    <p className="text-xs text-dark-300 font-medium">Peak Performance Day</p>
                     <p className="text-lg font-bold text-primary-600">{data.weekOutlook.peakDay}</p>
                   </div>
                   <div className="bg-red-50 rounded p-3">
-                    <p className="text-xs text-gray-600 font-medium">Overtraining Risk</p>
-                    <p className="text-lg font-bold text-red-600">{data.weekOutlook.overtrainingRisk}%</p>
+                    <p className="text-xs text-dark-300 font-medium">Overtraining Risk</p>
+                    <p className="text-lg font-bold text-red-400">{data.weekOutlook.overtrainingRisk}%</p>
                   </div>
                 </>
               )}
             </div>
 
             {/* AI Tip */}
-            <p className="text-sm text-gray-700">
+            <p className="text-sm text-dark-200">
               {'\u{1F4A1}'} <strong>AI Tip:</strong> {data.aiTip || 'Stay consistent with your training routine.'}
             </p>
           </div>
@@ -695,51 +746,51 @@
           {/* Key Performance Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Recovery */}
-            <div className="bg-white rounded-lg shadow p-4">
+            <div className="glass-card p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-600 text-sm font-medium">Recovery</span>
+                <span className="text-dark-300 text-sm font-medium">Recovery</span>
                 <Icons.Heart />
               </div>
-              <p className="text-3xl font-bold text-gray-900">{data.recovery?.percentage || '85'}%</p>
-              <p className="text-xs text-green-600 mt-2">+8% vs last week</p>
+              <p className="text-3xl font-bold text-dark-50">{data.recovery?.percentage || '85'}%</p>
+              <p className="text-xs text-emerald-400 mt-2">+8% vs last week</p>
             </div>
 
             {/* Workouts */}
-            <div className="bg-white rounded-lg shadow p-4">
+            <div className="glass-card p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-600 text-sm font-medium">Workouts</span>
+                <span className="text-dark-300 text-sm font-medium">Workouts</span>
                 <Icons.Dumbbell />
               </div>
-              <p className="text-3xl font-bold text-gray-900">{data.workouts?.completed || '10'} / {data.workouts?.goal || '6'}</p>
-              <p className="text-xs text-green-600 mt-1">This week</p>
-              <p className="text-xs text-gray-600 mt-1">+2 vs last week</p>
+              <p className="text-3xl font-bold text-dark-50">{data.workouts?.completed || '10'} / {data.workouts?.goal || '6'}</p>
+              <p className="text-xs text-emerald-400 mt-1">This week</p>
+              <p className="text-xs text-dark-300 mt-1">+2 vs last week</p>
             </div>
 
             {/* Steps & Strain */}
-            <div className="bg-white rounded-lg shadow p-4">
+            <div className="glass-card p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-600 text-sm font-medium">Steps & Strain</span>
+                <span className="text-dark-300 text-sm font-medium">Steps & Strain</span>
                 <Icons.Zap />
               </div>
-              <p className="text-3xl font-bold text-gray-900">{data.stepsStrain?.steps || '8.2'}k / {data.stepsStrain?.strain || '14.2'}</p>
-              <p className="text-xs text-red-600 mt-2">-5% vs last week</p>
+              <p className="text-3xl font-bold text-dark-50">{data.stepsStrain?.steps || '8.2'}k / {data.stepsStrain?.strain || '14.2'}</p>
+              <p className="text-xs text-red-400 mt-2">-5% vs last week</p>
             </div>
 
             {/* Nutrition */}
-            <div className="bg-white rounded-lg shadow p-4">
+            <div className="glass-card p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-600 text-sm font-medium">Nutrition</span>
+                <span className="text-dark-300 text-sm font-medium">Nutrition</span>
                 <Icons.Flame />
               </div>
-              <p className="text-2xl font-bold text-gray-900">{data.nutrition?.calories || '406'} cal</p>
-              <p className="text-xs text-gray-600">{data.nutrition?.protein || '145'}g protein</p>
-              <p className="text-xs text-green-600 mt-1">+3% vs last week</p>
+              <p className="text-2xl font-bold text-dark-50">{data.nutrition?.calories || '406'} cal</p>
+              <p className="text-xs text-dark-300">{data.nutrition?.protein || '145'}g protein</p>
+              <p className="text-xs text-emerald-400 mt-1">+3% vs last week</p>
             </div>
           </div>
 
           {/* Goal Progress */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Goal Progress</h2>
+          <div className="glass-card p-6">
+            <h2 className="text-xl font-bold text-dark-50 mb-4">Goal Progress</h2>
             <div className="space-y-4">
               {(data.goals || []).slice(0, 3).map((goal, idx) => {
                 const current = goal.current_value || 0;
@@ -749,10 +800,10 @@
                 return (
                   <div key={idx}>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-gray-900 font-medium">{goal.name}</span>
-                      <span className="text-gray-600 text-sm">{current} / {target} {goal.unit || ''}</span>
+                      <span className="text-dark-50 font-medium">{goal.name}</span>
+                      <span className="text-dark-300 text-sm">{current} / {target} {goal.unit || ''}</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-dark-700 rounded-full h-2">
                       <div
                         className="bg-primary-600 h-2 rounded-full"
                         style={{ width: `${pct}%` }}
@@ -772,10 +823,10 @@
               { label: 'Distance (mi)', value: '156', icon: Icons.Footprints },
               { label: 'Recovery Score', value: '92', icon: Icons.Heart },
             ].map((stat, idx) => (
-              <div key={idx} className="bg-white rounded-lg shadow p-4 flex items-center justify-between">
+              <div key={idx} className="glass-card p-4 flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm font-medium">{stat.label}</p>
-                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                  <p className="text-dark-300 text-sm font-medium">{stat.label}</p>
+                  <p className="text-2xl font-bold text-dark-50">{stat.value}</p>
                 </div>
                 <div className="text-primary-600">
                   <stat.icon />
@@ -785,8 +836,8 @@
           </div>
 
           {/* Performance Trends */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Performance Trends (7 days)</h2>
+          <div className="glass-card p-6">
+            <h2 className="text-xl font-bold text-dark-50 mb-4">Performance Trends (7 days)</h2>
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={data.trendData || []}>
                 <defs>
@@ -812,8 +863,8 @@
 
           {/* Activity Distribution */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Activity Distribution</h2>
+            <div className="glass-card p-6">
+              <h2 className="text-xl font-bold text-dark-50 mb-4">Activity Distribution</h2>
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
                   <Pie
@@ -839,8 +890,8 @@
             </div>
 
             {/* Weekly Activity Summary */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Weekly Activity</h2>
+            <div className="glass-card p-6">
+              <h2 className="text-xl font-bold text-dark-50 mb-4">Weekly Activity</h2>
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={data.weeklyActivity || []}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -856,29 +907,29 @@
           </div>
 
           {/* Recent Activities */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Activities</h2>
+          <div className="glass-card p-6">
+            <h2 className="text-xl font-bold text-dark-50 mb-4">Recent Activities</h2>
             <div className="space-y-3">
               {(data.recentActivities || []).map((activity, idx) => (
-                <div key={idx} className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded">
+                <div key={idx} className="flex items-center gap-4 p-3 hover:bg-dark-900 rounded">
                   <div
                     className={`w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-bold ${
                       activity.platform === 'strava'
                         ? 'bg-orange-500'
                         : activity.platform === 'whoop'
                         ? 'bg-teal-500'
-                        : 'bg-blue-500'
+                        : 'bg-primary-900/300'
                     }`}
                   >
                     {((activity.name || '??').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase())}
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">{activity.name}</p>
-                    <p className="text-xs text-gray-600">
+                    <p className="font-medium text-dark-50">{activity.name}</p>
+                    <p className="text-xs text-dark-300">
                       {activity.distance}km {String.fromCharCode(183)} {activity.duration} min
                     </p>
                   </div>
-                  <p className="text-xs text-gray-500">{activity.timeAgo}</p>
+                  <p className="text-xs text-dark-400">{activity.timeAgo}</p>
                 </div>
               ))}
             </div>
@@ -933,8 +984,8 @@
         <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-gray-900">Workout Log</h1>
-            <button onClick={() => alert('Workout logging coming soon! Track your workouts in the History tab.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
+            <h1 className="text-3xl font-bold text-dark-50">Workout Log</h1>
+            <button onClick={() => alert('Workout logging coming soon! Track your workouts in the History tab.')} className="bg-primary-600 hover:bg-primary-500 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
               <Icons.Plus /> Start Workout
             </button>
           </div>
@@ -946,10 +997,10 @@
               { label: 'Total Time', value: data.totalTime || '420 min', icon: Icons.Clock },
               { label: 'Avg Intensity', value: data.avgIntensity || 'High', icon: Icons.Zap },
             ].map((stat, idx) => (
-              <div key={idx} className="bg-white rounded-lg shadow p-4 flex items-center justify-between">
+              <div key={idx} className="glass-card p-4 flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm font-medium">{stat.label}</p>
-                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                  <p className="text-dark-300 text-sm font-medium">{stat.label}</p>
+                  <p className="text-2xl font-bold text-dark-50">{stat.value}</p>
                 </div>
                 <div className="text-primary-600">
                   <stat.icon />
@@ -959,13 +1010,13 @@
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-4 border-b border-gray-200">
+          <div className="flex gap-4 border-b border-dark-700">
             <button
               onClick={() => setTab('history')}
               className={`px-4 py-2 font-medium ${
                 tab === 'history'
                   ? 'text-primary-600 border-b-2 border-primary-600'
-                  : 'text-gray-600 hover:text-gray-900'
+                  : 'text-dark-300 hover:text-dark-50'
               }`}
             >
               History
@@ -975,7 +1026,7 @@
               className={`px-4 py-2 font-medium ${
                 tab === 'templates'
                   ? 'text-primary-600 border-b-2 border-primary-600'
-                  : 'text-gray-600 hover:text-gray-900'
+                  : 'text-dark-300 hover:text-dark-50'
               }`}
             >
               Templates
@@ -986,27 +1037,27 @@
           {tab === 'history' && (
             <div className="space-y-4">
               {(data.workoutHistory || []).map((workout, idx) => (
-                <div key={idx} className="bg-white rounded-lg shadow p-4">
+                <div key={idx} className="glass-card p-4">
                   <div className="flex items-start gap-4">
                     <div className="text-primary-600 mt-1">
                       <Icons.Activity />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-bold text-gray-900">{workout.name}</h3>
-                        <span className="text-xs text-gray-600">{workout.date}</span>
+                        <h3 className="font-bold text-dark-50">{workout.name}</h3>
+                        <span className="text-xs text-dark-300">{workout.date}</span>
                       </div>
-                      <p className="text-sm text-gray-600 mb-3">{workout.duration} min â¢ RPE: {workout.rpe}</p>
-                      {workout.notes && <p className="text-sm text-gray-700 mb-2">{workout.notes}</p>}
+                      <p className="text-sm text-dark-300 mb-3">{workout.duration} min Ã¢ÂÂ¢ RPE: {workout.rpe}</p>
+                      {workout.notes && <p className="text-sm text-dark-200 mb-2">{workout.notes}</p>}
                       <div className="flex gap-2">
-                        <span className="bg-blue-100 text-primary-600 text-xs px-2 py-1 rounded">
+                        <span className="bg-primary-800/30 text-primary-600 text-xs px-2 py-1 rounded">
                           {workout.type}
                         </span>
                       </div>
                       {workout.coachFeedback && (
-                        <div className="mt-3 bg-blue-50 border-l-4 border-primary-600 p-3">
+                        <div className="mt-3 bg-primary-900/30 border-l-4 border-primary-600 p-3">
                           <p className="text-xs font-medium text-primary-600 mb-1">Coach Feedback</p>
-                          <p className="text-sm text-gray-700">{workout.coachFeedback}</p>
+                          <p className="text-sm text-dark-200">{workout.coachFeedback}</p>
                         </div>
                       )}
                     </div>
@@ -1020,11 +1071,11 @@
           {tab === 'templates' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {(data.templates || []).map((template, idx) => (
-                <div key={idx} className="bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-lg transition">
-                  <h3 className="font-bold text-gray-900 mb-2">{template.name}</h3>
-                  <p className="text-sm text-gray-600 mb-3">{template.duration} min</p>
-                  <p className="text-xs text-gray-600 mb-3">{template.description}</p>
-                  <button onClick={() => alert(`Starting ${template.name}! Workout timer will begin shortly.`)} className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+                <div key={idx} className="glass-card p-4 cursor-pointer hover:shadow-lg transition">
+                  <h3 className="font-bold text-dark-50 mb-2">{template.name}</h3>
+                  <p className="text-sm text-dark-300 mb-3">{template.duration} min</p>
+                  <p className="text-xs text-dark-300 mb-3">{template.description}</p>
+                  <button onClick={() => alert(`Starting ${template.name}! Workout timer will begin shortly.`)} className="w-full bg-primary-600 hover:bg-primary-500 text-white font-semibold py-2 px-4 rounded-lg transition">
                     Start
                   </button>
                 </div>
@@ -1107,7 +1158,7 @@
         const valuePath = pct > 0 ? describeArc(180, Math.max(0, endAngle), r, innerR) : '';
 
         return (
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="glass-card p-6">
             <div className="flex flex-col items-center">
               <div style={{ position: 'relative', width: 140, height: 80 }}>
                 <svg width="140" height="80" viewBox="0 0 140 80">
@@ -1115,12 +1166,12 @@
                   {pct > 0 && <path d={valuePath} fill={color} />}
                 </svg>
                 <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, textAlign: 'center' }}>
-                  <span className="text-3xl font-bold text-gray-900">{score}</span>
+                  <span className="text-3xl font-bold text-dark-50">{score}</span>
                 </div>
               </div>
-              <span className="text-sm font-medium text-gray-600 mt-1">{label}</span>
+              <span className="text-sm font-medium text-dark-300 mt-1">{label}</span>
               {status && (
-                <span className="mt-2 bg-green-100 text-green-700 text-xs px-2 py-1 rounded">
+                <span className="mt-2 bg-emerald-900/30 text-green-700 text-xs px-2 py-1 rounded">
                   {status}
                 </span>
               )}
@@ -1133,18 +1184,18 @@
         <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
+            <h1 className="text-3xl font-bold text-dark-50">Reports</h1>
             <div className="flex gap-4">
               <select
                 value={timeRange}
                 onChange={(e) => setTimeRange(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="px-4 py-2 border border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400"
               >
                 <option value="7days">Last 7 Days</option>
                 <option value="30days">Last 30 Days</option>
                 <option value="90days">Last 90 Days</option>
               </select>
-              <button onClick={() => alert('AI Report generated! Check the summary below for your latest insights.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+              <button onClick={() => alert('AI Report generated! Check the summary below for your latest insights.')} className="bg-primary-600 hover:bg-primary-500 text-white font-semibold py-2 px-4 rounded-lg transition">
                 Generate AI Report
               </button>
             </div>
@@ -1159,39 +1210,39 @@
           </div>
 
           {/* AI Performance Summary */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">AI Performance Summary</h2>
-            <p className="text-xs text-gray-600 mb-4">Generated {data.generatedDate || 'today'}</p>
-            <p className="text-gray-700 leading-relaxed">{data.summary || 'Your fitness performance is excellent this week. You maintained consistency across all metrics with a strong focus on recovery and nutrition. Continue this momentum for optimal results.'}</p>
+          <div className="glass-card p-6">
+            <h2 className="text-xl font-bold text-dark-50 mb-2">AI Performance Summary</h2>
+            <p className="text-xs text-dark-300 mb-4">Generated {data.generatedDate || 'today'}</p>
+            <p className="text-dark-200 leading-relaxed">{data.summary || 'Your fitness performance is excellent this week. You maintained consistency across all metrics with a strong focus on recovery and nutrition. Continue this momentum for optimal results.'}</p>
           </div>
 
           {/* Weekly Highlights and Focus Areas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Highlights */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Weekly Highlights</h2>
+            <div className="glass-card p-6">
+              <h2 className="text-xl font-bold text-dark-50 mb-4">Weekly Highlights</h2>
               <ul className="space-y-3">
                 {(data.highlights || []).map((highlight, idx) => (
                   <li key={idx} className="flex items-start gap-3">
-                    <div className="text-green-600 mt-1 flex-shrink-0">
+                    <div className="text-emerald-400 mt-1 flex-shrink-0">
                       <Icons.Check />
                     </div>
-                    <span className="text-gray-700">{highlight}</span>
+                    <span className="text-dark-200">{highlight}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
             {/* Areas to Focus */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Areas to Focus On</h2>
+            <div className="glass-card p-6">
+              <h2 className="text-xl font-bold text-dark-50 mb-4">Areas to Focus On</h2>
               <ul className="space-y-3">
                 {(data.focusAreas || []).map((area, idx) => (
                   <li key={idx} className="flex items-start gap-3">
-                    <div className="text-yellow-600 mt-1 flex-shrink-0">
+                    <div className="text-amber-400 mt-1 flex-shrink-0">
                       <Icons.AlertTriangle />
                     </div>
-                    <span className="text-gray-700">{area}</span>
+                    <span className="text-dark-200">{area}</span>
                   </li>
                 ))}
               </ul>
@@ -1246,8 +1297,8 @@
         <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-gray-900">Goals</h1>
-            <button onClick={() => alert('Goal creation coming soon! You can track your existing goals below.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
+            <h1 className="text-3xl font-bold text-dark-50">Goals</h1>
+            <button onClick={() => alert('Goal creation coming soon! You can track your existing goals below.')} className="bg-primary-600 hover:bg-primary-500 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
               <Icons.Plus /> New Goal
             </button>
           </div>
@@ -1267,30 +1318,30 @@
 
               const progressColor =
                 pct >= 75
-                  ? 'bg-green-600'
+                  ? 'bg-emerald-600'
                   : pct >= 50
                   ? 'bg-yellow-600'
                   : 'bg-red-600';
 
               const statusColor =
                 goal.status === 'completed'
-                  ? 'bg-green-100 text-green-700'
+                  ? 'bg-emerald-900/30 text-green-700'
                   : goal.status === 'active'
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'bg-gray-100 text-gray-700';
+                  ? 'bg-primary-800/30 text-primary-300'
+                  : 'bg-dark-800/50 text-dark-200';
 
               const statusLabel = goal.status === 'active' ? 'In Progress' : goal.status === 'completed' ? 'Completed' : goal.status;
 
               return (
-                <div key={idx} className="bg-white rounded-lg shadow p-6">
+                <div key={idx} className="glass-card p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-start gap-4">
                       <div className="text-primary-600 text-2xl">
                         <Icons.Target />
                       </div>
                       <div>
-                        <h3 className="text-lg font-bold text-gray-900">{goal.name}</h3>
-                        <p className="text-sm text-gray-600">{target} {goal.unit || ''}</p>
+                        <h3 className="text-lg font-bold text-dark-50">{goal.name}</h3>
+                        <p className="text-sm text-dark-300">{target} {goal.unit || ''}</p>
                       </div>
                     </div>
                     <span className={`text-xs font-semibold px-3 py-1 rounded-full ${statusColor}`}>
@@ -1301,16 +1352,16 @@
                   <div className="space-y-3">
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-gray-600">Progress</span>
-                        <span className="text-sm font-medium text-gray-900">{pct}%</span>
+                        <span className="text-sm text-dark-300">Progress</span>
+                        <span className="text-sm font-medium text-dark-50">{pct}%</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div className="w-full bg-dark-700 rounded-full h-3">
                         <div className={`${progressColor} h-3 rounded-full`} style={{ width: `${pct}%` }} />
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-dark-300">
                         {current} / {target} {goal.unit || ''}
                       </span>
                       <button onClick={() => alert('Progress updated! Your goal tracking is being synced.')} className="text-primary-600 hover:text-primary-700 text-sm font-semibold">
@@ -1372,19 +1423,19 @@
         <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-gray-900">Groups & Challenges</h1>
+            <h1 className="text-3xl font-bold text-dark-50">Groups & Challenges</h1>
             <div className="flex gap-2">
-              <button onClick={() => alert('Enter a group code to join! This feature is coming soon.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+              <button onClick={() => alert('Enter a group code to join! This feature is coming soon.')} className="bg-primary-600 hover:bg-primary-500 text-white font-semibold py-2 px-4 rounded-lg transition">
                 Join with Code
               </button>
-              <button onClick={() => alert('Group creation coming soon! Create challenges and compete with friends.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+              <button onClick={() => alert('Group creation coming soon! Create challenges and compete with friends.')} className="bg-primary-600 hover:bg-primary-500 text-white font-semibold py-2 px-4 rounded-lg transition">
                 Create Group
               </button>
             </div>
           </div>
 
           {/* Tab Bar */}
-          <div className="flex gap-4 border-b border-gray-200">
+          <div className="flex gap-4 border-b border-dark-700">
             {['competitions', 'leaderboard', 'mygroups', 'discover'].map((t) => (
               <button
                 key={t}
@@ -1392,7 +1443,7 @@
                 className={`px-4 py-2 font-medium capitalize ${
                   tab === t
                     ? 'text-primary-600 border-b-2 border-primary-600'
-                    : 'text-gray-600 hover:text-gray-900'
+                    : 'text-dark-300 hover:text-dark-50'
                 }`}
               >
                 {t === 'mygroups' ? 'My Groups' : t}
@@ -1403,33 +1454,33 @@
           {/* Competitions / Content */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {(data.items || []).map((item, idx) => (
-              <div key={idx} className="bg-white rounded-lg shadow p-6">
+              <div key={idx} className="glass-card p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900">{item.name}</h3>
-                    <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                    <h3 className="text-lg font-bold text-dark-50">{item.name}</h3>
+                    <p className="text-sm text-dark-300 mt-1">{item.description}</p>
                   </div>
                   {item.badge && (
-                    <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-semibold">
+                    <span className="bg-emerald-900/30 text-green-700 text-xs px-2 py-1 rounded-full font-semibold">
                       {item.badge}
                     </span>
                   )}
                 </div>
 
                 {item.daysLeft && (
-                  <p className="text-xs text-gray-600 mb-3">{item.daysLeft} days left</p>
+                  <p className="text-xs text-dark-300 mb-3">{item.daysLeft} days left</p>
                 )}
 
-                {item.goal && <p className="text-sm text-gray-700 mb-4">{item.goal}</p>}
+                {item.goal && <p className="text-sm text-dark-200 mb-4">{item.goal}</p>}
 
                 {/* Leaderboard */}
                 {item.leaderboard && (
                   <div className="space-y-2 mb-4">
                     {item.leaderboard.slice(0, 3).map((entry, i) => (
-                      <div key={i} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
+                      <div key={i} className="flex items-center gap-3 p-2 bg-dark-900 rounded">
                         <div className="w-6 text-center">
                           {i === 0 && <Icons.Trophy className="text-yellow-500" />}
-                          {i === 1 && <Icons.Medal className="text-gray-400" />}
+                          {i === 1 && <Icons.Medal className="text-dark-400" />}
                           {i === 2 && <Icons.Medal className="text-orange-400" />}
                           {i > 2 && <span className="text-xs font-bold">{i + 1}</span>}
                         </div>
@@ -1437,22 +1488,22 @@
                           {entry.initials}
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">{entry.name}</p>
-                          <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
+                          <p className="text-sm font-medium text-dark-50">{entry.name}</p>
+                          <div className="w-full bg-dark-700 rounded-full h-1 mt-1">
                             <div
                               className="bg-primary-600 h-1 rounded-full"
                               style={{ width: `${entry.progress}%` }}
                             />
                           </div>
                         </div>
-                        <span className="text-xs font-semibold text-gray-600">{entry.value}</span>
+                        <span className="text-xs font-semibold text-dark-300">{entry.value}</span>
                       </div>
                     ))}
                   </div>
                 )}
 
                 <button onClick={() => setTab('leaderboard')} className="w-full text-primary-600 hover:text-primary-700 font-semibold text-sm">
-                  View Full Leaderboard â
+                  View Full Leaderboard Ã¢ÂÂ
                 </button>
               </div>
             ))}
@@ -1506,11 +1557,11 @@
       const badgeColor = (type) => {
         switch (type) {
           case 'Achievement':
-            return 'bg-yellow-100 text-yellow-700';
+            return 'bg-amber-900/30 text-yellow-700';
           case 'Workout':
-            return 'bg-green-100 text-green-700';
+            return 'bg-emerald-900/30 text-green-700';
           default:
-            return 'bg-blue-100 text-blue-700';
+            return 'bg-primary-800/30 text-primary-300';
         }
       };
 
@@ -1518,8 +1569,8 @@
         <div className="max-w-2xl mx-auto space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-gray-900">Activity Feed</h1>
-            <button onClick={() => alert('Post update coming soon! Share your fitness achievements with the community.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
+            <h1 className="text-3xl font-bold text-dark-50">Activity Feed</h1>
+            <button onClick={() => alert('Post update coming soon! Share your fitness achievements with the community.')} className="bg-primary-600 hover:bg-primary-500 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
               <Icons.Plus /> Post Update
             </button>
           </div>
@@ -1533,7 +1584,7 @@
                 className={`px-4 py-2 rounded-full font-medium whitespace-nowrap capitalize ${
                   filter === f
                     ? 'bg-primary-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    : 'bg-dark-800/50 text-dark-200 hover:bg-dark-600'
                 }`}
               >
                 {f}
@@ -1544,37 +1595,37 @@
           {/* Feed Items */}
           <div className="space-y-4">
             {(data.items || []).map((item, idx) => (
-              <div key={idx} className="bg-white rounded-lg shadow p-6">
+              <div key={idx} className="glass-card p-6">
                 <div className="flex items-start gap-4 mb-3">
                   <div className="w-10 h-10 rounded-full bg-primary-600 text-white text-sm font-bold flex items-center justify-center">
                     {item.initials}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-bold text-gray-900">{item.name}</p>
+                      <p className="font-bold text-dark-50">{item.name}</p>
                       <span className={`text-xs font-semibold px-2 py-1 rounded ${badgeColor(item.type)}`}>
                         {item.type}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-600">{item.date}</p>
+                    <p className="text-xs text-dark-300">{item.date}</p>
                   </div>
                 </div>
 
                 <div className="mb-4">
-                  <h3 className="font-bold text-gray-900 mb-1">{item.title}</h3>
-                  <p className="text-gray-700">{item.description}</p>
+                  <h3 className="font-bold text-dark-50 mb-1">{item.title}</h3>
+                  <p className="text-dark-200">{item.description}</p>
                 </div>
 
-                <div className="flex items-center gap-4 pt-4 border-t border-gray-200">
-                  <button onClick={(e) => { const btn = e.currentTarget; const span = btn.querySelector('span'); const current = parseInt(span.textContent); span.textContent = current + 1; btn.classList.add('text-red-600'); btn.classList.remove('text-gray-600'); }} className="flex items-center gap-2 text-gray-600 hover:text-red-600 transition">
+                <div className="flex items-center gap-4 pt-4 border-t border-dark-700">
+                  <button onClick={(e) => { const btn = e.currentTarget; const span = btn.querySelector('span'); const current = parseInt(span.textContent); span.textContent = current + 1; btn.classList.add('text-red-400'); btn.classList.remove('text-dark-300'); }} className="flex items-center gap-2 text-dark-300 hover:text-red-400 transition">
                     <Icons.Heart />
                     <span className="text-xs">{item.likes}</span>
                   </button>
-                  <button onClick={() => alert('Comments coming soon!')} className="flex items-center gap-2 text-gray-600 hover:text-primary-600 transition">
+                  <button onClick={() => alert('Comments coming soon!')} className="flex items-center gap-2 text-dark-300 hover:text-primary-600 transition">
                     <Icons.MessageCircle />
                     <span className="text-xs">{item.comments}</span>
                   </button>
-                  <button onClick={() => { navigator.clipboard && navigator.clipboard.writeText(window.location.href); alert('Link copied to clipboard!'); }} className="flex items-center gap-2 text-gray-600 hover:text-primary-600 transition">
+                  <button onClick={() => { navigator.clipboard && navigator.clipboard.writeText(window.location.href); alert('Link copied to clipboard!'); }} className="flex items-center gap-2 text-dark-300 hover:text-primary-600 transition">
                     <Icons.Share2 />
                   </button>
                 </div>
@@ -1632,11 +1683,11 @@
         <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
+            <h1 className="text-3xl font-bold text-dark-50">Analytics</h1>
             <select
               value={timeRange}
               onChange={(e) => setTimeRange(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="px-4 py-2 border border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400"
             >
               <option value="30days">Last 30 Days</option>
               <option value="60days">Last 60 Days</option>
@@ -1656,7 +1707,7 @@
                 stat.color === 'green'
                   ? 'bg-green-50'
                   : stat.color === 'blue'
-                  ? 'bg-blue-50'
+                  ? 'bg-primary-900/30'
                   : stat.color === 'purple'
                   ? 'bg-purple-50'
                   : 'bg-orange-50';
@@ -1665,8 +1716,8 @@
                 <div key={idx} className={`${bgColor} rounded-lg p-4`}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-gray-600 text-sm font-medium">{stat.label}</p>
-                      <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                      <p className="text-dark-300 text-sm font-medium">{stat.label}</p>
+                      <p className="text-2xl font-bold text-dark-50">{stat.value}</p>
                     </div>
                     <div className="text-primary-600">
                       <stat.icon />
@@ -1678,7 +1729,7 @@
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-4 border-b border-gray-200">
+          <div className="flex gap-4 border-b border-dark-700">
             {['trends', 'insights', 'datasources'].map((t) => (
               <button
                 key={t}
@@ -1686,7 +1737,7 @@
                 className={`px-4 py-2 font-medium capitalize ${
                   tab === t
                     ? 'text-primary-600 border-b-2 border-primary-600'
-                    : 'text-gray-600 hover:text-gray-900'
+                    : 'text-dark-300 hover:text-dark-50'
                 }`}
               >
                 {t === 'datasources' ? 'Data Sources' : t}
@@ -1696,8 +1747,8 @@
 
           {/* Trends Tab */}
           {tab === 'trends' && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Performance Over Time</h2>
+            <div className="glass-card p-6">
+              <h2 className="text-xl font-bold text-dark-50 mb-4">Performance Over Time</h2>
               <ResponsiveContainer width="100%" height={400}>
                 <AreaChart data={data.trendData || []}>
                   <defs>
@@ -1724,13 +1775,13 @@
 
           {/* Insights Tab */}
           {tab === 'insights' && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Key Insights</h2>
+            <div className="glass-card p-6">
+              <h2 className="text-xl font-bold text-dark-50 mb-4">Key Insights</h2>
               <ul className="space-y-3">
                 {(data.insights || []).map((insight, idx) => (
-                  <li key={idx} className="flex items-start gap-3 p-3 bg-blue-50 rounded">
+                  <li key={idx} className="flex items-start gap-3 p-3 bg-primary-900/30 rounded">
                     <Icons.Check className="text-primary-600 mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-700">{insight}</span>
+                    <span className="text-dark-200">{insight}</span>
                   </li>
                 ))}
               </ul>
@@ -1739,16 +1790,16 @@
 
           {/* Data Sources Tab */}
           {tab === 'datasources' && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Connected Data Sources</h2>
+            <div className="glass-card p-6">
+              <h2 className="text-xl font-bold text-dark-50 mb-4">Connected Data Sources</h2>
               <div className="space-y-3">
                 {(data.dataSources || []).map((source, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 border border-gray-200 rounded">
+                  <div key={idx} className="flex items-center justify-between p-3 border border-dark-700 rounded">
                     <div>
-                      <p className="font-medium text-gray-900">{source.name}</p>
-                      <p className="text-xs text-gray-600">Last synced: {source.lastSync}</p>
+                      <p className="font-medium text-dark-50">{source.name}</p>
+                      <p className="text-xs text-dark-300">Last synced: {source.lastSync}</p>
                     </div>
-                    <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded">
+                    <span className="bg-emerald-900/30 text-green-700 text-xs px-2 py-1 rounded">
                       Connected
                     </span>
                   </div>
@@ -1866,21 +1917,21 @@
       const data = settingsData || {};
 
       const platformInfo = {
-        strava: { name: 'Strava', color: 'bg-orange-100', textColor: 'text-orange-600', category: 'Activity Tracking', badge: 'Connected', badgeColor: 'bg-green-100 text-green-700', lastSync: '2 hours ago' },
-        whoop: { name: 'WHOOP', color: 'bg-teal-100', textColor: 'text-teal-600', category: 'Recovery & Sleep', badge: 'Premium', badgeColor: 'bg-purple-100 text-purple-700' },
-        garmin: { name: 'Garmin Connect', color: 'bg-blue-100', textColor: 'text-blue-600', category: 'Activity Tracking', badge: null, badgeColor: null },
-        peloton: { name: 'Peloton', color: 'bg-red-100', textColor: 'text-red-600', category: 'Training', badge: null, badgeColor: null },
-        myfitnesspal: { name: 'MyFitnessPal', color: 'bg-green-100', textColor: 'text-green-600', category: 'Nutrition', badge: 'Connected', badgeColor: 'bg-green-100 text-green-700', lastSync: '1 hour ago' },
-        applehealth: { name: 'Apple Health', color: 'bg-gray-100', textColor: 'text-gray-600', category: 'Health Platform', badge: null, badgeColor: null },
+        strava: { name: 'Strava', color: 'bg-orange-100', textColor: 'text-orange-600', category: 'Activity Tracking', badge: 'Connected', badgeColor: 'bg-emerald-900/30 text-green-700', lastSync: '2 hours ago' },
+        whoop: { name: 'WHOOP', color: 'bg-teal-100', textColor: 'text-teal-600', category: 'Recovery & Sleep', badge: 'Premium', badgeColor: 'bg-purple-900/30 text-purple-700' },
+        garmin: { name: 'Garmin Connect', color: 'bg-primary-800/30', textColor: 'text-primary-400', category: 'Activity Tracking', badge: null, badgeColor: null },
+        peloton: { name: 'Peloton', color: 'bg-red-900/30', textColor: 'text-red-400', category: 'Training', badge: null, badgeColor: null },
+        myfitnesspal: { name: 'MyFitnessPal', color: 'bg-emerald-900/30', textColor: 'text-emerald-400', category: 'Nutrition', badge: 'Connected', badgeColor: 'bg-emerald-900/30 text-green-700', lastSync: '1 hour ago' },
+        applehealth: { name: 'Apple Health', color: 'bg-dark-800/50', textColor: 'text-dark-300', category: 'Health Platform', badge: null, badgeColor: null },
       };
 
       return (
         <div className="space-y-6">
           {/* Header */}
-          <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+          <h1 className="text-3xl font-bold text-dark-50">Settings</h1>
 
           {/* Tabs */}
-          <div className="flex gap-4 border-b border-gray-200 overflow-x-auto">
+          <div className="flex gap-4 border-b border-dark-700 overflow-x-auto">
             {['integrations', 'notifications', 'appearance', 'security', 'privacy'].map((t) => (
               <button
                 key={t}
@@ -1888,7 +1939,7 @@
                 className={`px-4 py-2 font-medium capitalize whitespace-nowrap ${
                   tab === t
                     ? 'text-primary-600 border-b-2 border-primary-600'
-                    : 'text-gray-600 hover:text-gray-900'
+                    : 'text-dark-300 hover:text-dark-50'
                 }`}
               >
                 {t === 'privacy' ? 'Data & Privacy' : t}
@@ -1912,7 +1963,7 @@
                   <button
                     key={cat}
                     onClick={() => setFilterCat(cat)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${filterCat === cat ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                    className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${filterCat === cat ? 'bg-primary-600 text-white' : 'bg-dark-800/50 text-dark-200 hover:bg-dark-600'}`}
                   >
                     {cat}
                   </button>
@@ -1925,13 +1976,13 @@
                   const isConnected = data.connectedPlatforms?.includes(key);
 
                   return (
-                    <div key={key} className="bg-white rounded-lg shadow p-4">
+                    <div key={key} className="glass-card p-4">
                       <div className={`${info.color} ${info.textColor} w-12 h-12 rounded-lg flex items-center justify-center mb-3 font-bold text-lg`}>
                         {info.name.substring(0, 1)}
                       </div>
 
-                      <h3 className="font-bold text-gray-900 mb-1">{info.name}</h3>
-                      <p className="text-xs text-gray-600 mb-3">{info.category}</p>
+                      <h3 className="font-bold text-dark-50 mb-1">{info.name}</h3>
+                      <p className="text-xs text-dark-300 mb-3">{info.category}</p>
 
                       {info.badge && (
                         <span className={`text-xs font-semibold px-2 py-1 rounded mb-2 block ${info.badgeColor}`}>
@@ -1940,21 +1991,21 @@
                       )}
 
                       {isConnected && info.lastSync && (
-                        <p className="text-xs text-gray-600 mb-3">Last synced: {info.lastSync}</p>
+                        <p className="text-xs text-dark-300 mb-3">Last synced: {info.lastSync}</p>
                       )}
 
                       <div className="space-y-2 mb-3">
-                        <p className="text-xs text-gray-600">Data types: Activities, Routes</p>
+                        <p className="text-xs text-dark-300">Data types: Activities, Routes</p>
                       </div>
 
                       {isConnected ? (
                         <div className="flex gap-2">
-                          <button onClick={() => alert(`${info.name} integration settings: Sync frequency, data permissions, and connection status.`)} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-semibold py-2 px-3 rounded transition">
+                          <button onClick={() => alert(`${info.name} integration settings: Sync frequency, data permissions, and connection status.`)} className="flex-1 bg-dark-700 hover:bg-dark-600 text-dark-200 text-xs font-semibold py-2 px-3 rounded transition">
                             Settings
                           </button>
                           <button
                             onClick={() => handleDisconnect(key)}
-                            className="bg-red-100 hover:bg-red-200 text-red-700 text-xs font-semibold py-2 px-3 rounded transition"
+                            className="bg-red-900/30 hover:bg-red-200 text-red-700 text-xs font-semibold py-2 px-3 rounded transition"
                           >
                             <Icons.X />
                           </button>
@@ -1962,7 +2013,7 @@
                       ) : (
                         <button
                           onClick={() => handleConnect(key)}
-                          className="w-full bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold py-2 px-4 rounded transition"
+                          className="w-full bg-primary-600 hover:bg-primary-500 text-white text-xs font-semibold py-2 px-4 rounded transition"
                         >
                           Connect
                         </button>
@@ -1977,8 +2028,8 @@
           {/* Other Tabs - Placeholder */}
           {tab === 'notifications' && (
             <div className="space-y-4">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Notification Preferences</h2>
+              <div className="glass-card p-6">
+                <h2 className="text-xl font-bold text-dark-50 mb-4">Notification Preferences</h2>
                 <div className="space-y-4">
                   {[
                     { label: 'Workout Reminders', desc: 'Get reminded about scheduled workouts', on: true },
@@ -1987,13 +2038,13 @@
                     { label: 'Social Activity', desc: 'Likes, comments, and group updates', on: false },
                     { label: 'Weekly Summary', desc: 'Email digest of your weekly performance', on: true },
                   ].map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                    <div key={idx} className="flex items-center justify-between py-3 border-b border-dark-700 last:border-0">
                       <div>
-                        <p className="font-medium text-gray-900">{item.label}</p>
-                        <p className="text-sm text-gray-500">{item.desc}</p>
+                        <p className="font-medium text-dark-50">{item.label}</p>
+                        <p className="text-sm text-dark-400">{item.desc}</p>
                       </div>
-                      <div onClick={() => setNotifs(prev => ({...prev, [idx]: !prev[idx]}))} className={`w-12 h-6 rounded-full cursor-pointer transition ${notifs[idx] ? 'bg-blue-600' : 'bg-gray-300'}`}>
-                        <div className={`w-5 h-5 bg-white rounded-full shadow mt-0.5 transition-transform ${notifs[idx] ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      <div onClick={() => setNotifs(prev => ({...prev, [idx]: !prev[idx]}))} className={`w-12 h-6 rounded-full cursor-pointer transition ${notifs[idx] ? 'bg-primary-600' : 'bg-dark-600'}`}>
+                        <div className={`w-5 h-5 bg-dark-800 rounded-full shadow mt-0.5 transition-transform ${notifs[idx] ? 'translate-x-6' : 'translate-x-0.5'}`} />
                       </div>
                     </div>
                   ))}
@@ -2004,30 +2055,30 @@
 
           {tab === 'appearance' && (
             <div className="space-y-4">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Appearance</h2>
+              <div className="glass-card p-6">
+                <h2 className="text-xl font-bold text-dark-50 mb-4">Appearance</h2>
                 <div className="space-y-4">
                   <div>
-                    <p className="font-medium text-gray-900 mb-2">Theme</p>
+                    <p className="font-medium text-dark-50 mb-2">Theme</p>
                     <div className="flex gap-3">
                       {['Light', 'Dark', 'System'].map((t) => (
-                        <button key={t} onClick={() => setTheme(t)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${t === theme ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{t}</button>
+                        <button key={t} onClick={() => setTheme(t)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${t === theme ? 'border-primary-500 bg-primary-600/20 text-primary-300 shadow-glow-blue' : 'border-dark-700 text-dark-300 hover:bg-dark-900'}`}>{t}</button>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900 mb-2">Dashboard Layout</p>
+                    <p className="font-medium text-dark-50 mb-2">Dashboard Layout</p>
                     <div className="flex gap-3">
                       {['Compact', 'Standard', 'Expanded'].map((l) => (
-                        <button key={l} onClick={() => setLayout(l)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${l === layout ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{l}</button>
+                        <button key={l} onClick={() => setLayout(l)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${l === layout ? 'border-primary-500 bg-primary-600/20 text-primary-300 shadow-glow-blue' : 'border-dark-700 text-dark-300 hover:bg-dark-900'}`}>{l}</button>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900 mb-2">Units</p>
+                    <p className="font-medium text-dark-50 mb-2">Units</p>
                     <div className="flex gap-3">
                       {['Imperial (mi, lbs)', 'Metric (km, kg)'].map((u, i) => (
-                        <button key={u} onClick={() => setUnits(u)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${u === units ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{u}</button>
+                        <button key={u} onClick={() => setUnits(u)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${u === units ? 'border-primary-500 bg-primary-600/20 text-primary-300 shadow-glow-blue' : 'border-dark-700 text-dark-300 hover:bg-dark-900'}`}>{u}</button>
                       ))}
                     </div>
                   </div>
@@ -2038,29 +2089,29 @@
 
           {tab === 'security' && (
             <div className="space-y-4">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Security</h2>
+              <div className="glass-card p-6">
+                <h2 className="text-xl font-bold text-dark-50 mb-4">Security</h2>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                  <div className="flex items-center justify-between py-3 border-b border-dark-700">
                     <div>
-                      <p className="font-medium text-gray-900">Password</p>
-                      <p className="text-sm text-gray-500">Last changed 30 days ago</p>
+                      <p className="font-medium text-dark-50">Password</p>
+                      <p className="text-sm text-dark-400">Last changed 30 days ago</p>
                     </div>
-                    <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium py-2 px-4 rounded-lg transition">Change</button>
+                    <button className="bg-dark-800/50 hover:bg-dark-600 text-dark-200 text-sm font-medium py-2 px-4 rounded-lg transition">Change</button>
                   </div>
-                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                  <div className="flex items-center justify-between py-3 border-b border-dark-700">
                     <div>
-                      <p className="font-medium text-gray-900">Two-Factor Authentication</p>
-                      <p className="text-sm text-gray-500">Add an extra layer of security</p>
+                      <p className="font-medium text-dark-50">Two-Factor Authentication</p>
+                      <p className="text-sm text-dark-400">Add an extra layer of security</p>
                     </div>
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition">Enable</button>
+                    <button className="bg-primary-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition">Enable</button>
                   </div>
                   <div className="flex items-center justify-between py-3">
                     <div>
-                      <p className="font-medium text-gray-900">Active Sessions</p>
-                      <p className="text-sm text-gray-500">1 active session on this device</p>
+                      <p className="font-medium text-dark-50">Active Sessions</p>
+                      <p className="text-sm text-dark-400">1 active session on this device</p>
                     </div>
-                    <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium py-2 px-4 rounded-lg transition">Manage</button>
+                    <button className="bg-dark-800/50 hover:bg-dark-600 text-dark-200 text-sm font-medium py-2 px-4 rounded-lg transition">Manage</button>
                   </div>
                 </div>
               </div>
@@ -2069,35 +2120,35 @@
 
           {tab === 'privacy' && (
             <div className="space-y-4">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Data & Privacy</h2>
+              <div className="glass-card p-6">
+                <h2 className="text-xl font-bold text-dark-50 mb-4">Data & Privacy</h2>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                  <div className="flex items-center justify-between py-3 border-b border-dark-700">
                     <div>
-                      <p className="font-medium text-gray-900">Profile Visibility</p>
-                      <p className="text-sm text-gray-500">Who can see your profile and activities</p>
+                      <p className="font-medium text-dark-50">Profile Visibility</p>
+                      <p className="text-sm text-dark-400">Who can see your profile and activities</p>
                     </div>
-                    <select className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm">
+                    <select className="border border-dark-600 rounded-lg px-3 py-1.5 text-sm">
                       <option>Friends Only</option>
                       <option>Public</option>
                       <option>Private</option>
                     </select>
                   </div>
-                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                  <div className="flex items-center justify-between py-3 border-b border-dark-700">
                     <div>
-                      <p className="font-medium text-gray-900">Data Sharing</p>
-                      <p className="text-sm text-gray-500">Share anonymized data for research</p>
+                      <p className="font-medium text-dark-50">Data Sharing</p>
+                      <p className="text-sm text-dark-400">Share anonymized data for research</p>
                     </div>
-                    <div className="w-12 h-6 rounded-full cursor-pointer bg-gray-300">
-                      <div className="w-5 h-5 bg-white rounded-full shadow mt-0.5 translate-x-0.5" />
+                    <div className="w-12 h-6 rounded-full cursor-pointer bg-dark-600">
+                      <div className="w-5 h-5 bg-dark-800 rounded-full shadow mt-0.5 translate-x-0.5" />
                     </div>
                   </div>
                   <div className="flex items-center justify-between py-3">
                     <div>
-                      <p className="font-medium text-gray-900">Export Your Data</p>
-                      <p className="text-sm text-gray-500">Download all your data in JSON format</p>
+                      <p className="font-medium text-dark-50">Export Your Data</p>
+                      <p className="text-sm text-dark-400">Download all your data in JSON format</p>
                     </div>
-                    <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium py-2 px-4 rounded-lg transition">Export</button>
+                    <button className="bg-dark-800/50 hover:bg-dark-600 text-dark-200 text-sm font-medium py-2 px-4 rounded-lg transition">Export</button>
                   </div>
                 </div>
               </div>
@@ -2129,7 +2180,7 @@
 
       if (loading) {
         return (
-          <div className="flex items-center justify-center min-h-screen bg-white">
+          <div className="flex items-center justify-center min-h-screen bg-dark-800">
             <div className="spinner" />
           </div>
         );
@@ -2163,9 +2214,9 @@
       };
 
       return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-dark-900">
           {/* Top Navigation Bar */}
-          <nav className="bg-primary-800 text-white shadow-lg sticky top-0 z-50">
+          <nav className="bg-dark-900/95 backdrop-blur-xl text-white shadow-lg shadow-black/20 sticky top-0 z-50 border-b border-dark-700/50">
             <div className="px-4 sm:px-6 py-4">
               <div className="flex items-center justify-between">
                 {/* Logo */}
@@ -2193,8 +2244,8 @@
                         href={`#${href}`}
                         className={`text-sm font-medium transition px-2 py-3 min-h-[44px] inline-flex items-center ${
                           isActive
-                            ? 'text-white'
-                            : 'text-blue-300 hover:text-white'
+                            ? 'text-white font-semibold border-b-2 border-primary-400 pb-0.5'
+                            : 'text-dark-400 hover:text-white transition-colors duration-200'
                         } hidden md:inline-flex`}
                       >
                         {label}
@@ -2281,16 +2332,16 @@
                   <option>Last 30 Days</option>
                   <option>Last 90 Days</option>
                 </select>
-                <button onClick={() => window.location.reload()} className="text-blue-300 hover:text-white transition">
+                <button onClick={() => window.location.reload()} className="text-dark-400 hover:text-white transition-colors duration-200">
                   <Icons.RefreshCw />
                 </button>
-                <button onClick={() => alert('Export data feature coming soon!')} className="text-blue-300 hover:text-white transition">
+                <button onClick={() => alert('Export data feature coming soon!')} className="text-dark-400 hover:text-white transition-colors duration-200">
                   <Icons.Download />
                 </button>
               </div>
 
               <div className="flex items-center gap-4">
-                <a href="#/settings" className="text-blue-300 hover:text-white transition text-xs">
+                <a href="#/settings" className="text-dark-400 hover:text-white transition-colors duration-200 text-xs">
                   Switch to Coach
                 </a>
                 <button
@@ -2302,7 +2353,7 @@
                       })
                       .catch(console.error);
                   }}
-                  className="text-blue-300 hover:text-white transition text-xs"
+                  className="text-dark-400 hover:text-white transition-colors duration-200 text-xs"
                 >
                   Sign Out
                 </button>
