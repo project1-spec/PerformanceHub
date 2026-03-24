@@ -11,7 +11,7 @@
   <script src="https://cdn.jsdelivr.net/npm/prop-types@15/prop-types.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/recharts@2/umd/Recharts.min.js"></script>
   <script>
-    // Capture Recharts components before Babel var hoisting overwrites window globals
+    // Capture Recharts components before Babel's var hoisting overwrites window globals
     window._RC = {};
     ['LineChart','Line','AreaChart','Area','BarChart','Bar','PieChart','Pie','Cell','XAxis','YAxis','CartesianGrid','Tooltip','Legend','ResponsiveContainer'].forEach(function(k) {
       window._RC[k] = window[k] || (window.Recharts && window.Recharts[k]);
@@ -660,7 +660,7 @@
 
             {/* AI Tip */}
             <p className="text-sm text-gray-700">
-              ÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂ¡ <strong>AI Tip:</strong> {data.aiTip || 'Stay consistent with your training routine.'}
+              💡 <strong>AI Tip:</strong> {data.aiTip || 'Stay consistent with your training routine.'}
             </p>
           </div>
 
@@ -841,7 +841,7 @@
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">{activity.name}</p>
                     <p className="text-xs text-gray-600">
-                      {activity.distance}km ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ¢ {activity.duration} min
+                      {activity.distance}km • {activity.duration} min
                     </p>
                   </div>
                   <p className="text-xs text-gray-500">{activity.timeAgo}</p>
@@ -962,7 +962,7 @@
                         <h3 className="font-bold text-gray-900">{workout.name}</h3>
                         <span className="text-xs text-gray-600">{workout.date}</span>
                       </div>
-                      <p className="text-sm text-gray-600 mb-3">{workout.duration} min ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ¢ RPE: {workout.rpe}</p>
+                      <p className="text-sm text-gray-600 mb-3">{workout.duration} min • RPE: {workout.rpe}</p>
                       {workout.notes && <p className="text-sm text-gray-700 mb-2">{workout.notes}</p>}
                       <div className="flex gap-2">
                         <span className="bg-blue-100 text-primary-600 text-xs px-2 py-1 rounded">
@@ -1400,7 +1400,7 @@
                 )}
 
                 <button className="w-full text-primary-600 hover:text-primary-700 font-semibold text-sm">
-                  View Full Leaderboard ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ
+                  View Full Leaderboard →
                 </button>
               </div>
             ))}
@@ -1715,7 +1715,23 @@
       const [error, setError] = useState('');
       const [tab, setTab] = useState('integrations');
 
+      const [oauthMessage, setOauthMessage] = useState('');
+
       useEffect(() => {
+        // Check for OAuth callback params
+        const params = new URLSearchParams(window.location.search);
+        const oauthSuccess = params.get('oauth_success');
+        const oauthError = params.get('oauth_error');
+        if (oauthSuccess) {
+          setOauthMessage(`Successfully connected ${oauthSuccess}!`);
+          // Clean up URL
+          window.history.replaceState({}, '', '/');
+        }
+        if (oauthError) {
+          setOauthMessage(`OAuth error: ${oauthError}`);
+          window.history.replaceState({}, '', '/');
+        }
+
         const fetchSettings = async () => {
           try {
             const res = await fetch('/api/settings');
@@ -1738,7 +1754,13 @@
             method: 'POST',
           });
           if (res.ok) {
-            // Refresh settings
+            const result = await res.json();
+            // If server returns a redirect URL (real OAuth), navigate to it
+            if (result.redirect) {
+              window.location.href = result.redirect;
+              return;
+            }
+            // Otherwise refresh settings (mock connect)
             const res2 = await fetch('/api/settings');
             if (res2.ok) {
               const data = await res2.json();
@@ -1816,6 +1838,13 @@
               </button>
             ))}
           </div>
+
+          {/* OAuth Status Message */}
+          {oauthMessage && (
+            <div className={`p-3 rounded-lg text-sm font-medium ${oauthMessage.includes('error') ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'}`}>
+              {oauthMessage}
+            </div>
+          )}
 
           {/* Integrations Tab */}
           {tab === 'integrations' && (
