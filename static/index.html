@@ -18,6 +18,28 @@
     });
   </script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              200: '#bfdbfe',
+              300: '#93c5fd',
+              400: '#60a5fa',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
   <!--
     TODO [BUG-004 / Optimization]: @babel/standalone is used for in-browser JSX
     transpilation. For production, precompile JSX with a build step (Vite, esbuild,
@@ -722,7 +744,8 @@
               {(data.goals || []).slice(0, 3).map((goal, idx) => {
                 const current = goal.current_value || 0;
                 const target = goal.target_value || 1;
-                const pct = Math.min(100, Math.round((current / target) * 100));
+                const isLB = goal.type === 'weight' || (goal.name && goal.name.toLowerCase().includes('loss'));
+                const pct = isLB ? (current <= target ? 100 : Math.max(0, Math.min(99, Math.round((1 - (current - target) / target) * 100)))) : Math.min(100, Math.round((current / target) * 100));
                 return (
                   <div key={idx}>
                     <div className="flex items-center justify-between mb-2">
@@ -847,12 +870,12 @@
                         : 'bg-blue-500'
                     }`}
                   >
-                    {(activity.platform || 'LC').toUpperCase().substring(0, 2)}
+                    {(activity.type || activity.sport || activity.platform || '??').substring(0, 2).toUpperCase()}
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">{activity.name}</p>
                     <p className="text-xs text-gray-600">
-                      {activity.distance}km Ã¢ÂÂ¢ {activity.duration} min
+                      {activity.distance}km {'\u00B7'} {activity.duration} min
                     </p>
                   </div>
                   <p className="text-xs text-gray-500">{activity.timeAgo}</p>
@@ -1234,7 +1257,13 @@
             {(data.goals || []).map((goal, idx) => {
               const current = goal.current_value || 0;
               const target = goal.target_value || 1;
-              const pct = Math.min(100, Math.round((current / target) * 100));
+              const isLowerBetter = goal.type === 'weight' || (goal.name && goal.name.toLowerCase().includes('loss'));
+                let pct;
+                if (isLowerBetter) {
+                  pct = current <= target ? 100 : Math.max(0, Math.min(99, Math.round((1 - (current - target) / target) * 100)));
+                } else {
+                  pct = Math.min(100, Math.round((current / target) * 100));
+                }
 
               const progressColor =
                 pct >= 75
@@ -1941,30 +1970,131 @@
 
           {/* Other Tabs - Placeholder */}
           {tab === 'notifications' && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Notification Preferences</h2>
-              <p className="text-gray-600">Notification settings coming soon...</p>
+            <div className="space-y-4">
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Notification Preferences</h2>
+                <div className="space-y-4">
+                  {[
+                    { label: 'Workout Reminders', desc: 'Get reminded about scheduled workouts', on: true },
+                    { label: 'Goal Progress', desc: 'Updates when you make progress toward goals', on: true },
+                    { label: 'Recovery Alerts', desc: 'Notified when recovery score is low', on: true },
+                    { label: 'Social Activity', desc: 'Likes, comments, and group updates', on: false },
+                    { label: 'Weekly Summary', desc: 'Email digest of your weekly performance', on: true },
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                      <div>
+                        <p className="font-medium text-gray-900">{item.label}</p>
+                        <p className="text-sm text-gray-500">{item.desc}</p>
+                      </div>
+                      <div className={`w-12 h-6 rounded-full cursor-pointer transition ${item.on ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                        <div className={`w-5 h-5 bg-white rounded-full shadow mt-0.5 transition-transform ${item.on ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
           {tab === 'appearance' && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Appearance</h2>
-              <p className="text-gray-600">Appearance settings coming soon...</p>
+            <div className="space-y-4">
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Appearance</h2>
+                <div className="space-y-4">
+                  <div>
+                    <p className="font-medium text-gray-900 mb-2">Theme</p>
+                    <div className="flex gap-3">
+                      {['Light', 'Dark', 'System'].map((t) => (
+                        <button key={t} className={`px-4 py-2 rounded-lg text-sm font-medium border ${t === 'Light' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{t}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900 mb-2">Dashboard Layout</p>
+                    <div className="flex gap-3">
+                      {['Compact', 'Standard', 'Expanded'].map((l) => (
+                        <button key={l} className={`px-4 py-2 rounded-lg text-sm font-medium border ${l === 'Standard' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{l}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900 mb-2">Units</p>
+                    <div className="flex gap-3">
+                      {['Imperial (mi, lbs)', 'Metric (km, kg)'].map((u, i) => (
+                        <button key={u} className={`px-4 py-2 rounded-lg text-sm font-medium border ${i === 0 ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{u}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
           {tab === 'security' && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Security</h2>
-              <p className="text-gray-600">Security settings coming soon...</p>
+            <div className="space-y-4">
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Security</h2>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                    <div>
+                      <p className="font-medium text-gray-900">Password</p>
+                      <p className="text-sm text-gray-500">Last changed 30 days ago</p>
+                    </div>
+                    <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium py-2 px-4 rounded-lg transition">Change</button>
+                  </div>
+                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                    <div>
+                      <p className="font-medium text-gray-900">Two-Factor Authentication</p>
+                      <p className="text-sm text-gray-500">Add an extra layer of security</p>
+                    </div>
+                    <button className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition">Enable</button>
+                  </div>
+                  <div className="flex items-center justify-between py-3">
+                    <div>
+                      <p className="font-medium text-gray-900">Active Sessions</p>
+                      <p className="text-sm text-gray-500">1 active session on this device</p>
+                    </div>
+                    <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium py-2 px-4 rounded-lg transition">Manage</button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
           {tab === 'privacy' && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Data & Privacy</h2>
-              <p className="text-gray-600">Privacy settings coming soon...</p>
+            <div className="space-y-4">
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Data & Privacy</h2>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                    <div>
+                      <p className="font-medium text-gray-900">Profile Visibility</p>
+                      <p className="text-sm text-gray-500">Who can see your profile and activities</p>
+                    </div>
+                    <select className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm">
+                      <option>Friends Only</option>
+                      <option>Public</option>
+                      <option>Private</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                    <div>
+                      <p className="font-medium text-gray-900">Data Sharing</p>
+                      <p className="text-sm text-gray-500">Share anonymized data for research</p>
+                    </div>
+                    <div className="w-12 h-6 rounded-full cursor-pointer bg-gray-300">
+                      <div className="w-5 h-5 bg-white rounded-full shadow mt-0.5 translate-x-0.5" />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between py-3">
+                    <div>
+                      <p className="font-medium text-gray-900">Export Your Data</p>
+                      <p className="text-sm text-gray-500">Download all your data in JSON format</p>
+                    </div>
+                    <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium py-2 px-4 rounded-lg transition">Export</button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
