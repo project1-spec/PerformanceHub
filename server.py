@@ -726,6 +726,18 @@ class DashboardHandler(BaseHandler):
 
             conn.close()
 
+
+            # Generate trend data for chart
+            trend_data = [
+                {"day": "Mon", "calories": 2100, "steps": 8500, "recovery": 75},
+                {"day": "Tue", "calories": 1850, "steps": 6200, "recovery": 82},
+                {"day": "Wed", "calories": 2400, "steps": 10200, "recovery": 68},
+                {"day": "Thu", "calories": 1950, "steps": 7800, "recovery": 79},
+                {"day": "Fri", "calories": 2200, "steps": 9100, "recovery": 71},
+                {"day": "Sat", "calories": 2600, "steps": 12500, "recovery": 85},
+                {"day": "Sun", "calories": 1700, "steps": 5400, "recovery": 90},
+            ]
+
             self.write({
                 "user": user,
                 "readiness": {
