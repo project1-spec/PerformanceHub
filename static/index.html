@@ -870,12 +870,12 @@
                         : 'bg-blue-500'
                     }`}
                   >
-                    {(activity.type || activity.sport || activity.platform || '??').substring(0, 2).toUpperCase()}
+                    {((activity.name || '??').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase())}
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">{activity.name}</p>
                     <p className="text-xs text-gray-600">
-                      {activity.distance}km {'\u00B7'} {activity.duration} min
+                      {activity.distance}km {String.fromCharCode(183)} {activity.duration} min
                     </p>
                   </div>
                   <p className="text-xs text-gray-500">{activity.timeAgo}</p>
