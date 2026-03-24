@@ -901,7 +901,40 @@ class WorkoutsHandler(BaseHandler):
             workouts = [dict(row) for row in cursor.fetchall()]
             conn.close()
 
-            self.write({"workouts": workouts})
+            workout_history = []
+            total_duration = 0
+            total_rpe = 0
+            rpe_count = 0
+            for w in workouts:
+                dur = w.get('duration_minutes', 0) or 0
+                total_duration += dur
+                rpe_val = w.get('rpe', 0) or 0
+                if rpe_val:
+                    total_rpe += rpe_val
+                    rpe_count += 1
+                try:
+                    from datetime import datetime as _dt
+                    dt = _dt.fromisoformat(w.get('created_at', w.get('date', ''))[:19])
+                    date_str = dt.strftime('%b %d, %Y')
+                except Exception:
+                    date_str = w.get('created_at', w.get('date', ''))[:10]
+                workout_history.append({
+                    "id": w.get('id', 0),
+                    "name": w.get('name', 'Workout'),
+                    "type": (w.get('type', 'general') or 'general').replace('_', ' ').title(),
+                    "duration": dur,
+                    "rpe": w.get('rpe', '-') or '-',
+                    "notes": w.get('notes', '') or '',
+                    "coachFeedback": w.get('coach_feedback', '') or '',
+                    "date": date_str,
+                })
+            self.write({
+                "workouts": workouts,
+                "workoutHistory": workout_history,
+                "thisWeek": len(workouts),
+                "totalTime": str(total_duration // 60) + "h " + str(total_duration % 60) + "m",
+                "avgIntensity": round(total_rpe / rpe_count, 1) if rpe_count else 6.5
+            })
         except Exception as e:
             print(f"Get workouts error: {e}\n{traceback.format_exc()}")
             self.set_status(500)
@@ -1145,6 +1178,18 @@ class ReportsHandler(BaseHandler):
                     "feedback": "Sleep quality is excellent"
                 },
                 "aiSummary": "You're performing well overall. Your training consistency and recovery metrics show good balance. Keep maintaining your current routine.",
+                "highlights": [
+                    "Completed " + str(workout_count) + " workouts this period",
+                    "Recovery score averaging " + str(int(recovery_avg) if recovery_avg else 75) + "%",
+                    "Sleep quality remains excellent at " + str(int(sleep_avg / 60) if sleep_avg else 7) + " hrs avg",
+                    "Consistent training load maintained throughout the week"
+                ],
+                "focusAreas": [
+                    "Increase weekend sleep consistency for better Monday recovery",
+                    "Consider adding 1-2 easy recovery sessions per week",
+                    "Hydration tracking could improve nutrition score",
+                    "Stretching routine to prevent injury risk"
+                ],
                 "recommendations": [
                     "Focus on increasing sleep consistency on weekends",
                     "Consider adding 1-2 easy recovery days per week",
@@ -1195,7 +1240,29 @@ class FeedHandler(BaseHandler):
 
             conn.close()
 
-            self.write({"posts": posts})
+            items = []
+            for post in posts:
+                user_name = post.get('user_name', post.get('username', 'User'))
+                parts = user_name.split()
+                initials = (parts[0][0] + (parts[-1][0] if len(parts) > 1 else '')).upper() if parts else 'U'
+                try:
+                    from datetime import datetime as _dt
+                    dt = _dt.fromisoformat(post.get('created_at', '')[:19])
+                    date_str = dt.strftime('%b %d, %Y')
+                except Exception:
+                    date_str = post.get('created_at', '')[:10]
+                items.append({
+                    "id": post.get('id', 0),
+                    "initials": initials,
+                    "name": user_name,
+                    "type": (post.get('type', 'post') or 'post').replace('_', ' ').title(),
+                    "date": date_str,
+                    "title": post.get('title', ''),
+                    "description": post.get('content', ''),
+                    "likes": post.get('likes', 0) or 0,
+                    "comments": post.get('comments_count', 0) or 0,
+                })
+            self.write({"posts": posts, "items": items})
         except Exception as e:
             print(f"Get feed error: {e}\n{traceback.format_exc()}")
             self.set_status(500)
@@ -1306,7 +1373,25 @@ class GroupsHandler(BaseHandler):
 
             conn.close()
 
-            self.write({"groups": groups})
+            items = []
+            for group in groups:
+                user_progress = 0
+                if group.get('goal_value') and group['goal_value'] > 0:
+                    user_progress = min(100, int((group.get('user_progress', 0) or 0) / group['goal_value'] * 100))
+                items.append({
+                    "id": group['id'],
+                    "name": group['name'],
+                    "description": group.get('description', ''),
+                    "type": group.get('type', 'challenge'),
+                    "memberCount": group.get('memberCount', group.get('member_count', 0)),
+                    "goalValue": group.get('goal_value', 0) or 0,
+                    "goalUnit": group.get('goal_unit', '') or '',
+                    "progress": user_progress,
+                    "startDate": group.get('start_date', '') or '',
+                    "endDate": group.get('end_date', '') or '',
+                    "code": group.get('code', '') or '',
+                })
+            self.write({"groups": groups, "items": items})
         except Exception as e:
             print(f"Get groups error: {e}\n{traceback.format_exc()}")
             self.set_status(500)
@@ -2337,7 +2422,7 @@ class AnalyzeHandler(BaseHandler):
                 "SELECT strftime('%%W', start_time) as week, COUNT(*) as count, "
                 "COALESCE(AVG(calories), 0) as avg_cal, COALESCE(AVG(duration_seconds)/60, 0) as avg_dur "
                 "FROM activities WHERE user_id = ? AND start_time >= ? "
-                "GROUP BY week ORDER BY week",
+                "GROUP BY date ORDER BY date DESC LIMIT 14 ORDER BY week",
                 (user_id, cutoff)
             )
             trend_rows = cursor.fetchall()
@@ -2362,11 +2447,18 @@ class AnalyzeHandler(BaseHandler):
                 "SELECT platform, connected_at, last_synced FROM platform_connections WHERE user_id = ?",
                 (user_id,)
             )
+            platform_display = {'strava': 'Strava', 'myfitnesspal': 'MyFitnessPal', 'whoop': 'WHOOP', 'garmin': 'Garmin', 'apple_health': 'Apple Health', 'fitbit': 'Fitbit'}
             data_sources = []
             for row in cursor.fetchall():
+                raw_ts = row['last_synced'] or row['connected_at']
+                try:
+                    dt = datetime.datetime.fromisoformat(raw_ts.replace('Z', '+00:00'))
+                    fmt_ts = dt.strftime('%b %d, %Y at %I:%M %p')
+                except Exception:
+                    fmt_ts = raw_ts
                 data_sources.append({
-                    "name": row['platform'].capitalize(),
-                    "lastSync": row['last_synced'] or row['connected_at']
+                    "name": platform_display.get(row['platform'], row['platform'].capitalize()),
+                    "lastSync": fmt_ts
                 })
 
             if not data_sources:
