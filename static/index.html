@@ -18,6 +18,12 @@
     });
   </script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!--
+    TODO [BUG-004 / Optimization]: @babel/standalone is used for in-browser JSX
+    transpilation. For production, precompile JSX with a build step (Vite, esbuild,
+    or Babel CLI) and serve plain JS. This adds ~1.5MB and ~300ms to initial load.
+    See: https://babeljs.io/docs/babel-standalone#when-not-to-use-babelstandalone
+  -->
   <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
 
   <style>
@@ -599,7 +605,7 @@
           </div>
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <button className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2">
               <Icons.Plus /> Log Workout
             </button>
@@ -639,7 +645,7 @@
             </div>
 
             {/* Week's Outlook */}
-            <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
               {data.weekOutlook && (
                 <>
                   <div className="bg-blue-50 rounded p-3">
@@ -660,12 +666,12 @@
 
             {/* AI Tip */}
             <p className="text-sm text-gray-700">
-              ð¡ <strong>AI Tip:</strong> {data.aiTip || 'Stay consistent with your training routine.'}
+              Ã°ÂÂÂ¡ <strong>AI Tip:</strong> {data.aiTip || 'Stay consistent with your training routine.'}
             </p>
           </div>
 
           {/* Key Performance Metrics */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Recovery */}
             <div className="bg-white rounded-lg shadow p-4">
               <div className="flex items-center justify-between mb-2">
@@ -713,25 +719,30 @@
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Goal Progress</h2>
             <div className="space-y-4">
-              {(data.goals || []).slice(0, 3).map((goal, idx) => (
-                <div key={idx}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-gray-900 font-medium">{goal.name}</span>
-                    <span className="text-gray-600 text-sm">{goal.progress}% / {goal.target}%</span>
+              {(data.goals || []).slice(0, 3).map((goal, idx) => {
+                const current = goal.current_value || 0;
+                const target = goal.target_value || 1;
+                const pct = Math.min(100, Math.round((current / target) * 100));
+                return (
+                  <div key={idx}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-gray-900 font-medium">{goal.name}</span>
+                      <span className="text-gray-600 text-sm">{current} / {target} {goal.unit || ''}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-primary-600 h-2 rounded-full"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-primary-600 h-2 rounded-full"
-                      style={{ width: `${goal.progress}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
           {/* Stats Row */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               { label: 'Total Workouts', value: '128', icon: Icons.Dumbbell },
               { label: 'Calories Burned', value: '24,500', icon: Icons.Flame },
@@ -777,7 +788,7 @@
           </div>
 
           {/* Activity Distribution */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Activity Distribution</h2>
               <ResponsiveContainer width="100%" height={250}>
@@ -841,7 +852,7 @@
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">{activity.name}</p>
                     <p className="text-xs text-gray-600">
-                      {activity.distance}km â¢ {activity.duration} min
+                      {activity.distance}km Ã¢ÂÂ¢ {activity.duration} min
                     </p>
                   </div>
                   <p className="text-xs text-gray-500">{activity.timeAgo}</p>
@@ -906,7 +917,7 @@
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
               { label: 'This Week', value: data.thisWeek || '7', icon: Icons.Activity },
               { label: 'Total Time', value: data.totalTime || '420 min', icon: Icons.Clock },
@@ -962,7 +973,7 @@
                         <h3 className="font-bold text-gray-900">{workout.name}</h3>
                         <span className="text-xs text-gray-600">{workout.date}</span>
                       </div>
-                      <p className="text-sm text-gray-600 mb-3">{workout.duration} min â¢ RPE: {workout.rpe}</p>
+                      <p className="text-sm text-gray-600 mb-3">{workout.duration} min Ã¢ÂÂ¢ RPE: {workout.rpe}</p>
                       {workout.notes && <p className="text-sm text-gray-700 mb-2">{workout.notes}</p>}
                       <div className="flex gap-2">
                         <span className="bg-blue-100 text-primary-600 text-xs px-2 py-1 rounded">
@@ -984,7 +995,7 @@
 
           {/* Templates Tab */}
           {tab === 'templates' && (
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {(data.templates || []).map((template, idx) => (
                 <div key={idx} className="bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-lg transition">
                   <h3 className="font-bold text-gray-900 mb-2">{template.name}</h3>
@@ -1109,7 +1120,7 @@
           </div>
 
           {/* Score Gauges */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {renderGauge(data.overallScore || 82, 'Overall', 'On Track')}
             {renderGauge(data.exerciseScore || 88, 'Exercise', null)}
             {renderGauge(data.recoveryScore || 75, 'Recovery', null)}
@@ -1124,7 +1135,7 @@
           </div>
 
           {/* Weekly Highlights and Focus Areas */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Highlights */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Weekly Highlights</h2>
@@ -1349,7 +1360,7 @@
           </div>
 
           {/* Competitions / Content */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {(data.items || []).map((item, idx) => (
               <div key={idx} className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-start justify-between mb-4">
@@ -1400,7 +1411,7 @@
                 )}
 
                 <button className="w-full text-primary-600 hover:text-primary-700 font-semibold text-sm">
-                  View Full Leaderboard â
+                  View Full Leaderboard Ã¢ÂÂ
                 </button>
               </div>
             ))}
@@ -1593,7 +1604,7 @@
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               { label: 'Monthly Trend', value: data.monthlyTrend || '+12%', icon: Icons.TrendingUp, color: 'green' },
               { label: 'Total Activities', value: data.totalActivities || '24', icon: Icons.Activity, color: 'blue' },
@@ -1862,7 +1873,7 @@
               </div>
 
               {/* Platforms Grid */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Object.entries(platformInfo).map(([key, info]) => {
                   const isConnected = data.connectedPlatforms?.includes(key);
 
@@ -1956,10 +1967,12 @@
       const { user, loading } = useAuth();
       const [currentHash, setCurrentHash] = useState(window.location.hash);
       const [notificationCount, setNotificationCount] = useState(3);
+      const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
       useEffect(() => {
         const handleHashChange = () => {
           setCurrentHash(window.location.hash);
+          setMobileMenuOpen(false);
         };
 
         window.addEventListener('hashchange', handleHashChange);
@@ -2005,7 +2018,7 @@
         <div className="min-h-screen bg-gray-50">
           {/* Top Navigation Bar */}
           <nav className="bg-primary-800 text-white shadow-lg sticky top-0 z-50">
-            <div className="px-6 py-4">
+            <div className="px-4 sm:px-6 py-4">
               <div className="flex items-center justify-between">
                 {/* Logo */}
                 <div className="flex items-center gap-2 font-bold text-xl">
@@ -2015,18 +2028,16 @@
 
                 {/* Nav Links */}
                 <div className="flex items-center gap-6">
-                  {['/', 'workouts', 'reports', 'goals', 'groups', 'feed', 'analyze'].map((href) => {
-                    const label = {
-                      '/': 'Dashboard',
-                      'workouts': 'Workouts',
-                      'reports': 'Reports',
-                      'goals': 'Goals',
-                      'groups': 'Groups',
-                      'feed': 'Feed',
-                      'analyze': 'Analyze',
-                    }[href];
-
-                    const isActive = currentHash === `#${href}` || (href === '/' && (currentHash === '' || currentHash === '#/'));
+                  {[
+                    { href: '/', label: 'Dashboard' },
+                    { href: '/workouts', label: 'Workouts' },
+                    { href: '/reports', label: 'Reports' },
+                    { href: '/goals', label: 'Goals' },
+                    { href: '/groups', label: 'Groups' },
+                    { href: '/feed', label: 'Feed' },
+                    { href: '/analyze', label: 'Analyze' },
+                  ].map(({ href, label }) => {
+                    const isActive = currentHash === `#${href}` || (href === '/' && (currentHash === '' || currentHash === '#/' || currentHash === '#'));
 
                     return (
                       <a
@@ -2036,7 +2047,7 @@
                           isActive
                             ? 'text-white'
                             : 'text-blue-100 hover:text-white'
-                        }`}
+                        } hidden md:inline`}
                       >
                         {label}
                       </a>
@@ -2044,9 +2055,22 @@
                   })}
                 </div>
 
-                {/* Right Side: Notification, Settings, User */}
+                {/* Right Side: Notification, Settings, User, Hamburger */}
                 <div className="flex items-center gap-4">
-                  <button className="relative">
+                  {/* Mobile hamburger */}
+                  <button
+                    className="md:hidden text-white"
+                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      {mobileMenuOpen
+                        ? <path d="M18 6L6 18M6 6l12 12" />
+                        : <><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></>
+                      }
+                    </svg>
+                  </button>
+
+                  <button className="relative hidden sm:block">
                     <Icons.Bell />
                     {notificationCount > 0 && (
                       <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
@@ -2055,7 +2079,7 @@
                     )}
                   </button>
 
-                  <a href="#/settings" className="hover:text-blue-100 transition">
+                  <a href="#/settings" className="hover:text-blue-100 transition hidden sm:block">
                     <Icons.Settings />
                   </a>
 
@@ -2066,14 +2090,41 @@
                         .map((n) => n[0])
                         .join('')}
                     </div>
-                    <span className="text-sm">{user.name}</span>
+                    <span className="text-sm hidden sm:inline">{user.name}</span>
                   </div>
                 </div>
               </div>
             </div>
 
+            {/* Mobile Nav Menu */}
+            {mobileMenuOpen && (
+              <div className="md:hidden bg-primary-700 px-6 py-3 space-y-2">
+                {[
+                  { href: '/', label: 'Dashboard' },
+                  { href: '/workouts', label: 'Workouts' },
+                  { href: '/reports', label: 'Reports' },
+                  { href: '/goals', label: 'Goals' },
+                  { href: '/groups', label: 'Groups' },
+                  { href: '/feed', label: 'Feed' },
+                  { href: '/analyze', label: 'Analyze' },
+                  { href: '/settings', label: 'Settings' },
+                ].map(({ href, label }) => {
+                  const isActive = currentHash === `#${href}` || (href === '/' && (currentHash === '' || currentHash === '#/' || currentHash === '#'));
+                  return (
+                    <a
+                      key={href}
+                      href={`#${href}`}
+                      className={`block py-2 text-sm font-medium transition ${isActive ? 'text-white' : 'text-blue-200 hover:text-white'}`}
+                    >
+                      {label}
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Secondary Bar */}
-            <div className="bg-primary-700 px-6 py-2 flex items-center justify-between text-sm">
+            <div className="bg-primary-700 px-6 py-2 hidden md:flex items-center justify-between text-sm">
               <div className="flex items-center gap-4">
                 <select className="bg-transparent text-white focus:outline-none text-xs">
                   <option>Last 7 Days</option>
@@ -2110,7 +2161,7 @@
           </nav>
 
           {/* Main Content */}
-          <main className="px-6 py-6">
+          <main className="px-4 sm:px-6 py-4 sm:py-6">
             <div className="max-w-7xl mx-auto">
               {renderPage()}
             </div>
