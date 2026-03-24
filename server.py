@@ -33,8 +33,8 @@ BASE_URL = os.environ.get("BASE_URL", "https://performancehub.onrender.com")
 # OAuth Configuration
 STRAVA_CLIENT_ID = os.environ.get("STRAVA_CLIENT_ID", "")
 STRAVA_CLIENT_SECRET = os.environ.get("STRAVA_CLIENT_SECRET", "")
-WHOOP_CLIENT_ID = os.environ.get("WHOOP_CLIENT_ID", "")
-WHOOP_CLIENT_SECRET = os.environ.get("WHOOP_CLIENT_SECRET", "")
+WHOOP_CLIENT_ID = os.environ.get("WHOOP_CLIENT_ID", "8740dff2-f351-4fa3-b43b-e98154c12b39")
+WHOOP_CLIENT_SECRET = os.environ.get("WHOOP_CLIENT_SECRET", "315d57cf2d3c7bdb365053a947812ebc990649f144ceff2bd8798b40ba66da7b")
 
 # Initialize database schema
 def init_database():
