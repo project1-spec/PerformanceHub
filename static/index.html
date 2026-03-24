@@ -777,7 +777,7 @@
                   <p className="text-gray-600 text-sm font-medium">{stat.label}</p>
                   <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
                 </div>
-                <div className="text-primary-600 opacity-50">
+                <div className="text-primary-600">
                   <stat.icon />
                 </div>
               </div>
@@ -951,7 +951,7 @@
                   <p className="text-gray-600 text-sm font-medium">{stat.label}</p>
                   <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
                 </div>
-                <div className="text-primary-600 opacity-50">
+                <div className="text-primary-600">
                   <stat.icon />
                 </div>
               </div>
@@ -1668,7 +1668,7 @@
                       <p className="text-gray-600 text-sm font-medium">{stat.label}</p>
                       <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
                     </div>
-                    <div className="text-primary-600 opacity-50">
+                    <div className="text-primary-600">
                       <stat.icon />
                     </div>
                   </div>
@@ -2186,7 +2186,7 @@
                         className={`text-sm font-medium transition px-2 py-3 min-h-[44px] inline-flex items-center ${
                           isActive
                             ? 'text-white'
-                            : 'text-blue-100 hover:text-white'
+                            : 'text-blue-300 hover:text-white'
                         } hidden md:inline-flex`}
                       >
                         {label}
@@ -2256,7 +2256,7 @@
                     <a
                       key={href}
                       href={`#${href}`}
-                      className={`block py-3 px-2 min-h-[44px] text-sm font-medium transition ${isActive ? 'text-white bg-primary-600 rounded' : 'text-blue-200 hover:text-white'}`}
+                      className={`block py-3 px-2 min-h-[44px] text-sm font-medium transition ${isActive ? 'text-white bg-primary-600 rounded' : 'text-blue-300 hover:text-white'}`}
                     >
                       {label}
                     </a>
@@ -2273,16 +2273,16 @@
                   <option>Last 30 Days</option>
                   <option>Last 90 Days</option>
                 </select>
-                <button className="text-blue-100 hover:text-white transition">
+                <button className="text-blue-300 hover:text-white transition">
                   <Icons.RefreshCw />
                 </button>
-                <button className="text-blue-100 hover:text-white transition">
+                <button className="text-blue-300 hover:text-white transition">
                   <Icons.Download />
                 </button>
               </div>
 
               <div className="flex items-center gap-4">
-                <a href="#/settings" className="text-blue-100 hover:text-white transition text-xs">
+                <a href="#/settings" className="text-blue-300 hover:text-white transition text-xs">
                   Switch to Coach
                 </a>
                 <button
@@ -2294,7 +2294,7 @@
                       })
                       .catch(console.error);
                   }}
-                  className="text-blue-100 hover:text-white transition text-xs"
+                  className="text-blue-300 hover:text-white transition text-xs"
                 >
                   Sign Out
                 </button>
