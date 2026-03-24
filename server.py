@@ -2432,29 +2432,42 @@ class AnalyzeHandler(BaseHandler):
             platforms_connected = cursor.fetchone()['count']
 
             cursor.execute(
-                "SELECT strftime('%%W', start_time) as week, COUNT(*) as count, "
-                "COALESCE(AVG(calories), 0) as avg_cal, COALESCE(AVG(duration_seconds)/60, 0) as avg_dur "
+                "SELECT DATE(start_time) as day, COUNT(*) as count, "
+                "COALESCE(SUM(calories), 0) as total_cal, COALESCE(SUM(duration_seconds)/60, 0) as total_dur "
                 "FROM activities WHERE user_id = ? AND start_time >= ? "
-                "GROUP BY date ORDER BY date DESC LIMIT 14 ORDER BY week",
+                "GROUP BY day ORDER BY day",
                 (user_id, cutoff)
             )
             trend_rows = cursor.fetchall()
+            day_abbrevs = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
             trend_data = []
-            for i, row in enumerate(trend_rows):
+            for row in trend_rows:
+                try:
+                    d = datetime.date.fromisoformat(row['day'])
+                    label = d.strftime('%b %d')
+                except Exception:
+                    label = row['day']
                 trend_data.append({
-                    "name": f"Week {i+1}",
-                    "performance": round(row['avg_cal'], 0),
-                    "duration": round(row['avg_dur'], 0),
+                    "name": label,
+                    "performance": round(row['total_cal'], 0),
+                    "duration": round(row['total_dur'], 0),
                     "count": row['count']
                 })
 
+            # If no real data, provide demo trend
             if not trend_data:
-                trend_data = [
-                    {"name": "Week 1", "performance": 320, "duration": 45, "count": 3},
-                    {"name": "Week 2", "performance": 380, "duration": 50, "count": 4},
-                    {"name": "Week 3", "performance": 350, "duration": 42, "count": 3},
-                    {"name": "Week 4", "performance": 420, "duration": 55, "count": 5},
-                ]
+                import random
+                random.seed(42)
+                base = datetime.date.today() - datetime.timedelta(days=days)
+                trend_data = []
+                for i in range(min(days, 14)):
+                    d = base + datetime.timedelta(days=i * (days // 14))
+                    trend_data.append({
+                        "name": d.strftime('%b %d'),
+                        "performance": 280 + random.randint(0, 200),
+                        "duration": 30 + random.randint(0, 40),
+                        "count": random.randint(1, 3)
+                    })
 
             cursor.execute(
                 "SELECT platform, connected_at, last_synced FROM platform_connections WHERE user_id = ?",
