@@ -1664,13 +1664,13 @@ class IntegrationConnectHandler(BaseHandler):
                 state = secrets.token_hex(16)
                 self.set_secure_cookie("oauth_state", state, expires_days=0.01)
                 self.set_secure_cookie("oauth_user_id", str(user_id), expires_days=0.01)
-                redirect_uri = f"{BASE_URL}/api/oauth/whoop/callback"
+                redirect_uri = f"{BASE_URL}/api/integrations/"
                 auth_url = (
                     f"https://api.prod.whoop.com/oauth/oauth2/auth"
                     f"?client_id={WHOOP_CLIENT_ID}"
                     f"&redirect_uri={urllib.parse.quote(redirect_uri)}"
                     f"&response_type=code"
-                    f"&scope=read:recovery+read:cycles+read:sleep+read:workout+read:profile+read:body_measurement"
+                    f"&scope=read:recovery+read:cycles+read:sleep+read:workout+read:profile+read:body_measurement+offline"
                     f"&state={state}"
                 )
                 self.write({"redirect": auth_url})
@@ -2009,7 +2009,7 @@ class WhoopOAuthCallbackHandler(BaseHandler):
             user_id = int(user_id_cookie.decode())
 
             # Exchange code for token
-            redirect_uri = f"{BASE_URL}/api/oauth/whoop/callback"
+            redirect_uri = f"{BASE_URL}/api/integrations/"
             http_client = tornado.httpclient.AsyncHTTPClient()
 
             body = urllib.parse.urlencode({
@@ -2551,7 +2551,7 @@ def make_app():
 
         # OAuth Callbacks
         (r"/api/oauth/strava/callback", StravaOAuthCallbackHandler),
-        (r"/api/oauth/whoop/callback", WhoopOAuthCallbackHandler),
+        (r"/api/integrations/", WhoopOAuthCallbackHandler),
 
         # Platform-specific sync
         (r"/api/sync/strava", StravaSyncHandler),
