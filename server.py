@@ -19,13 +19,22 @@ import urllib.parse
 from functools import wraps
 from typing import Optional, Dict, Any, List
 import traceback
+import tornado.httpclient
+import tornado.escape
 
 # Configuration
-PORT = 8080
-DB_PATH = "./performancehub.db"
+PORT = int(os.environ.get("PORT", 8080))
+DB_PATH = os.environ.get("DB_PATH", "./performancehub.db")
 STATIC_DIR = "./static"
-COOKIE_SECRET = secrets.token_hex(32)
+COOKIE_SECRET = os.environ.get("COOKIE_SECRET", secrets.token_hex(32))
 COOKIE_NAME = "performancehub_session"
+BASE_URL = os.environ.get("BASE_URL", "https://performancehub.onrender.com")
+
+# OAuth Configuration
+STRAVA_CLIENT_ID = os.environ.get("STRAVA_CLIENT_ID", "")
+STRAVA_CLIENT_SECRET = os.environ.get("STRAVA_CLIENT_SECRET", "")
+WHOOP_CLIENT_ID = os.environ.get("WHOOP_CLIENT_ID", "")
+WHOOP_CLIENT_SECRET = os.environ.get("WHOOP_CLIENT_SECRET", "")
 
 # Initialize database schema
 def init_database():
@@ -1476,8 +1485,44 @@ class IntegrationsHandler(BaseHandler):
             self.set_status(500)
             self.write({"error": "Server error"})
 
+class SettingsHandler(BaseHandler):
+    """Get user settings including connected platforms."""
+
+    def get(self):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT platform, connected_at, last_synced FROM platform_connections WHERE user_id = ?",
+                (user_id,)
+            )
+            connections = [dict(row) for row in cursor.fetchall()]
+            connected_platforms = [c['platform'] for c in connections]
+            conn.close()
+
+            self.write({
+                "user": user,
+                "connectedPlatforms": connected_platforms,
+                "connections": connections,
+                "oauthEnabled": {
+                    "strava": bool(STRAVA_CLIENT_ID),
+                    "whoop": bool(WHOOP_CLIENT_ID),
+                }
+            })
+        except Exception as e:
+            print(f"Get settings error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+
 class IntegrationConnectHandler(BaseHandler):
-    """Connect platform (simulate OAuth)."""
+    """Connect platform - returns OAuth URL for supported platforms, or simulates for others."""
 
     def post(self, platform):
         try:
@@ -1487,7 +1532,42 @@ class IntegrationConnectHandler(BaseHandler):
             user = self.get_current_user()
             user_id = user['id']
 
-            # Simulate OAuth - generate mock tokens
+            # For Strava and WHOOP, return OAuth redirect URL
+            if platform == 'strava' and STRAVA_CLIENT_ID:
+                state = secrets.token_hex(16)
+                # Store state in cookie for CSRF protection
+                self.set_secure_cookie("oauth_state", state, expires_days=0.01)
+                self.set_secure_cookie("oauth_user_id", str(user_id), expires_days=0.01)
+                redirect_uri = f"{BASE_URL}/api/oauth/strava/callback"
+                auth_url = (
+                    f"https://www.strava.com/oauth/authorize"
+                    f"?client_id={STRAVA_CLIENT_ID}"
+                    f"&redirect_uri={urllib.parse.quote(redirect_uri)}"
+                    f"&response_type=code"
+                    f"&scope=activity:read_all,read_all"
+                    f"&state={state}"
+                    f"&approval_prompt=auto"
+                )
+                self.write({"redirect": auth_url})
+                return
+
+            if platform == 'whoop' and WHOOP_CLIENT_ID:
+                state = secrets.token_hex(16)
+                self.set_secure_cookie("oauth_state", state, expires_days=0.01)
+                self.set_secure_cookie("oauth_user_id", str(user_id), expires_days=0.01)
+                redirect_uri = f"{BASE_URL}/api/oauth/whoop/callback"
+                auth_url = (
+                    f"https://api.prod.whoop.com/oauth/oauth2/auth"
+                    f"?client_id={WHOOP_CLIENT_ID}"
+                    f"&redirect_uri={urllib.parse.quote(redirect_uri)}"
+                    f"&response_type=code"
+                    f"&scope=read:recovery+read:cycles+read:sleep+read:workout+read:profile+read:body_measurement"
+                    f"&state={state}"
+                )
+                self.write({"redirect": auth_url})
+                return
+
+            # Fallback: simulate OAuth for other platforms
             access_token = f"{platform}_access_{secrets.token_hex(16)}"
             refresh_token = f"{platform}_refresh_{secrets.token_hex(16)}"
             platform_user_id = f"{platform}_user_{uuid.uuid4().hex[:8]}"
@@ -1498,16 +1578,13 @@ class IntegrationConnectHandler(BaseHandler):
             conn = get_db()
             cursor = conn.cursor()
 
-            # Check if already connected
             cursor.execute("SELECT id FROM platform_connections WHERE user_id = ? AND platform = ?", (user_id, platform))
             if cursor.fetchone():
-                # Update existing connection
                 cursor.execute(
                     "UPDATE platform_connections SET access_token = ?, refresh_token = ?, token_expires_at = ?, last_synced = ? WHERE user_id = ? AND platform = ?",
                     (access_token, refresh_token, expires_at, now, user_id, platform)
                 )
             else:
-                # Create new connection
                 cursor.execute(
                     "INSERT INTO platform_connections (user_id, platform, access_token, refresh_token, token_expires_at, platform_user_id, connected_at, last_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                     (user_id, platform, access_token, refresh_token, expires_at, platform_user_id, now, now)
@@ -1675,6 +1752,484 @@ class NotificationReadHandler(BaseHandler):
             self.set_status(500)
             self.write({"error": "Server error"})
 
+# OAuth Callback Routes
+class StravaOAuthCallbackHandler(BaseHandler):
+    """Handle Strava OAuth callback."""
+
+    async def get(self):
+        try:
+            code = self.get_argument('code', None)
+            state = self.get_argument('state', None)
+            error = self.get_argument('error', None)
+
+            if error:
+                self.redirect(f"/?oauth_error=strava_denied")
+                return
+
+            if not code:
+                self.redirect(f"/?oauth_error=strava_no_code")
+                return
+
+            # Get user_id from cookie
+            user_id_cookie = self.get_secure_cookie("oauth_user_id")
+            if not user_id_cookie:
+                self.redirect(f"/?oauth_error=strava_session_expired")
+                return
+            user_id = int(user_id_cookie.decode())
+
+            # Exchange code for token
+            redirect_uri = f"{BASE_URL}/api/oauth/strava/callback"
+            http_client = tornado.httpclient.AsyncHTTPClient()
+
+            body = urllib.parse.urlencode({
+                "client_id": STRAVA_CLIENT_ID,
+                "client_secret": STRAVA_CLIENT_SECRET,
+                "code": code,
+                "grant_type": "authorization_code",
+            })
+
+            response = await http_client.fetch(
+                "https://www.strava.com/oauth/token",
+                method="POST",
+                body=body,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                raise_error=False
+            )
+
+            if response.code != 200:
+                print(f"Strava token exchange failed: {response.code} {response.body}")
+                self.redirect(f"/?oauth_error=strava_token_failed")
+                return
+
+            token_data = json.loads(response.body)
+            access_token = token_data.get("access_token", "")
+            refresh_token = token_data.get("refresh_token", "")
+            expires_at = token_data.get("expires_at", 0)
+            athlete = token_data.get("athlete", {})
+            platform_user_id = str(athlete.get("id", ""))
+
+            expires_at_iso = datetime.datetime.utcfromtimestamp(expires_at).isoformat() if expires_at else ""
+            now = datetime.datetime.utcnow().isoformat()
+
+            conn = get_db()
+            cursor = conn.cursor()
+
+            cursor.execute("SELECT id FROM platform_connections WHERE user_id = ? AND platform = ?", (user_id, 'strava'))
+            if cursor.fetchone():
+                cursor.execute(
+                    "UPDATE platform_connections SET access_token = ?, refresh_token = ?, token_expires_at = ?, platform_user_id = ?, last_synced = ? WHERE user_id = ? AND platform = ?",
+                    (access_token, refresh_token, expires_at_iso, platform_user_id, now, user_id, 'strava')
+                )
+            else:
+                cursor.execute(
+                    "INSERT INTO platform_connections (user_id, platform, access_token, refresh_token, token_expires_at, platform_user_id, connected_at, last_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (user_id, 'strava', access_token, refresh_token, expires_at_iso, platform_user_id, now, now)
+                )
+
+            conn.commit()
+
+            # Now fetch recent activities from Strava
+            try:
+                activities_response = await http_client.fetch(
+                    "https://www.strava.com/api/v3/athlete/activities?per_page=10",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                    raise_error=False
+                )
+                if activities_response.code == 200:
+                    activities = json.loads(activities_response.body)
+                    for act in activities:
+                        cursor.execute(
+                            """INSERT OR IGNORE INTO activities
+                            (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, calories, avg_hr, max_hr, created_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                            (
+                                user_id,
+                                'strava',
+                                act.get('name', 'Strava Activity'),
+                                act.get('type', 'workout'),
+                                act.get('sport_type', act.get('type', 'workout')),
+                                act.get('start_date', now),
+                                int(act.get('moving_time', 0)),
+                                int(act.get('distance', 0)),
+                                int(act.get('calories', 0)) if act.get('calories') else 0,
+                                int(act.get('average_heartrate', 0)) if act.get('average_heartrate') else 0,
+                                int(act.get('max_heartrate', 0)) if act.get('max_heartrate') else 0,
+                                now
+                            )
+                        )
+                    conn.commit()
+                    print(f"Synced {len(activities)} Strava activities for user {user_id}")
+            except Exception as sync_err:
+                print(f"Strava activity sync error (non-fatal): {sync_err}")
+
+            conn.close()
+
+            # Clear OAuth cookies
+            self.clear_cookie("oauth_state")
+            self.clear_cookie("oauth_user_id")
+
+            # Redirect back to settings page
+            self.redirect("/?page=settings&oauth_success=strava")
+
+        except Exception as e:
+            print(f"Strava OAuth callback error: {e}\n{traceback.format_exc()}")
+            self.redirect(f"/?oauth_error=strava_server_error")
+
+
+class WhoopOAuthCallbackHandler(BaseHandler):
+    """Handle WHOOP OAuth callback."""
+
+    async def get(self):
+        try:
+            code = self.get_argument('code', None)
+            state = self.get_argument('state', None)
+            error = self.get_argument('error', None)
+
+            if error:
+                self.redirect(f"/?oauth_error=whoop_denied")
+                return
+
+            if not code:
+                self.redirect(f"/?oauth_error=whoop_no_code")
+                return
+
+            user_id_cookie = self.get_secure_cookie("oauth_user_id")
+            if not user_id_cookie:
+                self.redirect(f"/?oauth_error=whoop_session_expired")
+                return
+            user_id = int(user_id_cookie.decode())
+
+            # Exchange code for token
+            redirect_uri = f"{BASE_URL}/api/oauth/whoop/callback"
+            http_client = tornado.httpclient.AsyncHTTPClient()
+
+            body = urllib.parse.urlencode({
+                "client_id": WHOOP_CLIENT_ID,
+                "client_secret": WHOOP_CLIENT_SECRET,
+                "code": code,
+                "grant_type": "authorization_code",
+                "redirect_uri": redirect_uri,
+            })
+
+            response = await http_client.fetch(
+                "https://api.prod.whoop.com/oauth/oauth2/token",
+                method="POST",
+                body=body,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                raise_error=False
+            )
+
+            if response.code != 200:
+                print(f"WHOOP token exchange failed: {response.code} {response.body}")
+                self.redirect(f"/?oauth_error=whoop_token_failed")
+                return
+
+            token_data = json.loads(response.body)
+            access_token = token_data.get("access_token", "")
+            refresh_token = token_data.get("refresh_token", "")
+            expires_in = token_data.get("expires_in", 3600)
+
+            expires_at_iso = (datetime.datetime.utcnow() + datetime.timedelta(seconds=expires_in)).isoformat()
+            now = datetime.datetime.utcnow().isoformat()
+
+            # Get WHOOP user profile
+            platform_user_id = ""
+            try:
+                profile_response = await http_client.fetch(
+                    "https://api.prod.whoop.com/developer/v1/user/profile/basic",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                    raise_error=False
+                )
+                if profile_response.code == 200:
+                    profile = json.loads(profile_response.body)
+                    platform_user_id = str(profile.get("user_id", ""))
+            except Exception as profile_err:
+                print(f"WHOOP profile fetch error (non-fatal): {profile_err}")
+
+            conn = get_db()
+            cursor = conn.cursor()
+
+            cursor.execute("SELECT id FROM platform_connections WHERE user_id = ? AND platform = ?", (user_id, 'whoop'))
+            if cursor.fetchone():
+                cursor.execute(
+                    "UPDATE platform_connections SET access_token = ?, refresh_token = ?, token_expires_at = ?, platform_user_id = ?, last_synced = ? WHERE user_id = ? AND platform = ?",
+                    (access_token, refresh_token, expires_at_iso, platform_user_id, now, user_id, 'whoop')
+                )
+            else:
+                cursor.execute(
+                    "INSERT INTO platform_connections (user_id, platform, access_token, refresh_token, token_expires_at, platform_user_id, connected_at, last_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (user_id, 'whoop', access_token, refresh_token, expires_at_iso, platform_user_id, now, now)
+                )
+
+            conn.commit()
+
+            # Fetch WHOOP recovery data
+            try:
+                recovery_response = await http_client.fetch(
+                    "https://api.prod.whoop.com/developer/v1/recovery?limit=10",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                    raise_error=False
+                )
+                if recovery_response.code == 200:
+                    recovery_data = json.loads(recovery_response.body)
+                    records = recovery_data.get("records", [])
+                    for rec in records:
+                        score = rec.get("score", {})
+                        cursor.execute(
+                            """INSERT OR IGNORE INTO activities
+                            (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, calories, avg_hr, max_hr, created_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                            (
+                                user_id,
+                                'whoop',
+                                f"Recovery: {score.get('recovery_score', 'N/A')}%",
+                                'recovery',
+                                'recovery',
+                                rec.get('created_at', now),
+                                0,
+                                0,
+                                0,
+                                int(score.get('resting_heart_rate', 0)),
+                                0,
+                                now
+                            )
+                        )
+                    conn.commit()
+                    print(f"Synced {len(records)} WHOOP recovery records for user {user_id}")
+            except Exception as sync_err:
+                print(f"WHOOP recovery sync error (non-fatal): {sync_err}")
+
+            conn.close()
+
+            self.clear_cookie("oauth_state")
+            self.clear_cookie("oauth_user_id")
+
+            self.redirect("/?page=settings&oauth_success=whoop")
+
+        except Exception as e:
+            print(f"WHOOP OAuth callback error: {e}\n{traceback.format_exc()}")
+            self.redirect(f"/?oauth_error=whoop_server_error")
+
+
+class StravaSyncHandler(BaseHandler):
+    """Sync recent activities from Strava using stored token."""
+
+    async def post(self):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT access_token, refresh_token, token_expires_at FROM platform_connections WHERE user_id = ? AND platform = 'strava'",
+                (user_id,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                conn.close()
+                self.set_status(404)
+                self.write({"error": "Strava not connected"})
+                return
+
+            access_token = row['access_token']
+            refresh_token = row['refresh_token']
+
+            # Check if token is expired and refresh if needed
+            token_expires = row['token_expires_at']
+            if token_expires:
+                try:
+                    exp_dt = datetime.datetime.fromisoformat(token_expires)
+                    if exp_dt < datetime.datetime.utcnow():
+                        # Refresh the token
+                        http_client = tornado.httpclient.AsyncHTTPClient()
+                        body = urllib.parse.urlencode({
+                            "client_id": STRAVA_CLIENT_ID,
+                            "client_secret": STRAVA_CLIENT_SECRET,
+                            "grant_type": "refresh_token",
+                            "refresh_token": refresh_token,
+                        })
+                        refresh_resp = await http_client.fetch(
+                            "https://www.strava.com/oauth/token",
+                            method="POST",
+                            body=body,
+                            headers={"Content-Type": "application/x-www-form-urlencoded"},
+                            raise_error=False
+                        )
+                        if refresh_resp.code == 200:
+                            new_tokens = json.loads(refresh_resp.body)
+                            access_token = new_tokens.get("access_token", access_token)
+                            new_refresh = new_tokens.get("refresh_token", refresh_token)
+                            new_expires = new_tokens.get("expires_at", 0)
+                            new_expires_iso = datetime.datetime.utcfromtimestamp(new_expires).isoformat() if new_expires else ""
+                            cursor.execute(
+                                "UPDATE platform_connections SET access_token = ?, refresh_token = ?, token_expires_at = ? WHERE user_id = ? AND platform = 'strava'",
+                                (access_token, new_refresh, new_expires_iso, user_id)
+                            )
+                            conn.commit()
+                except Exception as ref_err:
+                    print(f"Token refresh error: {ref_err}")
+
+            # Fetch activities
+            http_client = tornado.httpclient.AsyncHTTPClient()
+            activities_response = await http_client.fetch(
+                "https://www.strava.com/api/v3/athlete/activities?per_page=20",
+                headers={"Authorization": f"Bearer {access_token}"},
+                raise_error=False
+            )
+
+            synced = 0
+            if activities_response.code == 200:
+                activities = json.loads(activities_response.body)
+                now = datetime.datetime.utcnow().isoformat()
+                for act in activities:
+                    cursor.execute(
+                        """INSERT OR IGNORE INTO activities
+                        (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, calories, avg_hr, max_hr, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (
+                            user_id, 'strava',
+                            act.get('name', 'Strava Activity'),
+                            act.get('type', 'workout'),
+                            act.get('sport_type', act.get('type', 'workout')),
+                            act.get('start_date', now),
+                            int(act.get('moving_time', 0)),
+                            int(act.get('distance', 0)),
+                            int(act.get('calories', 0)) if act.get('calories') else 0,
+                            int(act.get('average_heartrate', 0)) if act.get('average_heartrate') else 0,
+                            int(act.get('max_heartrate', 0)) if act.get('max_heartrate') else 0,
+                            now
+                        )
+                    )
+                    synced += 1
+
+                cursor.execute(
+                    "UPDATE platform_connections SET last_synced = ? WHERE user_id = ? AND platform = 'strava'",
+                    (now, user_id)
+                )
+                conn.commit()
+
+            conn.close()
+
+            self.write({
+                "platform": "strava",
+                "synced": True,
+                "lastSynced": datetime.datetime.utcnow().isoformat(),
+                "itemsSynced": synced
+            })
+        except Exception as e:
+            print(f"Strava sync error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+
+class WhoopSyncHandler(BaseHandler):
+    """Sync recent data from WHOOP using stored token."""
+
+    async def post(self):
+        try:
+            if not self.require_auth():
+                return
+
+            user = self.get_current_user()
+            user_id = user['id']
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT access_token, refresh_token, token_expires_at FROM platform_connections WHERE user_id = ? AND platform = 'whoop'",
+                (user_id,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                conn.close()
+                self.set_status(404)
+                self.write({"error": "WHOOP not connected"})
+                return
+
+            access_token = row['access_token']
+            now = datetime.datetime.utcnow().isoformat()
+
+            http_client = tornado.httpclient.AsyncHTTPClient()
+            synced = 0
+
+            # Fetch recovery data
+            recovery_response = await http_client.fetch(
+                "https://api.prod.whoop.com/developer/v1/recovery?limit=10",
+                headers={"Authorization": f"Bearer {access_token}"},
+                raise_error=False
+            )
+            if recovery_response.code == 200:
+                recovery_data = json.loads(recovery_response.body)
+                for rec in recovery_data.get("records", []):
+                    score = rec.get("score", {})
+                    cursor.execute(
+                        """INSERT OR IGNORE INTO activities
+                        (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, calories, avg_hr, max_hr, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (
+                            user_id, 'whoop',
+                            f"Recovery: {score.get('recovery_score', 'N/A')}%",
+                            'recovery', 'recovery',
+                            rec.get('created_at', now),
+                            0, 0, 0,
+                            int(score.get('resting_heart_rate', 0)),
+                            0, now
+                        )
+                    )
+                    synced += 1
+
+            # Fetch workouts
+            workout_response = await http_client.fetch(
+                "https://api.prod.whoop.com/developer/v1/activity/workout?limit=10",
+                headers={"Authorization": f"Bearer {access_token}"},
+                raise_error=False
+            )
+            if workout_response.code == 200:
+                workout_data = json.loads(workout_response.body)
+                for w in workout_data.get("records", []):
+                    score = w.get("score", {})
+                    cursor.execute(
+                        """INSERT OR IGNORE INTO activities
+                        (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, calories, avg_hr, max_hr, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (
+                            user_id, 'whoop',
+                            f"WHOOP Workout - Strain {score.get('strain', 'N/A')}",
+                            'workout', 'workout',
+                            w.get('start', now),
+                            int((score.get('zone_duration', {}).get('zone_five_milli', 0) or 0) / 1000),
+                            int(score.get('distance_meter', 0) or 0),
+                            int(score.get('kilojoule', 0) or 0),
+                            int(score.get('average_heart_rate', 0) or 0),
+                            int(score.get('max_heart_rate', 0) or 0),
+                            now
+                        )
+                    )
+                    synced += 1
+
+            cursor.execute(
+                "UPDATE platform_connections SET last_synced = ? WHERE user_id = ? AND platform = 'whoop'",
+                (now, user_id)
+            )
+            conn.commit()
+            conn.close()
+
+            self.write({
+                "platform": "whoop",
+                "synced": True,
+                "lastSynced": now,
+                "itemsSynced": synced
+            })
+        except Exception as e:
+            print(f"WHOOP sync error: {e}\n{traceback.format_exc()}")
+            self.set_status(500)
+            self.write({"error": "Server error"})
+
+
 # Webhook Routes
 class StravaWebhookVerifyHandler(BaseHandler):
     """Verify Strava webhook."""
@@ -1770,11 +2325,22 @@ def make_app():
         (r"/api/groups/join", GroupJoinHandler),
         (r"/api/groups/([0-9]+)/leaderboard", GroupLeaderboardHandler),
 
+        # Settings
+        (r"/api/settings", SettingsHandler),
+
         # Integrations
         (r"/api/integrations", IntegrationsHandler),
         (r"/api/integrations/([a-z_]+)/connect", IntegrationConnectHandler),
         (r"/api/integrations/([a-z_]+)", IntegrationDisconnectHandler),
         (r"/api/integrations/([a-z_]+)/sync", IntegrationSyncHandler),
+
+        # OAuth Callbacks
+        (r"/api/oauth/strava/callback", StravaOAuthCallbackHandler),
+        (r"/api/oauth/whoop/callback", WhoopOAuthCallbackHandler),
+
+        # Platform-specific sync
+        (r"/api/sync/strava", StravaSyncHandler),
+        (r"/api/sync/whoop", WhoopSyncHandler),
 
         # Notifications
         (r"/api/notifications", NotificationsHandler),
