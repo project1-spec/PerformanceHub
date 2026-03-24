@@ -749,6 +749,7 @@ class DashboardHandler(BaseHandler):
                     "recoveryScore": recovery_score
                 },
                 "trends": trends,
+                "trendData": trend_data,
                 "activityDistribution": activity_distribution,
                 "weeklyActivity": weekly_activity,
                 "recentActivities": recent_activities,
