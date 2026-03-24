@@ -1767,6 +1767,8 @@
       const [error, setError] = useState('');
       const [tab, setTab] = useState('integrations');
 
+      const [oauthMessage, setOauthMessage] = useState('');
+
       useEffect(() => {
         // Check for OAuth callback params
         const params = new URLSearchParams(window.location.search);
