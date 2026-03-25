@@ -31,8 +31,8 @@ COOKIE_NAME = "performancehub_session"
 BASE_URL = os.environ.get("BASE_URL", "https://performancehub.onrender.com")
 
 # OAuth Configuration
-STRAVA_CLIENT_ID = os.environ.get("STRAVA_CLIENT_ID", "")
-STRAVA_CLIENT_SECRET = os.environ.get("STRAVA_CLIENT_SECRET", "")
+STRAVA_CLIENT_ID = os.environ.get("STRAVA_CLIENT_ID", "173625")
+STRAVA_CLIENT_SECRET = os.environ.get("STRAVA_CLIENT_SECRET", "ba72b2f88b0fb888ac50720a3d36acbd28cb098a")
 WHOOP_CLIENT_ID = os.environ.get("WHOOP_CLIENT_ID", "8740dff2-f351-4fa3-b43b-e98154c12b39")
 WHOOP_CLIENT_SECRET = os.environ.get("WHOOP_CLIENT_SECRET", "315d57cf2d3c7bdb365053a947812ebc990649f144ceff2bd8798b40ba66da7b")
 
@@ -1660,13 +1660,11 @@ class IntegrationConnectHandler(BaseHandler):
                 # Store state in cookie for CSRF protection
                 self.set_secure_cookie("oauth_state", state, expires_days=0.01)
                 self.set_secure_cookie("oauth_user_id", str(user_id), expires_days=0.01)
-                redirect_uri = f"{BASE_URL}/api/oauth/strava/callback"
                 auth_url = (
                     f"https://www.strava.com/oauth/authorize"
                     f"?client_id={STRAVA_CLIENT_ID}"
-                    f"&redirect_uri={urllib.parse.quote(redirect_uri)}"
                     f"&response_type=code"
-                    f"&scope=activity:read_all,read_all"
+                    f"&scope=read,activity:read_all"
                     f"&state={state}"
                     f"&approval_prompt=auto"
                 )
@@ -1898,7 +1896,6 @@ class StravaOAuthCallbackHandler(BaseHandler):
             user_id = int(user_id_cookie.decode())
 
             # Exchange code for token
-            redirect_uri = f"{BASE_URL}/api/oauth/strava/callback"
             http_client = tornado.httpclient.AsyncHTTPClient()
 
             body = urllib.parse.urlencode({
