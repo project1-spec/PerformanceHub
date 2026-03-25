@@ -1667,6 +1667,7 @@ class IntegrationConnectHandler(BaseHandler):
                     f"&scope=read,activity:read_all"
                     f"&state={state}"
                     f"&approval_prompt=auto"
+            f"&redirect_uri=https://performancehub.onrender.com/api/oauth/strava/callback"
                 )
                 self.write({"redirect": auth_url})
                 return
@@ -1903,6 +1904,7 @@ class StravaOAuthCallbackHandler(BaseHandler):
                 "client_secret": STRAVA_CLIENT_SECRET,
                 "code": code,
                 "grant_type": "authorization_code",
+            "redirect_uri": "https://performancehub.onrender.com/api/oauth/strava/callback",
             })
 
             response = await http_client.fetch(
