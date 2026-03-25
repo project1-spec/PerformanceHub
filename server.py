@@ -19,8 +19,17 @@ import urllib.parse
 from functools import wraps
 from typing import Optional, Dict, Any, List
 import traceback
+import logging
 import tornado.httpclient
 import tornado.escape
+
+# Logging Setup
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger("performancehub")
 
 # Configuration
 PORT = int(os.environ.get("PORT", 8080))
@@ -1916,7 +1925,7 @@ class StravaOAuthCallbackHandler(BaseHandler):
             )
 
             if response.code != 200:
-                print(f"Strava token exchange failed: {response.code} {response.body}")
+                logger.error(f"Strava token exchange failed: status={response.code} body={response.body}")
                 self.redirect(f"/?oauth_error=strava_token_failed")
                 return
 
@@ -1977,9 +1986,9 @@ class StravaOAuthCallbackHandler(BaseHandler):
                             )
                         )
                     conn.commit()
-                    print(f"Synced {len(activities)} Strava activities for user {user_id}")
+                    logger.info(f"Synced {len(activities)} Strava activities for user {user_id}")
             except Exception as sync_err:
-                print(f"Strava activity sync error (non-fatal): {sync_err}")
+                logger.warning(f"Strava activity sync error (non-fatal): {sync_err}", exc_info=True)
 
             conn.close()
 
@@ -1991,7 +2000,7 @@ class StravaOAuthCallbackHandler(BaseHandler):
             self.redirect("/?page=settings&oauth_success=strava")
 
         except Exception as e:
-            print(f"Strava OAuth callback error: {e}\n{traceback.format_exc()}")
+            logger.error(f"Strava OAuth callback error: {e}", exc_info=True)
             self.redirect(f"/?oauth_error=strava_server_error")
 
 
@@ -2037,7 +2046,7 @@ class WhoopOAuthCallbackHandler(BaseHandler):
             )
 
             if response.code != 200:
-                print(f"WHOOP token exchange failed: {response.code} {response.body}")
+                logger.error(f"WHOOP token exchange failed: status={response.code} body={response.body}")
                 self.redirect(f"/?oauth_error=whoop_token_failed")
                 return
 
@@ -2061,7 +2070,7 @@ class WhoopOAuthCallbackHandler(BaseHandler):
                     profile = json.loads(profile_response.body)
                     platform_user_id = str(profile.get("user_id", ""))
             except Exception as profile_err:
-                print(f"WHOOP profile fetch error (non-fatal): {profile_err}")
+                logger.warning(f"WHOOP profile fetch error (non-fatal): {profile_err}", exc_info=True)
 
             conn = get_db()
             cursor = conn.cursor()
@@ -2112,9 +2121,9 @@ class WhoopOAuthCallbackHandler(BaseHandler):
                             )
                         )
                     conn.commit()
-                    print(f"Synced {len(records)} WHOOP recovery records for user {user_id}")
+                    logger.info(f"Synced {len(records)} WHOOP recovery records for user {user_id}")
             except Exception as sync_err:
-                print(f"WHOOP recovery sync error (non-fatal): {sync_err}")
+                logger.warning(f"WHOOP recovery sync error (non-fatal): {sync_err}", exc_info=True)
 
             conn.close()
 
@@ -2124,7 +2133,7 @@ class WhoopOAuthCallbackHandler(BaseHandler):
             self.redirect("/?page=settings&oauth_success=whoop")
 
         except Exception as e:
-            print(f"WHOOP OAuth callback error: {e}\n{traceback.format_exc()}")
+            logger.error(f"WHOOP OAuth callback error: {e}", exc_info=True)
             self.redirect(f"/?oauth_error=whoop_server_error")
 
 
@@ -2238,7 +2247,7 @@ class StravaSyncHandler(BaseHandler):
                 "itemsSynced": synced
             })
         except Exception as e:
-            print(f"Strava sync error: {e}\n{traceback.format_exc()}")
+            logger.error(f"Strava sync error: {e}", exc_info=True)
             self.set_status(500)
             self.write({"error": "Server error"})
 
@@ -2342,7 +2351,7 @@ class WhoopSyncHandler(BaseHandler):
                 "itemsSynced": synced
             })
         except Exception as e:
-            print(f"WHOOP sync error: {e}\n{traceback.format_exc()}")
+            logger.error(f"WHOOP sync error: {e}", exc_info=True)
             self.set_status(500)
             self.write({"error": "Server error"})
 
@@ -2383,10 +2392,10 @@ class WhoopWebhookHandler(BaseHandler):
     def post(self):
         try:
             data = json.loads(self.request.body.decode('utf-8'))
-            print(f"WHOOP webhook received: {data}")
+            logger.info(f"WHOOP webhook received: {data}")
             self.write({"message": "Webhook received"})
         except Exception as e:
-            print(f"WHOOP webhook error: {e}")
+            logger.error(f"WHOOP webhook error: {e}", exc_info=True)
             self.set_status(500)
             self.write({"error": "Server error"})
 
