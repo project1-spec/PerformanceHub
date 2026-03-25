@@ -625,319 +625,168 @@
 
     // Dashboard Page
     const DashboardPage = () => {
-      const { user } = useAuth();
-      const [dashboardData, setDashboardData] = useState(null);
-      const [loading, setLoading] = useState(true);
-      const [error, setError] = useState('');
-
-      useEffect(() => {
-        const fetchDashboard = async () => {
-          try {
-            const res = await fetch('/api/dashboard');
-            if (!res.ok) throw new Error('Failed to fetch dashboard');
-            const data = await res.json();
-            setDashboardData(data);
-          } catch (err) {
-            setError(err.message);
-          } finally {
-            setLoading(false);
-          }
+      const [data, setData] = React.useState(null);
+      const [loading, setLoading] = React.useState(true);
+      const [period, setPeriod] = React.useState('7d');
+      React.useEffect(() => {
+        setLoading(true);
+        fetch('/api/dashboard?period=' + period, { credentials: 'include' })
+          .then(r => r.json())
+          .then(d => { setData(d); setLoading(false); })
+          .catch(e => { console.error('Dashboard load error:', e); setLoading(false); });
+      }, [period]);
+      if (loading) return React.createElement('div', { className: 'flex items-center justify-center h-64' },
+        React.createElement('div', { className: 'text-gray-400 text-lg' }, 'Loading dashboard...')
+      );
+      if (!data) return React.createElement('div', { className: 'flex items-center justify-center h-64' },
+        React.createElement('div', { className: 'text-red-400 text-lg' }, 'Failed to load dashboard data')
+      );
+      const connectedPlatforms = (data.connectedPlatforms || []).map(p => p.platform);
+      const hasStrava = connectedPlatforms.includes('strava');
+      const hasWhoop = connectedPlatforms.includes('whoop');
+      const hasMFP = connectedPlatforms.includes('myfitnesspal');
+      const SourceBadge = ({ source }) => {
+        const colors = {
+          'Strava': 'bg-green-600/20 text-green-400 border-green-500/30',
+          'WHOOP': 'bg-teal-600/20 text-teal-400 border-teal-500/30',
+          'MFP': 'bg-orange-600/20 text-orange-400 border-orange-500/30',
+          'Manual': 'bg-gray-600/20 text-gray-400 border-gray-500/30'
         };
-
-        fetchDashboard();
-      }, []);
-
-      if (loading) {
-        return (
-          <div className="flex items-center justify-center min-h-screen">
-            <div className="spinner" />
-          </div>
+        return React.createElement('span', {
+          className: 'text-xs px-2 py-0.5 rounded-full border ' + (colors[source] || colors['Manual'])
+        }, source);
+      };
+      const CircularGauge = ({ value, max, color, label, size }) => {
+        const sz = size || 120;
+        const strokeWidth = 8;
+        const radius = (sz - strokeWidth) / 2;
+        const circumference = 2 * Math.PI * radius;
+        const pct = Math.min(value / max, 1);
+        const offset = circumference * (1 - pct);
+        const colorMap = { green: '#22c55e', blue: '#3b82f6', orange: '#f97316', purple: '#a855f7' };
+        const strokeColor = colorMap[color] || '#6b7280';
+        return React.createElement('svg', { width: sz, height: sz, viewBox: '0 0 ' + sz + ' ' + sz },
+          React.createElement('circle', { cx: sz/2, cy: sz/2, r: radius, fill: 'none', stroke: 'rgba(255,255,255,0.08)', strokeWidth: strokeWidth }),
+          React.createElement('circle', { cx: sz/2, cy: sz/2, r: radius, fill: 'none', stroke: strokeColor, strokeWidth: strokeWidth, strokeDasharray: circumference, strokeDashoffset: offset, strokeLinecap: 'round', transform: 'rotate(-90 ' + sz/2 + ' ' + sz/2 + ')', style: { transition: 'stroke-dashoffset 0.8s ease' } }),
+          React.createElement('text', { x: sz/2, y: sz/2 - 6, textAnchor: 'middle', fill: 'white', fontSize: sz > 100 ? '22' : '18', fontWeight: 'bold' }, Math.round(pct * 100)),
+          React.createElement('text', { x: sz/2, y: sz/2 + 14, textAnchor: 'middle', fill: 'rgba(255,255,255,0.5)', fontSize: '11' }, label || 'Score')
         );
-      }
-
-      if (error) {
-        return (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">
-            Error: {error}
-          </div>
+      };
+      const NoData = ({ label }) => React.createElement('span', { className: 'text-gray-500 text-sm italic' }, label || 'No data');
+      const MetricRow = ({ label, value, source, hasData }) => {
+        return React.createElement('div', { className: 'flex items-center justify-between py-1.5' },
+          React.createElement('span', { className: 'text-gray-400 text-sm' }, label),
+          React.createElement('div', { className: 'flex items-center gap-2' },
+            hasData ? React.createElement('span', { className: 'text-white font-medium text-sm' }, value) : React.createElement(NoData, null),
+            React.createElement(SourceBadge, { source: source })
+          )
         );
-      }
-
-      const data = dashboardData || {};
-
-      return (
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-dark-300">Welcome back, {user?.name}!</h1>
-            {data.connectedPlatform && (
-              <span className="bg-primary-800/30 text-primary-600 px-3 py-1 rounded-full text-sm font-medium">
-                Connected: {data.connectedPlatform}
-              </span>
-            )}
-          </div>
-
-          {/* Quick Actions */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <button onClick={() => window.location.hash = '#/workouts'} className="bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-lg shadow-primary-600/25 hover:shadow-primary-500/40 hover:-translate-y-0.5 flex items-center justify-center gap-2">
-              <Icons.Plus /> Log Workout
-            </button>
-            <button onClick={() => window.location.hash = '#/settings'} className="bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-lg shadow-teal-600/25 hover:shadow-teal-500/40 hover:-translate-y-0.5 flex items-center justify-center gap-2">
-              <Icons.RefreshCw /> Sync Data
-            </button>
-            <button onClick={() => window.location.hash = '#/reports'} className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-lg shadow-purple-600/25 hover:shadow-purple-500/40 hover:-translate-y-0.5 flex items-center justify-center gap-2">
-              <Icons.BarChart3 /> AI Report
-            </button>
-            <button onClick={() => window.location.hash = '#/feed'} className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-lg shadow-orange-600/25 hover:shadow-orange-500/40 hover:-translate-y-0.5 flex items-center justify-center gap-2">
-              <Icons.Rss /> Activity Feed
-            </button>
-          </div>
-
-          {/* AI Readiness Insights */}
-          <div className="glass-card p-6">
-            <h2 className="text-xl font-bold text-dark-50 mb-4">AI Readiness Insights</h2>
-
-            {/* 7-day forecast */}
-            <div className="flex gap-2 mb-6 overflow-x-auto">
-              {(data.weekForecast || []).map((day, idx) => (
-                <div key={idx} className="flex flex-col items-center gap-2 min-w-fit">
-                  <span className="text-xs font-medium text-dark-300">{day.day}</span>
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-bold text-white ${
-                      day.score >= 75
-                        ? 'bg-emerald-500'
-                        : day.score >= 65
-                        ? 'bg-yellow-500'
-                        : 'bg-orange-500'
-                    }`}
-                  >
-                    {day.score}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {/* Week's Outlook */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-              {data.weekOutlook && (
-                <>
-                  <div className="bg-primary-900/30 rounded p-3">
-                    <p className="text-xs text-dark-300 font-medium">Optimal Training Days</p>
-                    <p className="text-lg font-bold text-primary-600">{data.weekOutlook.optimalDays}</p>
-                  </div>
-                  <div className="bg-primary-900/30 rounded p-3">
-                    <p className="text-xs text-dark-300 font-medium">Peak Performance Day</p>
-                    <p className="text-lg font-bold text-primary-600">{data.weekOutlook.peakDay}</p>
-                  </div>
-                  <div className="bg-red-50 rounded p-3">
-                    <p className="text-xs text-dark-300 font-medium">Overtraining Risk</p>
-                    <p className="text-lg font-bold text-red-400">{data.weekOutlook.overtrainingRisk}%</p>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* AI Tip */}
-            <p className="text-sm text-dark-200">
-              {'\u{1F4A1}'} <strong>AI Tip:</strong> {data.aiTip || 'Stay consistent with your training routine.'}
-            </p>
-          </div>
-
-          {/* Key Performance Metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Recovery */}
-            <div className="glass-card p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-dark-300 text-sm font-medium">Recovery</span>
-                <Icons.Heart />
-              </div>
-              <p className="text-3xl font-bold text-dark-50">{data.recovery?.percentage || '85'}%</p>
-              <p className="text-xs text-emerald-400 mt-2">+8% vs last week</p>
-            </div>
-
-            {/* Workouts */}
-            <div className="glass-card p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-dark-300 text-sm font-medium">Workouts</span>
-                <Icons.Dumbbell />
-              </div>
-              <p className="text-3xl font-bold text-dark-50">{data.workouts?.completed || '10'} / {data.workouts?.goal || '6'}</p>
-              <p className="text-xs text-emerald-400 mt-1">This week</p>
-              <p className="text-xs text-dark-300 mt-1">+2 vs last week</p>
-            </div>
-
-            {/* Steps & Strain */}
-            <div className="glass-card p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-dark-300 text-sm font-medium">Steps & Strain</span>
-                <Icons.Zap />
-              </div>
-              <p className="text-3xl font-bold text-dark-50">{data.stepsStrain?.steps || '8.2'}k / {data.stepsStrain?.strain || '14.2'}</p>
-              <p className="text-xs text-red-400 mt-2">-5% vs last week</p>
-            </div>
-
-            {/* Nutrition */}
-            <div className="glass-card p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-dark-300 text-sm font-medium">Nutrition</span>
-                <Icons.Flame />
-              </div>
-              <p className="text-2xl font-bold text-dark-50">{data.nutrition?.calories || '406'} cal</p>
-              <p className="text-xs text-dark-300">{data.nutrition?.protein || '145'}g protein</p>
-              <p className="text-xs text-emerald-400 mt-1">+3% vs last week</p>
-            </div>
-          </div>
-
-          {/* Goal Progress */}
-          <div className="glass-card p-6">
-            <h2 className="text-xl font-bold text-dark-50 mb-4">Goal Progress</h2>
-            <div className="space-y-4">
-              {(data.goals || []).slice(0, 3).map((goal, idx) => {
-                const current = goal.current_value || 0;
-                const target = goal.target_value || 1;
-                const isLB = goal.type === 'weight' || (goal.name && goal.name.toLowerCase().includes('loss'));
-                const pct = isLB ? (current <= target ? 100 : Math.max(0, Math.min(99, Math.round((1 - (current - target) / target) * 100)))) : Math.min(100, Math.round((current / target) * 100));
-                return (
-                  <div key={idx}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-dark-50 font-medium">{goal.name}</span>
-                      <span className="text-dark-300 text-sm">{current} / {target} {goal.unit || ''}</span>
-                    </div>
-                    <div className="w-full bg-dark-700 rounded-full h-2">
-                      <div
-                        className="bg-primary-600 h-2 rounded-full"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Stats Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { label: 'Total Workouts', value: '128', icon: Icons.Dumbbell },
-              { label: 'Calories Burned', value: '24,500', icon: Icons.Flame },
-              { label: 'Distance (mi)', value: '156', icon: Icons.Footprints },
-              { label: 'Recovery Score', value: '92', icon: Icons.Heart },
-            ].map((stat, idx) => (
-              <div key={idx} className="glass-card p-4 flex items-center justify-between">
-                <div>
-                  <p className="text-dark-300 text-sm font-medium">{stat.label}</p>
-                  <p className="text-2xl font-bold text-dark-50">{stat.value}</p>
-                </div>
-                <div className="text-primary-600">
-                  <stat.icon />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Performance Trends */}
-          <div className="glass-card p-6">
-            <h2 className="text-xl font-bold text-dark-50 mb-4">Performance Trends (7 days)</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={data.trendData || []}>
-                <defs>
-                  <linearGradient id="colorCalories" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2E75B6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#2E75B6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Area
-                  type="monotone"
-                  dataKey="calories"
-                  stroke="#2E75B6"
-                  fillOpacity={1}
-                  fill="url(#colorCalories)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Activity Distribution */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="glass-card p-6">
-              <h2 className="text-xl font-bold text-dark-50 mb-4">Activity Distribution</h2>
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={data.activityDistribution || []}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, value }) => `${name}: ${value}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {(data.activityDistribution || []).map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={['#2E75B6', '#27B4C4', '#F59E0B', '#10B981', '#EF4444'][index % 5]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Weekly Activity Summary */}
-            <div className="glass-card p-6">
-              <h2 className="text-xl font-bold text-dark-50 mb-4">Weekly Activity</h2>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={data.weeklyActivity || []}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="distance" fill="#2E75B6" />
-                  <Bar dataKey="workouts" fill="#27B4C4" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Recent Activities */}
-          <div className="glass-card p-6">
-            <h2 className="text-xl font-bold text-dark-50 mb-4">Recent Activities</h2>
-            <div className="space-y-3">
-              {(data.recentActivities || []).map((activity, idx) => (
-                <div key={idx} className="flex items-center gap-4 p-3 hover:bg-dark-900 rounded">
-                  <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-bold ${
-                      activity.platform === 'strava'
-                        ? 'bg-orange-500'
-                        : activity.platform === 'whoop'
-                        ? 'bg-teal-500'
-                        : 'bg-primary-900/300'
-                    }`}
-                  >
-                    {((activity.name || '??').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase())}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-dark-50">{activity.name}</p>
-                    <p className="text-xs text-dark-300">
-                      {activity.distance}km {String.fromCharCode(183)} {activity.duration} min
-                    </p>
-                  </div>
-                  <p className="text-xs text-dark-400">{activity.timeAgo}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+      };
+      const exerciseScore = hasStrava ? Math.min(100, Math.round(((data.metrics.strain || 0) / 21) * 50 + ((data.metrics.workouts && data.metrics.workouts.current || 0) / Math.max(data.metrics.workouts && data.metrics.workouts.goal || 5, 1)) * 50)) : 0;
+      const recoveryScore = hasWhoop ? (data.metrics.recovery || 0) : 0;
+      const nutritionScore = hasMFP ? Math.min(100, Math.round(((data.metrics.calories || 0) / 2200) * 50 + ((data.metrics.protein || 0) / 150) * 50)) : 0;
+      const mindsetScore = 0;
+      const PillarCard = ({ title, color, score, children, maxScore }) => {
+        const borderColors = { green: 'border-green-500/30', blue: 'border-blue-500/30', orange: 'border-orange-500/30', purple: 'border-purple-500/30' };
+        const bgColors = { green: 'from-green-500/5', blue: 'from-blue-500/5', orange: 'from-orange-500/5', purple: 'from-purple-500/5' };
+        return React.createElement('div', {
+          className: 'bg-gradient-to-b ' + (bgColors[color] || '') + ' to-transparent border ' + (borderColors[color] || 'border-gray-700') + ' rounded-2xl p-5 flex flex-col items-center'
+        },
+          React.createElement('div', { className: 'mb-3' },
+            React.createElement(CircularGauge, { value: score, max: maxScore || 100, color: color, label: 'Score' })
+          ),
+          React.createElement('h3', { className: 'text-white font-semibold text-base mb-3' }, title),
+          React.createElement('div', { className: 'w-full space-y-0.5' }, children)
+        );
+      };
+      return React.createElement('div', { className: 'max-w-7xl mx-auto px-4 sm:px-6 py-6' },
+        React.createElement('div', { className: 'flex items-center justify-between mb-6' },
+          React.createElement('div', null,
+            React.createElement('h1', { className: 'text-2xl font-bold text-white' }, 'Welcome back, ' + (data.user && data.user.name || 'Athlete') + '!'),
+            React.createElement('p', { className: 'text-gray-400 text-sm mt-1' }, 'Your performance overview')
+          ),
+          React.createElement('select', { value: period, onChange: function(e) { setPeriod(e.target.value); }, className: 'bg-dark-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-2' },
+            React.createElement('option', { value: '7d' }, 'Last 7 Days'),
+            React.createElement('option', { value: '30d' }, 'Last 30 Days'),
+            React.createElement('option', { value: '90d' }, 'Last 90 Days')
+          )
+        ),
+        React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6' },
+          React.createElement(PillarCard, { title: 'Exercise', color: 'green', score: exerciseScore },
+            React.createElement(MetricRow, { label: 'Strain', value: (data.metrics.strain ? data.metrics.strain.toFixed(1) : '0'), source: 'Strava', hasData: hasStrava }),
+            React.createElement(MetricRow, { label: 'Workouts', value: (data.metrics.workouts && data.metrics.workouts.current || 0) + ' / ' + (data.metrics.workouts && data.metrics.workouts.goal || 0), source: 'Strava', hasData: hasStrava }),
+            React.createElement(MetricRow, { label: 'Distance', value: (data.stats && data.stats.distance || 0) + ' mi', source: 'Strava', hasData: hasStrava }),
+            React.createElement(MetricRow, { label: 'Active Min', value: '--', source: 'Strava', hasData: false })
+          ),
+          React.createElement(PillarCard, { title: 'Recovery', color: 'blue', score: recoveryScore },
+            React.createElement(MetricRow, { label: 'Recovery %', value: (data.metrics.recovery || 0) + '%', source: 'WHOOP', hasData: hasWhoop }),
+            React.createElement(MetricRow, { label: 'HRV', value: '--', source: 'WHOOP', hasData: false }),
+            React.createElement(MetricRow, { label: 'Resting HR', value: '--', source: 'WHOOP', hasData: false }),
+            React.createElement(MetricRow, { label: 'Sleep Quality', value: '--', source: 'WHOOP', hasData: false })
+          ),
+          React.createElement(PillarCard, { title: 'Nutrition', color: 'orange', score: nutritionScore },
+            React.createElement(MetricRow, { label: 'Calories', value: (data.metrics.calories || 0) + ' cal', source: 'MFP', hasData: hasMFP }),
+            React.createElement(MetricRow, { label: 'Protein', value: (data.metrics.protein || 0) + 'g', source: 'MFP', hasData: hasMFP }),
+            React.createElement(MetricRow, { label: 'Hydration', value: '--', source: 'Manual', hasData: false })
+          ),
+          React.createElement(PillarCard, { title: 'Mindset', color: 'purple', score: mindsetScore },
+            React.createElement(MetricRow, { label: 'Stress', value: '--', source: 'Manual', hasData: false }),
+            React.createElement(MetricRow, { label: 'Mindfulness', value: '--', source: 'Manual', hasData: false }),
+            React.createElement(MetricRow, { label: 'Mood', value: '--', source: 'Manual', hasData: false })
+          )
+        ),
+        data.readiness && React.createElement('div', { className: 'bg-dark-800/60 border border-gray-700/50 rounded-xl p-5 mb-6' },
+          React.createElement('h2', { className: 'text-white font-semibold text-lg mb-2' }, 'AI Readiness Insights'),
+          React.createElement('p', { className: 'text-gray-300 text-sm' }, '\uD83D\uDCA1 AI Tip: ' + (data.readiness.tip || 'Stay consistent with your training routine.'))
+        ),
+        data.goals && data.goals.length > 0 && React.createElement('div', { className: 'bg-dark-800/60 border border-gray-700/50 rounded-xl p-5 mb-6' },
+          React.createElement('h2', { className: 'text-white font-semibold text-lg mb-4' }, 'Goal Progress'),
+          data.goals.map(function(goal, i) {
+            var pct = Math.min((goal.current_value / goal.target_value) * 100, 100);
+            return React.createElement('div', { key: i, className: 'mb-3' },
+              React.createElement('div', { className: 'flex justify-between text-sm mb-1' },
+                React.createElement('span', { className: 'text-gray-300' }, goal.name),
+                React.createElement('span', { className: 'text-gray-400' }, goal.current_value + ' / ' + goal.target_value + ' ' + (goal.unit || ''))
+              ),
+              React.createElement('div', { className: 'w-full bg-dark-700 rounded-full h-2' },
+                React.createElement('div', { className: 'bg-blue-500 h-2 rounded-full transition-all', style: { width: pct + '%' } })
+              )
+            );
+          })
+        ),
+        data.trendData && data.trendData.length > 0 && React.createElement('div', { className: 'bg-dark-800/60 border border-gray-700/50 rounded-xl p-5 mb-6' },
+          React.createElement('h2', { className: 'text-white font-semibold text-lg mb-4' }, 'Performance Trends (' + (period === '7d' ? '7 days' : period === '30d' ? '30 days' : '90 days') + ')'),
+          React.createElement(window._RC.ResponsiveContainer, { width: '100%', height: 250 },
+            React.createElement(window._RC.AreaChart, { data: data.trendData },
+              React.createElement(window._RC.CartesianGrid, { strokeDasharray: '3 3', stroke: 'rgba(255,255,255,0.05)' }),
+              React.createElement(window._RC.XAxis, { dataKey: 'day', stroke: '#6b7280', tick: { fontSize: 12 } }),
+              React.createElement(window._RC.YAxis, { stroke: '#6b7280', tick: { fontSize: 12 } }),
+              React.createElement(window._RC.Tooltip, { contentStyle: { background: '#1e293b', border: '1px solid #374151', borderRadius: '8px', color: '#fff' } }),
+              React.createElement(window._RC.Area, { type: 'monotone', dataKey: 'calories', stroke: '#3b82f6', fill: 'rgba(59,130,246,0.15)', strokeWidth: 2 })
+            )
+          )
+        ),
+        data.recentActivities && data.recentActivities.length > 0 && React.createElement('div', { className: 'bg-dark-800/60 border border-gray-700/50 rounded-xl p-5 mb-6' },
+          React.createElement('h2', { className: 'text-white font-semibold text-lg mb-4' }, 'Recent Activities'),
+          data.recentActivities.map(function(act, i) {
+            var actPlatform = act.platform === 'strava' ? 'Strava' : act.platform === 'whoop' ? 'WHOOP' : 'Manual';
+            return React.createElement('div', { key: i, className: 'flex items-center justify-between py-3 border-b border-gray-700/50 last:border-0' },
+              React.createElement('div', { className: 'flex items-center gap-3' },
+                React.createElement('div', { className: 'w-10 h-10 rounded-full bg-dark-700 flex items-center justify-center text-xs font-bold text-gray-300' }, (act.name || 'Activity').substring(0, 2).toUpperCase()),
+                React.createElement('div', null,
+                  React.createElement('div', { className: 'text-white font-medium text-sm' }, act.name),
+                  React.createElement('div', { className: 'text-gray-500 text-xs' }, (act.distance || '0km') + ' - ' + (act.duration || '0 min'))
+                )
+              ),
+              React.createElement('div', { className: 'flex items-center gap-2' },
+                React.createElement(SourceBadge, { source: actPlatform }),
+                React.createElement('span', { className: 'text-gray-500 text-xs' }, act.timeAgo || 'recently')
+              )
+            );
+          })
+        )
       );
     };
-
     // Workouts Page
     const WorkoutsPage = () => {
       const [workoutsData, setWorkoutsData] = useState(null);
@@ -1047,7 +896,7 @@
                         <h3 className="font-bold text-dark-50">{workout.name}</h3>
                         <span className="text-xs text-dark-300">{workout.date}</span>
                       </div>
-                      <p className="text-sm text-dark-300 mb-3">{workout.duration} min Ã¢ÂÂ¢ RPE: {workout.rpe}</p>
+                      <p className="text-sm text-dark-300 mb-3">{workout.duration} min Ã¢ÃÃ¢ RPE: {workout.rpe}</p>
                       {workout.notes && <p className="text-sm text-dark-200 mb-2">{workout.notes}</p>}
                       <div className="flex gap-2">
                         <span className="bg-primary-800/30 text-primary-600 text-xs px-2 py-1 rounded">
@@ -1503,7 +1352,7 @@
                 )}
 
                 <button onClick={() => setTab('leaderboard')} className="w-full text-primary-600 hover:text-primary-700 font-semibold text-sm">
-                  View Full Leaderboard Ã¢ÂÂ
+                  View Full Leaderboard Ã¢ÃÃ
                 </button>
               </div>
             ))}
@@ -1601,7 +1450,7 @@
                     {item.initials}
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 cursor-pointer", onClick: function() { window.location.hash = "#/"; }>
                       <p className="font-bold text-dark-50">{item.name}</p>
                       <span className={`text-xs font-semibold px-2 py-1 rounded ${badgeColor(item.type)}`}>
                         {item.type}
@@ -1638,179 +1487,107 @@
 
     // Analyze Page
     const AnalyzePage = () => {
-      const [analyzeData, setAnalyzeData] = useState(null);
-      const [loading, setLoading] = useState(true);
-      const [error, setError] = useState('');
-      const [timeRange, setTimeRange] = useState('30days');
-      const [tab, setTab] = useState('trends');
-
-      useEffect(() => {
-        const fetchAnalyze = async () => {
-          try {
-            const res = await fetch(`/api/analyze?range=${timeRange}`);
-            if (!res.ok) throw new Error('Failed to fetch analyze data');
-            const data = await res.json();
-            setAnalyzeData(data);
-          } catch (err) {
-            setError(err.message);
-          } finally {
-            setLoading(false);
-          }
+      const [data, setData] = React.useState(null);
+      const [loading, setLoading] = React.useState(true);
+      const [refreshing, setRefreshing] = React.useState(false);
+      const loadData = function() {
+        setLoading(true);
+        fetch('/api/analyze', { credentials: 'include' })
+          .then(function(r) { return r.json(); })
+          .then(function(d) { setData(d); setLoading(false); setRefreshing(false); })
+          .catch(function(e) { console.error('Analyze load error:', e); setLoading(false); setRefreshing(false); });
+      };
+      React.useEffect(function() { loadData(); }, []);
+      var handleRefresh = function() { setRefreshing(true); loadData(); };
+      if (loading && !refreshing) return React.createElement('div', { className: 'flex items-center justify-center h-64' },
+        React.createElement('div', { className: 'text-gray-400 text-lg' }, 'Loading analysis...')
+      );
+      var SourceBadge = function(props) {
+        var colors = {
+          'Strava': 'bg-green-600/20 text-green-400 border-green-500/30',
+          'WHOOP': 'bg-teal-600/20 text-teal-400 border-teal-500/30',
+          'MFP': 'bg-orange-600/20 text-orange-400 border-orange-500/30',
+          'Manual': 'bg-gray-600/20 text-gray-400 border-gray-500/30'
         };
-
-        fetchAnalyze();
-      }, [timeRange]);
-
-      if (loading) {
-        return (
-          <div className="flex items-center justify-center min-h-screen">
-            <div className="spinner" />
-          </div>
+        return React.createElement('span', { className: 'text-xs px-2 py-0.5 rounded-full border ' + (colors[props.source] || colors['Manual']) }, props.source);
+      };
+      var Section = function(props) {
+        return React.createElement('div', { className: 'bg-dark-800/60 border border-gray-700/50 rounded-xl p-6 mb-4' },
+          React.createElement('h3', { className: 'text-white font-semibold text-lg mb-4 flex items-center gap-2' },
+            React.createElement('span', null, props.icon), props.title
+          ), props.children
         );
-      }
-
-      if (error) {
-        return (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">
-            Error: {error}
-          </div>
+      };
+      var InsightCard = function(props) {
+        var icons = ['\uD83D\uDCC8', '\uD83D\uDD25', '\u2764\uFE0F', '\uD83C\uDFAF'];
+        var txt = typeof props.insight === 'string' ? props.insight : (props.insight.text || props.insight.message || JSON.stringify(props.insight));
+        return React.createElement('div', { className: 'p-4 bg-dark-700/50 rounded-lg border border-gray-600/30 mb-3' },
+          React.createElement('div', { className: 'flex items-start gap-3' },
+            React.createElement('span', { className: 'text-xl' }, icons[props.index % icons.length]),
+            React.createElement('p', { className: 'text-gray-200 text-sm leading-relaxed' }, txt)
+          )
         );
-      }
-
-      const data = analyzeData || {};
-
-      return (
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-dark-50">Analytics</h1>
-            <select
-              value={timeRange}
-              onChange={(e) => setTimeRange(e.target.value)}
-              className="px-4 py-2 border border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400"
-            >
-              <option value="30days">Last 30 Days</option>
-              <option value="60days">Last 60 Days</option>
-              <option value="90days">Last 90 Days</option>
-            </select>
-          </div>
-
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { label: 'Monthly Trend', value: data.monthlyTrend || '+12%', icon: Icons.TrendingUp, color: 'green' },
-              { label: 'Total Activities', value: data.totalActivities || '24', icon: Icons.Activity, color: 'blue' },
-              { label: 'Data Points', value: data.dataPoints || '156', icon: Icons.BarChart3, color: 'purple' },
-              { label: 'Platforms Connected', value: data.platformsConnected || '1/4', icon: Icons.Link2, color: 'orange' },
-            ].map((stat, idx) => {
-              const bgColor =
-                stat.color === 'green'
-                  ? 'bg-green-50'
-                  : stat.color === 'blue'
-                  ? 'bg-primary-900/30'
-                  : stat.color === 'purple'
-                  ? 'bg-purple-50'
-                  : 'bg-orange-50';
-
-              return (
-                <div key={idx} className={`${bgColor} rounded-lg p-4`}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-dark-300 text-sm font-medium">{stat.label}</p>
-                      <p className="text-2xl font-bold text-dark-50">{stat.value}</p>
-                    </div>
-                    <div className="text-primary-600">
-                      <stat.icon />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Tabs */}
-          <div className="flex gap-4 border-b border-dark-700">
-            {['trends', 'insights', 'datasources'].map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`px-4 py-2 font-medium capitalize ${
-                  tab === t
-                    ? 'text-primary-600 border-b-2 border-primary-600'
-                    : 'text-dark-300 hover:text-dark-50'
-                }`}
-              >
-                {t === 'datasources' ? 'Data Sources' : t}
-              </button>
-            ))}
-          </div>
-
-          {/* Trends Tab */}
-          {tab === 'trends' && (
-            <div className="glass-card p-6">
-              <h2 className="text-xl font-bold text-dark-50 mb-4">Performance Over Time</h2>
-              <ResponsiveContainer width="100%" height={400}>
-                <AreaChart data={data.trendData || []}>
-                  <defs>
-                    <linearGradient id="colorPerf" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2E75B6" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#2E75B6" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Area
-                    type="monotone"
-                    dataKey="performance"
-                    stroke="#2E75B6"
-                    fillOpacity={1}
-                    fill="url(#colorPerf)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          {/* Insights Tab */}
-          {tab === 'insights' && (
-            <div className="glass-card p-6">
-              <h2 className="text-xl font-bold text-dark-50 mb-4">Key Insights</h2>
-              <ul className="space-y-3">
-                {(data.insights || []).map((insight, idx) => (
-                  <li key={idx} className="flex items-start gap-3 p-3 bg-primary-900/30 rounded">
-                    <Icons.Check className="text-primary-600 mt-0.5 flex-shrink-0" />
-                    <span className="text-dark-200">{insight}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Data Sources Tab */}
-          {tab === 'datasources' && (
-            <div className="glass-card p-6">
-              <h2 className="text-xl font-bold text-dark-50 mb-4">Connected Data Sources</h2>
-              <div className="space-y-3">
-                {(data.dataSources || []).map((source, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 border border-dark-700 rounded">
-                    <div>
-                      <p className="font-medium text-dark-50">{source.name}</p>
-                      <p className="text-xs text-dark-300">Last synced: {source.lastSync}</p>
-                    </div>
-                    <span className="bg-emerald-900/30 text-green-700 text-xs px-2 py-1 rounded">
-                      Connected
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+      };
+      return React.createElement('div', { className: 'max-w-5xl mx-auto px-4 sm:px-6 py-6' },
+        React.createElement('div', { className: 'flex items-center justify-between mb-6' },
+          React.createElement('div', null,
+            React.createElement('h1', { className: 'text-2xl font-bold text-white' }, 'AI Analysis'),
+            React.createElement('p', { className: 'text-amber-400/80 text-sm mt-1 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-1 inline-block' }, 'Sample Insights -- Connect API key for live AI analysis')
+          ),
+          React.createElement('button', { onClick: handleRefresh, disabled: refreshing, className: 'px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-white text-sm rounded-lg transition flex items-center gap-2' }, refreshing ? 'Refreshing...' : 'Refresh Insights')
+        ),
+        data && React.createElement('div', { className: 'grid grid-cols-2 md:grid-cols-4 gap-3 mb-6' },
+          React.createElement('div', { className: 'bg-dark-800/60 border border-gray-700/50 rounded-xl p-4 text-center' },
+            React.createElement('div', { className: 'text-2xl font-bold text-white' }, data.totalActivities || '0'),
+            React.createElement('div', { className: 'text-gray-400 text-xs mt-1' }, 'Total Activities')
+          ),
+          React.createElement('div', { className: 'bg-dark-800/60 border border-gray-700/50 rounded-xl p-4 text-center' },
+            React.createElement('div', { className: 'text-2xl font-bold text-white' }, data.dataPoints || '0'),
+            React.createElement('div', { className: 'text-gray-400 text-xs mt-1' }, 'Data Points')
+          ),
+          React.createElement('div', { className: 'bg-dark-800/60 border border-gray-700/50 rounded-xl p-4 text-center' },
+            React.createElement('div', { className: 'text-2xl font-bold text-white' }, data.platformsConnected || '0'),
+            React.createElement('div', { className: 'text-gray-400 text-xs mt-1' }, 'Platforms Connected')
+          ),
+          React.createElement('div', { className: 'bg-dark-800/60 border border-gray-700/50 rounded-xl p-4 text-center' },
+            React.createElement('div', { className: 'text-2xl font-bold text-white' }, data.monthlyTrend || '--'),
+            React.createElement('div', { className: 'text-gray-400 text-xs mt-1' }, 'Monthly Trend')
+          )
+        ),
+        data && data.dataSources && data.dataSources.length > 0 && React.createElement('div', { className: 'flex items-center gap-2 mb-6' },
+          React.createElement('span', { className: 'text-gray-400 text-sm' }, 'Data from:'),
+          data.dataSources.map(function(src, i) { return React.createElement(SourceBadge, { key: i, source: src.charAt(0).toUpperCase() + src.slice(1) }); })
+        ),
+        React.createElement(Section, { title: 'Performance Summary', icon: '\uD83D\uDCCA' },
+          data && data.trendData && data.trendData.length > 0
+            ? React.createElement(window._RC.ResponsiveContainer, { width: '100%', height: 200 },
+                React.createElement(window._RC.LineChart, { data: data.trendData },
+                  React.createElement(window._RC.CartesianGrid, { strokeDasharray: '3 3', stroke: 'rgba(255,255,255,0.05)' }),
+                  React.createElement(window._RC.XAxis, { dataKey: 'day', stroke: '#6b7280', tick: { fontSize: 11 } }),
+                  React.createElement(window._RC.YAxis, { stroke: '#6b7280', tick: { fontSize: 11 } }),
+                  React.createElement(window._RC.Tooltip, { contentStyle: { background: '#1e293b', border: '1px solid #374151', borderRadius: '8px', color: '#fff' } }),
+                  React.createElement(window._RC.Line, { type: 'monotone', dataKey: 'calories', stroke: '#3b82f6', strokeWidth: 2, dot: { r: 3 } })
+                )
+              )
+            : React.createElement('p', { className: 'text-gray-500 italic text-sm' }, 'No trend data available')
+        ),
+        React.createElement(Section, { title: 'Trends & Patterns', icon: '\uD83D\uDD0D' },
+          data && data.insights && data.insights.length > 0
+            ? data.insights.slice(0, 2).map(function(insight, i) { return React.createElement(InsightCard, { key: i, insight: insight, index: i }); })
+            : React.createElement('p', { className: 'text-gray-500 italic text-sm' }, 'No pattern data available yet. Connect more data sources for insights.')
+        ),
+        React.createElement(Section, { title: 'Recommendations', icon: '\uD83D\uDCA1' },
+          data && data.insights && data.insights.length > 2
+            ? data.insights.slice(2, 4).map(function(insight, i) { return React.createElement(InsightCard, { key: i, insight: insight, index: i + 2 }); })
+            : React.createElement('p', { className: 'text-gray-500 italic text-sm' }, 'Not enough data for recommendations yet. Keep logging your activities!')
+        ),
+        React.createElement(Section, { title: 'Alerts', icon: '\u26A0\uFE0F' },
+          React.createElement('div', { className: 'p-4 bg-dark-700/50 rounded-lg border border-gray-600/30' },
+            React.createElement('p', { className: 'text-gray-400 text-sm' }, 'No alerts at this time. Your metrics are within normal ranges.')
+          )
+        )
       );
     };
-
     // Settings Page
     const SettingsPage = () => {
       const [settingsData, setSettingsData] = useState(null);
