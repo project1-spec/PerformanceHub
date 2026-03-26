@@ -243,18 +243,18 @@ def init_database():
 
     # Add missing columns to daily_summaries for WHOOP integration
     for col_stmt in [
-            "ALTER TABLE daily_summaries ADD COLUMN recovery_score REAL",
-                    "ALTER TABLE daily_summaries ADD COLUMN sleep_hours REAL",
-                            "ALTER TABLE daily_summaries ADD COLUMN strain REAL",
-                                ]:
-                                        try:
-                                                    cursor.execute(col_stmt)
-                                                            except sqlite3.OperationalError:
-                                                                        pass  # Column already exists
+        "ALTER TABLE daily_summaries ADD COLUMN recovery_score REAL",
+        "ALTER TABLE daily_summaries ADD COLUMN sleep_hours REAL",
+        "ALTER TABLE daily_summaries ADD COLUMN strain REAL",
+    ]:
+        try:
+            cursor.execute(col_stmt)
+        except sqlite3.OperationalError:
+            pass  # Column already exists
 
-                                                # Unique indexes for upsert support
-                                                    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_summaries_user_date ON daily_summaries(user_id, date)")
-                                                        cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_recovery_metrics_user_date ON recovery_metrics(user_id, date)")
+    # Unique indexes for upsert support
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_summaries_user_date ON daily_summaries(user_id, date)")
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_recovery_metrics_user_date ON recovery_metrics(user_id, date)")
 
     # Seed data if database is empty
     cursor.execute("SELECT COUNT(*) FROM users")
@@ -602,14 +602,15 @@ class DashboardHandler(BaseHandler):
             recovery_row = cursor.fetchone()
             recovery_score = recovery_row['recovery_score'] if recovery_row else None
 
-                        # Also check daily_summaries for WHOOP data            cursor.execute(
-                                        "SELECT recovery_score, sleep_hours, strain FROM daily_summaries WHERE user_id = ? AND (recovery_score IS NOT NULL OR sleep_hours IS NOT NULL OR strain IS NOT NULL) ORDER BY date DESC LIMIT 1",
-                                                        (user_id,)
-                                                                    )
-                                                                                ds_row = cursor.fetchone()
-                                                                                            if ds_row:
-                                                                                                                if recovery_score is None and ds_row['recovery_score'] is not None:
-                                                                                                                                        recovery_score = ds_row['recovery_score'])
+            # Also check daily_summaries for WHOOP data
+            cursor.execute(
+                "SELECT recovery_score, sleep_hours, strain FROM daily_summaries WHERE user_id = ? AND (recovery_score IS NOT NULL OR sleep_hours IS NOT NULL OR strain IS NOT NULL) ORDER BY date DESC LIMIT 1",
+                (user_id,)
+            )
+            ds_row = cursor.fetchone()
+            if ds_row:
+                if recovery_score is None and ds_row['recovery_score'] is not None:
+                    recovery_score = ds_row['recovery_score']
             recovery_hrv = recovery_row['hrv'] if recovery_row else None
             recovery_rhr = recovery_row['rhr'] if recovery_row else None
             recovery_source = recovery_row['source'] if recovery_row else None
@@ -2521,28 +2522,32 @@ class WhoopSyncHandler(BaseHandler):
                     )
                     synced += 1
 
+            # Store aggregated WHOOP data in daily_summaries for dashboard
+            today = datetime.datetime.utcnow().strftime('%Y-%m-%d')
+            best_recovery = None
+            cursor.execute("SELECT recovery_score FROM recovery_metrics WHERE user_id = ? AND recovery_score IS NOT NULL ORDER BY date DESC LIMIT 1", (user_id,))
+            rm_row = cursor.fetchone()
+            if rm_row:
+                best_recovery = rm_row['recovery_score']
+            latest_sleep = None
+            cursor.execute("SELECT duration_seconds FROM activities WHERE user_id = ? AND platform = 'whoop' AND type = 'sleep' ORDER BY start_time DESC LIMIT 1", (user_id,))
+            sl_row = cursor.fetchone()
+            if sl_row:
+                latest_sleep = round(sl_row['duration_seconds'] / 3600, 1)
+            latest_strain = None
+            cursor.execute("SELECT name FROM activities WHERE user_id = ? AND platform = 'whoop' AND type = 'cycle' ORDER BY start_time DESC LIMIT 1", (user_id,))
+            cy_row = cursor.fetchone()
+            if cy_row:
+                import re as re_mod
+                strain_m = re_mod.search(r'Strain ([\\d.]+)', cy_row['name'] or '')
+                if strain_m:
+                    latest_strain = float(strain_m.group(1))
+            if best_recovery is not None or latest_sleep is not None or latest_strain is not None:
+                cursor.execute("INSERT OR REPLACE INTO daily_summaries (user_id, date, recovery_score, sleep_hours, strain) VALUES (?, ?, ?, ?, ?)", (user_id, today, best_recovery, latest_sleep, latest_strain))
+                print(f"[WHOOP SYNC] Updated daily_summaries: recovery={best_recovery}, sleep={latest_sleep}h, strain={latest_strain}", flush=True)
+
             cursor.execute(
                 "UPDATE platform_connections SET last_synced = ? WHERE user_id = ? AND platform = 'whoop'",
-
-                            # Store aggregated WHOOP data in daily_summaries for DashboardHandler            today = datetime.datetime.utcnow().strftime('%Y-%m-%d')
-                                        best_recovery = NotificationReadHandler            cursor.execute("SELECT recovery_score FROM recovery_metrics WHERE user_id = ? AND recovery_score IS NOT NULL ORDER BY date DESC LIMIT 1", (user_id,))
-                                                    rm_row = cursor.fetchone()
-                                                                if rm_row:
-                                                                                    best_recovery = rm_row['recovery_score']
-                                                                                                latest_sleep = NotificationReadHandler            cursor.execute("SELECT duration_seconds FROM activities WHERE user_id = ? AND platform = 'whoop' AND type = 'sleep' ORDER BY start_time DESC LIMIT 1", (user_id,))
-                                                                                                            sl_row = cursor.fetchone()
-                                                                                                                        if sl_row:
-                                                                                                                                            latest_sleep = round(sl_row['duration_seconds'] / 3600, 1)
-                                                                                                                                                        latest_strain = NotificationReadHandler            cursor.execute("SELECT name FROM activities WHERE user_id = ? AND platform = 'whoop' AND type = 'cycle' ORDER BY start_time DESC LIMIT 1", (user_id,))
-                                                                                                                                                                    cy_row = cursor.fetchone()
-                                                                                                                                                                                if cy_row:
-                                                                                                                                                                                                    import re as re_mod
-                                                                                                                                                                                                                    strain_m = re_mod.search(r'Strain ([\d.]+)', cy_row['name'] or '')
-                                                                                                                                                                                                                                    if strain_m:
-                                                                                                                                                                                                                                                            latest_strain = float(strain_m.group(1))
-                                                                                                                                                                                                                                                                        if best_recovery is not None or latest_sleep is not None or latest_strain is not None:
-                                                                                                                                                                                                                                                                                            cursor.execute("INSERT OR REPLACE INTO daily_summaries (user_id, date, recovery_score, sleep_hours, strain) VALUES (?, ?, ?, ?, ?)", (user_id, today, best_recovery, latest_sleep, latest_strain))
-                                                                                                                                                                                                                                                                                                            print(f"[WHOOP SYNC] Updated daily_summaries: recovery={best_recovery}, sleep={latest_sleep}h, strain={latest_strain}", flush=True)
                 (now, user_id)
             )
             conn.commit()
