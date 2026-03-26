@@ -377,7 +377,33 @@ def seed_database(conn):
         )
 
 
-    conn.commit()
+    
+    # Seed recovery metrics (WHOOP-like data)
+    import random
+    random.seed(42)
+    for i in range(7):
+        d = (datetime.date.today() - datetime.timedelta(days=i)).isoformat()
+        rec_score = random.randint(55, 95)
+        hrv_val = random.randint(35, 85)
+        rhr_val = random.randint(48, 62)
+        sleep_h = round(random.uniform(5.5, 8.5), 1)
+        strain_val = round(random.uniform(6.0, 18.0), 1)
+        cursor.execute(
+            "INSERT OR IGNORE INTO recovery_metrics (user_id, date, recovery_score, hrv, rhr, source) VALUES (?, ?, ?, ?, ?, ?)",
+            (user_id, d, rec_score, hrv_val, rhr_val, 'whoop')
+        )
+        cursor.execute(
+            "INSERT OR IGNORE INTO daily_summaries (user_id, date, recovery_score, sleep_hours, strain) VALUES (?, ?, ?, ?, ?)",
+            (user_id, d, rec_score, sleep_h, strain_val)
+        )
+
+    # Add a WHOOP platform connection for demo user
+    cursor.execute(
+        "INSERT OR IGNORE INTO platform_connections (user_id, platform, connected_at) VALUES (?, ?, ?)",
+        (user_id, 'whoop', now)
+    )
+
+conn.commit()
 
 # Database helper
 def get_db():
