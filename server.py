@@ -783,11 +783,11 @@ class DashboardHandler(BaseHandler):
             tip = None
             if recovery_score is not None:
                 if recovery_score >= 80:
-                    tip = "Your recovery is strong Ã¢ÂÂ great day for a high-intensity session."
+                    tip = "Your recovery is strong ÃÂ¢ÃÂÃÂ great day for a high-intensity session."
                 elif recovery_score >= 50:
-                    tip = "Moderate recovery Ã¢ÂÂ consider a lighter training day."
+                    tip = "Moderate recovery ÃÂ¢ÃÂÃÂ consider a lighter training day."
                 else:
-                    tip = "Low recovery detected Ã¢ÂÂ prioritize rest and active recovery."
+                    tip = "Low recovery detected ÃÂ¢ÃÂÃÂ prioritize rest and active recovery."
 
             self.write({
                 "user": user,
@@ -2121,7 +2121,7 @@ class WhoopOAuthCallbackHandler(BaseHandler):
             platform_user_id = ""
             try:
                 profile_response = await http_client.fetch(
-                    "https://api.prod.whoop.com/developer/v1/user/profile/basic",
+                    "https://api.prod.whoop.com/developer/v2/user/profile/basic",
                     headers={"Authorization": f"Bearer {access_token}"},
                     raise_error=False
                 )
@@ -2152,7 +2152,7 @@ class WhoopOAuthCallbackHandler(BaseHandler):
             try:
                 print(f"[WHOOP CONNECT] Fetching initial recovery data for user {user_id}...", flush=True)
                 recovery_response = await http_client.fetch(
-                    "https://api.prod.whoop.com/developer/v1/recovery?limit=10",
+                    "https://api.prod.whoop.com/developer/v2/recovery?limit=10",
                     headers={"Authorization": f"Bearer {access_token}"},
                     raise_error=False
                 )
@@ -2409,7 +2409,7 @@ class WhoopSyncHandler(BaseHandler):
             # Fetch recovery data
             print(f"[WHOOP SYNC] Fetching recovery data for user {user_id}...", flush=True)
             recovery_response = await http_client.fetch(
-                "https://api.prod.whoop.com/developer/v1/recovery?limit=10",
+                "https://api.prod.whoop.com/developer/v2/recovery?limit=10",
                 headers={"Authorization": f"Bearer {access_token}"},
                 raise_error=False
             )
@@ -2469,7 +2469,7 @@ class WhoopSyncHandler(BaseHandler):
             # Fetch sleep data
             print(f"[WHOOP SYNC] Fetching sleep data...", flush=True)
             sleep_response = await http_client.fetch(
-                "https://api.prod.whoop.com/developer/v1/activity/sleep?limit=10",
+                "https://api.prod.whoop.com/developer/v2/activity/sleep?limit=10",
                 headers={"Authorization": f"Bearer {access_token}"},
                 raise_error=False
             )
@@ -2504,7 +2504,7 @@ class WhoopSyncHandler(BaseHandler):
             # Fetch cycle data (for strain)
             print(f"[WHOOP SYNC] Fetching cycle data...", flush=True)
             cycle_response = await http_client.fetch(
-                "https://api.prod.whoop.com/developer/v1/cycle?limit=10",
+                "https://api.prod.whoop.com/developer/v2/cycle?limit=10",
                 headers={"Authorization": f"Bearer {access_token}"},
                 raise_error=False
             )
@@ -2540,7 +2540,7 @@ class WhoopSyncHandler(BaseHandler):
 
             # Fetch workouts
             workout_response = await http_client.fetch(
-                "https://api.prod.whoop.com/developer/v1/activity/workout?limit=10",
+                "https://api.prod.whoop.com/developer/v2/activity/workout?limit=10",
                 headers={"Authorization": f"Bearer {access_token}"},
                 raise_error=False
             )
