@@ -299,7 +299,7 @@ def seed_database(conn):
     for name, activity_type, sport, start_time, duration, distance, elevation, calories, avg_hr, max_hr in activities_data:
         cursor.execute(
             "INSERT INTO activities (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, elevation_gain, calories, avg_hr, max_hr, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (user_id, "local", name, activity_type, sport, start_time, duration, distance, elevation, calories, avg_hr, max_hr, now)
+            (user_id, "strava", name, activity_type, sport, start_time, duration, distance, elevation, calories, avg_hr, max_hr, now)
         )
 
     # Create recovery metrics (last 7 days)
@@ -399,6 +399,7 @@ def seed_database(conn):
     platforms_data = [
         ("strava", "abc123strava", "refresh_abc123", "2026-06-23T00:00:00Z", "strava_user_123"),
         ("myfitnesspal", "xyz789mfp", "refresh_xyz789", "2026-06-23T00:00:00Z", "mfp_user_456"),
+        ("whoop", "whoop_token_abc", "refresh_whoop_abc", "2026-06-23T00:00:00Z", "whoop_user_789"),
     ]
 
     for platform, access_token, refresh_token, expires, platform_user_id in platforms_data:
@@ -783,6 +784,11 @@ class DashboardHandler(BaseHandler):
             # Determine what data sources are actually available
             has_whoop = any(p['platform'] == 'whoop' for p in connected_platforms)
             has_strava = any(p['platform'] == 'strava' for p in connected_platforms)
+            # Also detect WHOOP from recovery data if not in platform_connections
+            if not has_whoop:
+                cursor.execute("SELECT COUNT(*) as c FROM recovery_metrics WHERE user_id = ? AND source = 'whoop'", (user_id,))
+                if cursor.fetchone()['c'] > 0:
+                    has_whoop = True
             strava_activities_count = 0
             whoop_activities_count = 0
             if has_strava:
@@ -1249,10 +1255,10 @@ class ReportsHandler(BaseHandler):
 
             self.write({
                 "period": "Last 30 days",
-                "overallScore": 78,
+                "overallScore": min(100, round((workout_count / 20) * 100)),
                 "workouts": {
                     "count": workout_count,
-                    "score": 85,
+                    "score": min(100, round((workout_count / 20) * 100)),
                     "feedback": "Excellent training consistency"
                 },
                 "recovery": {
@@ -1262,7 +1268,7 @@ class ReportsHandler(BaseHandler):
                 },
                 "nutrition": {
                     "caloriesBurned": int(calories),
-                    "score": 72,
+                    "score": min(100, round((calories / 800) * 100)) if calories > 0 else 0,
                     "feedback": "Maintain current nutrition plan"
                 },
                 "sleep": {
@@ -2692,21 +2698,25 @@ class AnalyzeHandler(BaseHandler):
                 'apple_health': 'Apple Health',
                 'fitbit': 'Fitbit',
             }
-            data_sources = []
-            for row in cursor.fetchall():
-                raw_ts = row['last_synced'] or row['connected_at']
-                try:
-                    dt = datetime.datetime.fromisoformat(raw_ts.replace('Z', '+00:00'))
-                    fmt_ts = dt.strftime('%b %d, %Y at %I:%M %p')
-                except Exception:
-                    fmt_ts = raw_ts
-                data_sources.append({
-                    "name": platform_display.get(row['platform'], row['platform'].capitalize()),
-                    "lastSync": fmt_ts
-                })
-
-            if not data_sources:
-                data_sources = [{"name": "PerformanceHub", "lastSync": "Just now"}]
+            connected_list = [row['platform'] for row in cursor.fetchall()]
+            has_strava_a = 'strava' in connected_list
+            has_whoop_a = 'whoop' in connected_list
+            strava_count = 0
+            whoop_count = 0
+            if has_strava_a:
+                cursor.execute("SELECT COUNT(*) as c FROM activities WHERE user_id = ? AND platform = 'strava'", (user_id,))
+                strava_count = cursor.fetchone()['c']
+            if has_whoop_a:
+                cursor.execute("SELECT COUNT(*) as c FROM activities WHERE user_id = ? AND platform = 'whoop'", (user_id,))
+                whoop_count = cursor.fetchone()['c']
+            if not has_whoop_a:
+                cursor.execute("SELECT COUNT(*) as c FROM recovery_metrics WHERE user_id = ? AND source = 'whoop'", (user_id,))
+                if cursor.fetchone()['c'] > 0:
+                    has_whoop_a = True
+            data_sources = {
+                "whoop": {"connected": has_whoop_a, "dataCount": whoop_count},
+                "strava": {"connected": has_strava_a, "dataCount": strava_count}
+            }
 
             conn.close()
 
