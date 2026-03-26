@@ -2570,14 +2570,12 @@ class AnalyzeHandler(BaseHandler):
 
             user = self.get_current_user()
             user_id = user['id']
-            time_range = self.get_argument('range', '30days')
+            period = self.get_argument('period', 'month')
 
-            # Parse range
-            days = 30
-            if time_range == '60days':
-                days = 60
-            elif time_range == '90days':
-                days = 90
+            # Parse period: week=7, month=30, quarter=90, year=365
+            period_map = {'week': 7, 'month': 30, 'quarter': 90, 'year': 365}
+            days = period_map.get(period, 30)
+            period_label = {'week': 'Week', 'month': 'Month', 'quarter': 'Quarter', 'year': 'Year'}.get(period, 'Month')
 
             conn = get_db()
             cursor = conn.cursor()
@@ -2628,13 +2626,17 @@ class AnalyzeHandler(BaseHandler):
                 random.seed(42)
                 base = datetime.date.today() - datetime.timedelta(days=days)
                 trend_data = []
-                for i in range(min(days, 14)):
-                    d = base + datetime.timedelta(days=i * (days // 14))
+                num_points = min(days, 14) if days <= 30 else min(days, 24)
+                for i in range(num_points):
+                    d = base + datetime.timedelta(days=i * max(1, days // num_points))
                     trend_data.append({
                         "name": d.strftime('%b %d'),
                         "performance": 280 + random.randint(0, 200),
                         "duration": 30 + random.randint(0, 40),
-                        "count": random.randint(1, 3)
+                        "count": random.randint(1, 3),
+                        "recovery": 40 + random.randint(0, 55),
+                        "sleep": round(5.5 + random.random() * 3.5, 1),
+                        "strain": round(4 + random.random() * 14, 1)
                     })
 
             # Data sources
@@ -2673,6 +2675,9 @@ class AnalyzeHandler(BaseHandler):
             conn.close()
 
             self.write({
+                "period": period,
+                "periodLabel": period_label,
+                "days": days,
                 "monthlyTrend": "+12%",
                 "totalActivities": str(total_activities) if total_activities else "24",
                 "dataPoints": str(total_activities * 6) if total_activities else "156",

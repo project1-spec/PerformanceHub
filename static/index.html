@@ -1653,10 +1653,11 @@
       const [loading, setLoading] = useState(true);
       const [error, setError] = useState('');
       const [refreshing, setRefreshing] = useState(false);
+            const [period, setPeriod] = useState('month');
 
       const fetchData = async () => {
         try {
-          const res = await fetch('/api/dashboard');
+                  const res = await fetch(`/api/analyze?period=${period}`);
           if (!res.ok) throw new Error('Failed to fetch data');
           const data = await res.json();
           console.log('[Analyze] Dashboard data:', data);
@@ -1675,7 +1676,7 @@
         setRefreshing(false);
       };
 
-      useEffect(() => { fetchData(); }, []);
+            useEffect(() => { fetchData(); }, [period]);
 
       const SourceBadge = ({ source }) => {
         if (!source) return null;
@@ -1736,6 +1737,14 @@
               <Icons.RefreshCw className={refreshing ? 'animate-spin' : ''} /> {refreshing ? 'Refreshing...' : 'Refresh Insights'}
             </button>
           </div>
+                    {/* Period Filter Buttons */}
+                              <div className="flex items-center gap-2 mb-2">
+                                          <span className="text-gray-400 text-sm mr-2">Period:</span>
+                                                      {[{key:'week',label:'Week'},{key:'month',label:'Month'},{key:'quarter',label:'Quarter'},{key:'year',label:'Year'}].map(p => (
+                                                                    <button key={p.key} onClick={() => setPeriod(p.key)} className={`px-3 py-1 rounded-full text-sm font-medium transition ${period === p.key ? 'bg-primary-600 text-white' : 'bg-white/10 text-gray-400 hover:bg-white/20 hover:text-white'}`}>{p.label}</button>
+                                                                                ))}
+                                                                                            <span className="text-gray-500 text-xs ml-auto">{(() => { const now = new Date(); const start = new Date(now - (data.days || 30) * 86400000); return start.toLocaleDateString('en-US', {month:'short',day:'numeric'}) + ' - ' + now.toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}); })()}</span>
+                                                                                                      </div>
 
           {/* Sample insights disclaimer */}
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-2">
@@ -1836,6 +1845,38 @@
               </ResponsiveContainer>
             </div>
           )}
+
+                    {/* Sleep & Strain Trend Charts */}
+                              {data.trendData && data.trendData.length > 0 && (
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                                    <div className="glass-card rounded-2xl p-6">
+                                                                  <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">Sleep Quality Trend</h2>
+                                                                                <ResponsiveContainer width="100%" height={200}>
+                                                                                                <AreaChart data={data.trendData}>
+                                                                                                                  <defs><linearGradient id="sleepGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} /><stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} /></linearGradient></defs>
+                                                                                                                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                                                                                                                                                      <XAxis dataKey="name" stroke="#64748b" tick={{fontSize:11}} />
+                                                                                                                                                                        <YAxis stroke="#64748b" tick={{fontSize:11}} domain={[4, 10]} />
+                                                                                                                                                                                          <Tooltip contentStyle={{backgroundColor:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', color:'#fff'}} />
+                                                                                                                                                                                                            <Area type="monotone" dataKey="sleep" name="Sleep (hrs)" stroke="#8b5cf6" fillOpacity={1} fill="url(#sleepGrad)" strokeWidth={2} />
+                                                                                                                                                                                                                            </AreaChart>
+                                                                                                                                                                                                                                          </ResponsiveContainer>
+                                                                                                                                                                                                                                                      </div>
+                                                                                                                                                                                                                                                                  <div className="glass-card rounded-2xl p-6">
+                                                                                                                                                                                                                                                                                <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">Exercise Strain Trend</h2>
+                                                                                                                                                                                                                                                                                              <ResponsiveContainer width="100%" height={200}>
+                                                                                                                                                                                                                                                                                                              <AreaChart data={data.trendData}>
+                                                                                                                                                                                                                                                                                                                                <defs><linearGradient id="strainGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} /><stop offset="95%" stopColor="#f59e0b" stopOpacity={0} /></linearGradient></defs>
+                                                                                                                                                                                                                                                                                                                                                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                                                                                                                                                                                                                                                                                                                                                                    <XAxis dataKey="name" stroke="#64748b" tick={{fontSize:11}} />
+                                                                                                                                                                                                                                                                                                                                                                                      <YAxis stroke="#64748b" tick={{fontSize:11}} domain={[0, 21]} />
+                                                                                                                                                                                                                                                                                                                                                                                                        <Tooltip contentStyle={{backgroundColor:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', color:'#fff'}} />
+                                                                                                                                                                                                                                                                                                                                                                                                                          <Area type="monotone" dataKey="strain" name="Strain" stroke="#f59e0b" fillOpacity={1} fill="url(#strainGrad)" strokeWidth={2} />
+                                                                                                                                                                                                                                                                                                                                                                                                                                          </AreaChart>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                        </ResponsiveContainer>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                              </div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        )}
 
           {/* AI INSIGHTS */}
           <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #8b5cf6'}}>
