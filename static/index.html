@@ -69,6 +69,11 @@
       .shadow-lg, .shadow-md, .shadow { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3) !important; }
       /* Exclude Google SSO button from override */
       button.bg-white, [data-sso] .bg-white { background-color: white !important; color: #1f2937 !important; }
+    
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-4px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
     </style>
 </head>
 <body>
@@ -1830,6 +1835,21 @@ const LoginPage = () => {
         : (data.trendData && data.trendData.length > 0 && data.trendData.some(t => t.recovery != null))
           ? data.trendData.filter(t => t.recovery != null).map(t => ({ name: t.name, score: t.recovery }))
           : null;
+
+      // Sleep trend from dedicated API data
+      const sleepTrend = (data.sleepTrend && data.sleepTrend.length > 0)
+        ? data.sleepTrend.map(t => ({ name: t.date, sleep: t.value }))
+        : (data.trendData && data.trendData.length > 0 && data.trendData.some(t => t.sleep != null))
+          ? data.trendData.filter(t => t.sleep != null).map(t => ({ name: t.name, sleep: t.sleep }))
+          : null;
+
+      // Strain trend from dedicated API data
+      const strainTrend = (data.strainTrend && data.strainTrend.length > 0)
+        ? data.strainTrend.map(t => ({ name: t.date, strain: t.value }))
+        : (data.trendData && data.trendData.length > 0 && data.trendData.some(t => t.strain != null))
+          ? data.trendData.filter(t => t.strain != null).map(t => ({ name: t.name, strain: t.strain }))
+          : null;
+
       // Sample AI insights based on real data
       const sampleInsights = {
         summary: recovery.percentage != null
@@ -1967,7 +1987,7 @@ const LoginPage = () => {
                 <XAxis dataKey="name" stroke="#94a3b8" tick={{fontSize:11}} />
                 <YAxis stroke="#94a3b8" tick={{fontSize:11}} domain={[0, 100]} />
                 <Tooltip contentStyle={{backgroundColor:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', color:'#fff'}} />
-                <Bar dataKey="score" name="Recovery %" radius={[4, 4, 0, 0]} shape={(props) => {
+                <Bar dataKey="score" name="Recovery %" radius={[4, 4, 0, 0]} label={{ position: 'top', fill: '#e2e8f0', fontSize: 14, fontWeight: 600 }} shape={(props) => {
                   const { x, y, width, height, payload } = props;
                   const val = payload.score;
                   const color = val >= 67 ? '#00d084' : val >= 34 ? '#f59e0b' : '#ef4444';
@@ -1989,7 +2009,7 @@ const LoginPage = () => {
                 <XAxis dataKey="name" stroke="#94a3b8" tick={{fontSize:11}} />
                 <YAxis stroke="#94a3b8" tick={{fontSize:11}} domain={[4, 10]} label={{value: "hours", angle: -90, position: "insideLeft", style: {fill: "#94a3b8", fontSize: 12}}} />
                 <Tooltip contentStyle={{backgroundColor:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', color:'#fff'}} />
-                <Bar dataKey="sleep" name="Sleep (hrs)" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="sleep" name="Sleep (hrs)" fill="#8b5cf6" radius={[4, 4, 0, 0]} label={{ position: 'top', fill: '#e2e8f0', fontSize: 14, fontWeight: 600 }} />
                 </BarChart>
                                                                                                                                                                                                                                           </ResponsiveContainer>
                                                                                                                                                                                                                                                       </div>
@@ -2001,7 +2021,7 @@ const LoginPage = () => {
                 <XAxis dataKey="name" stroke="#94a3b8" tick={{fontSize:11}} />
                 <YAxis stroke="#94a3b8" tick={{fontSize:11}} domain={[0, 21]} />
                 <Tooltip contentStyle={{backgroundColor:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', color:'#fff'}} />
-                <Bar dataKey="strain" name="Strain" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="strain" name="Strain" fill="#f59e0b" radius={[4, 4, 0, 0]} label={{ position: 'top', fill: '#e2e8f0', fontSize: 14, fontWeight: 600 }} />
                 </BarChart>
                                                                                                                                                                                                                                                                                                                                                                                                                                                         </ResponsiveContainer>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </div>
@@ -2475,6 +2495,8 @@ const App = () => {
       const [currentHash, setCurrentHash] = useState(window.location.hash);
       const [notificationCount, setNotificationCount] = useState(3);
       const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+      const [profileOpen, setProfileOpen] = useState(false);
+      const profileRef = React.useRef(null);
     
       useEffect(() => {
         const handleHashChange = () => {
@@ -2485,6 +2507,18 @@ const App = () => {
         window.addEventListener('hashchange', handleHashChange);
         return () => window.removeEventListener('hashchange', handleHashChange);
       }, []);
+
+      useEffect(() => {
+        const handleClickOutside = (e) => {
+          if (profileRef.current && !profileRef.current.contains(e.target)) {
+            setProfileOpen(false);
+          }
+        };
+        if (profileOpen) {
+          document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }, [profileOpen]);
 
       if (loading) {
         return (
@@ -2598,26 +2632,37 @@ const App = () => {
                     <Icons.Settings />
                   </a>
 
-                  <div className="flex items-center gap-2 border-l border-blue-400 pl-4">
-                    <div className="w-8 h-8 rounded-full bg-blue-300 text-primary-900 text-xs font-bold flex items-center justify-center">
-                      {user.name
-                        .split(' ')
-                        .map((n) => n[0])
-                        .join('')}
-                    </div>
-                    <span className="text-sm hidden sm:inline">{user.name}</span>
+                  <div className="relative" ref={profileRef}>
                     <button
-                      onClick={() => { handleLogout(); window.location.hash = '#/login'; }}
-                      className="ml-2 p-1.5 rounded-lg hover:bg-white/10 transition text-gray-400 hover:text-red-400"
-                      title="Sign out"
-                      aria-label="Sign out"
+                      onClick={() => setProfileOpen(prev => !prev)}
+                      className="flex items-center gap-2 border-l border-white/10 pl-4 hover:opacity-80 transition cursor-pointer"
+                      aria-label="User menu"
+                      aria-expanded={profileOpen}
                     >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                        <polyline points="16 17 21 12 16 7" />
-                        <line x1="21" y1="12" x2="9" y2="12" />
-                      </svg>
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 text-white text-xs font-bold flex items-center justify-center ring-2 ring-transparent hover:ring-blue-400/50 transition-all">
+                        {user.name.split(' ').map(n => n[0]).join('')}
+                      </div>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={"text-gray-400 transition-transform " + (profileOpen ? "rotate-180" : "")}><polyline points="6 9 12 15 18 9" /></svg>
                     </button>
+                    {profileOpen && (
+                      <div className="absolute right-0 top-full mt-2 w-64 rounded-xl bg-[#1e293b] border border-white/10 shadow-2xl shadow-black/40 z-[100] overflow-hidden" style={{animation: 'fadeIn 0.15s ease-out'}}>
+                        <div className="px-4 py-3 border-b border-white/10">
+                          <p className="text-sm font-semibold text-white">{user.name}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">{user.email}</p>
+                          <span className="inline-block mt-1.5 text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 capitalize">{user.role || 'athlete'}</span>
+                        </div>
+                        <div className="py-1">
+                          <a href="#/settings" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                            Settings
+                          </a>
+                          <button onClick={() => { setProfileOpen(false); handleLogout(); window.location.hash = '#/login'; }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                            Sign Out
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2666,24 +2711,7 @@ const App = () => {
                 </button>
               </div>
 
-              <div className="flex items-center gap-4">
-                <a href="#/settings" className="text-blue-300 hover:text-white transition text-xs">
-                  Switch to Coach
-                </a>
-                <button
-                  onClick={() => {
-                    fetch('/api/auth/logout', { method: 'POST' })
-                      .then(() => {
-                        window.location.hash = '#/login';
-                        window.location.reload();
-                      })
-                      .catch(console.error);
-                  }}
-                  className="text-blue-300 hover:text-white transition text-xs"
-                >
-                  Sign Out
-                </button>
-              </div>
+              
             </div>
           </nav>
 
