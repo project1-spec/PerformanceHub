@@ -446,12 +446,12 @@ const LoginPage = () => {
 
             <div style="display:flex;gap:12px;margin-bottom:20px">
                   <div onClick={() => { setEmail('alex.johnson@example.com'); setPassword('athlete123'); }} style={{flex:1,padding:'16px',borderRadius:'12px',border:'2px solid rgba(255,255,255,0.2)',cursor:'pointer',textAlign:'center',background:'rgba(255,255,255,0.05)'}}>
-                    <div style={{fontSize:'24px'}}>\u{1F3C3}</div>
+                    <div style={{fontSize:'24px'}}>{String.fromCodePoint(0x1F3C3)}</div>
                     <div style={{fontWeight:'bold',color:'white'}}>Athlete</div>
                     <div style={{fontSize:'12px',opacity:0.7,color:'#9ca3af'}}>Track your performance</div>
                   </div>
                   <div onClick={() => { setEmail('coach.mike@example.com'); setPassword('coach123'); }} style={{flex:1,padding:'16px',borderRadius:'12px',border:'2px solid rgba(255,255,255,0.2)',cursor:'pointer',textAlign:'center',background:'rgba(255,255,255,0.05)'}}>
-                    <div style={{fontSize:'24px'}}>\u{1F4CB}</div>
+                    <div style={{fontSize:'24px'}}>{String.fromCodePoint(0x1F4CB)}</div>
                     <div style={{fontWeight:'bold',color:'white'}}>Coach</div>
                     <div style={{fontSize:'12px',opacity:0.7,color:'#9ca3af'}}>Monitor your athletes</div>
                   </div>
@@ -775,7 +775,7 @@ const LoginPage = () => {
       const mindsetScore = null;
 
       const pillars = [
-        { name: 'Exercise', score: exerciseScore, color: '#22c55e', gradient: 'gaugeGreen', icon: '\u{1F3CB}',
+        { name: 'Exercise', score: exerciseScore, color: '#22c55e', gradient: 'gaugeGreen', icon: '{String.fromCodePoint(0x1F3CB)}',
           source: dataSources.strava?.connected ? 'strava' : null,
           metrics: [
             { label: 'Strain', value: stepsStrain.strain != null ? String(Math.round(stepsStrain.strain * 10) / 10) : null, source: stepsStrain.strain != null ? 'whoop' : null },
@@ -784,7 +784,7 @@ const LoginPage = () => {
             { label: 'Active Min', value: null, source: null },
           ]
         },
-        { name: 'Recovery', score: recoveryScore, color: '#3b82f6', gradient: 'gaugeBlue', icon: '\u{1F4A4}',
+        { name: 'Recovery', score: recoveryScore, color: '#3b82f6', gradient: 'gaugeBlue', icon: '{String.fromCodePoint(0x1F4A4)}',
           source: dataSources.whoop?.connected ? 'whoop' : null,
           metrics: [
             { label: 'Recovery', value: recoveryScore != null ? `${recoveryScore}%` : null, source: recovery.source },
@@ -793,7 +793,7 @@ const LoginPage = () => {
             { label: 'Sleep', value: recovery.sleepHours != null ? `${recovery.sleepHours}h` : null, source: recovery.source },
           ]
         },
-        { name: 'Nutrition', score: nutritionScore, color: '#f59e0b', gradient: 'gaugeOrange', icon: '\u{1F34E}',
+        { name: 'Nutrition', score: nutritionScore, color: '#f59e0b', gradient: 'gaugeOrange', icon: '{String.fromCodePoint(0x1F34E)}',
           source: null,
           metrics: [
             { label: 'Calories', value: nutrition.calories != null ? String(nutrition.calories) : null, source: nutrition.source },
@@ -802,7 +802,7 @@ const LoginPage = () => {
             { label: 'Quality', value: null, source: null },
           ]
         },
-        { name: 'Mindset', score: mindsetScore, color: '#a855f7', gradient: 'gaugePurple', icon: '\u{1F9E0}',
+        { name: 'Mindset', score: mindsetScore, color: '#a855f7', gradient: 'gaugePurple', icon: '{String.fromCodePoint(0x1F9E0)}',
           source: null,
           metrics: [
             { label: 'Stress', value: null, source: null },
@@ -901,7 +901,7 @@ const LoginPage = () => {
           {/* AI READINESS */}
           <div className="glass-card rounded-2xl p-6">
             <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-              <span className="text-xl">{'\u{1F9E0}'}</span> AI Readiness Insights
+              <span className="text-xl">{'{String.fromCodePoint(0x1F9E0)}'}</span> AI Readiness Insights
             </h2>
             {data.readiness?.forecast ? (
               <>
@@ -922,7 +922,7 @@ const LoginPage = () => {
               </div>
             )}
             {data.readiness?.tip && (
-              <p className="text-sm text-gray-300">{'\u{1F4A1}'} <strong className="text-white">AI Tip:</strong> {data.readiness.tip}</p>
+              <p className="text-sm text-gray-300">{'{String.fromCodePoint(0x1F4A1)}'} <strong className="text-white">AI Tip:</strong> {data.readiness.tip}</p>
             )}
           </div>
 
@@ -953,7 +953,7 @@ const LoginPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #22c55e'}}>
               <h3 className="text-base font-bold text-white mb-3 flex items-center gap-2">
-                {'\u{1F3CB}'} Exercise Details
+                {'{String.fromCodePoint(0x1F3CB)}'} Exercise Details
                 {dataSources.strava?.connected && <SourceBadge source="strava" />}
               </h3>
               {data.goals && data.goals.length > 0 ? (
@@ -985,7 +985,7 @@ const LoginPage = () => {
 
             <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #3b82f6'}}>
               <h3 className="text-base font-bold text-white mb-3 flex items-center gap-2">
-                {'\u{1F4A4}'} Recovery Details
+                {'{String.fromCodePoint(0x1F4A4)}'} Recovery Details
                 {dataSources.whoop?.connected && <SourceBadge source="whoop" />}
               </h3>
               {recovery.percentage != null ? (
@@ -1021,10 +1021,10 @@ const LoginPage = () => {
             <h3 className="text-base font-bold text-white mb-3">Summary</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { label: 'Total Workouts', value: data.stats?.totalWorkouts, icon: '\u{1F4AA}', source: dataSources.strava?.connected ? 'strava' : null },
-                { label: 'Calories Burned', value: data.stats?.caloriesBurned, icon: '\u{1F525}', source: dataSources.strava?.connected ? 'strava' : null },
-                { label: 'Distance (mi)', value: data.stats?.distance, icon: '\u{1F3C3}', source: dataSources.strava?.connected ? 'strava' : null },
-                { label: 'Recovery Score', value: data.stats?.recoveryScore != null ? `${data.stats.recoveryScore}%` : null, icon: '\u{2764}', source: dataSources.whoop?.connected ? 'whoop' : null },
+                { label: 'Total Workouts', value: data.stats?.totalWorkouts, icon: '{String.fromCodePoint(0x1F4AA)}', source: dataSources.strava?.connected ? 'strava' : null },
+                { label: 'Calories Burned', value: data.stats?.caloriesBurned, icon: '{String.fromCodePoint(0x1F525)}', source: dataSources.strava?.connected ? 'strava' : null },
+                { label: 'Distance (mi)', value: data.stats?.distance, icon: '{String.fromCodePoint(0x1F3C3)}', source: dataSources.strava?.connected ? 'strava' : null },
+                { label: 'Recovery Score', value: data.stats?.recoveryScore != null ? `${data.stats.recoveryScore}%` : null, icon: '{String.fromCodePoint(0x2764)}', source: dataSources.whoop?.connected ? 'whoop' : null },
               ].map((stat, idx) => (
                 <div key={idx} className="bg-white/5 rounded-xl p-3">
                   <div className="flex items-center justify-between mb-1">
@@ -2047,13 +2047,13 @@ const LoginPage = () => {
 
           {/* AI INSIGHTS */}
           <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #8b5cf6'}}>
-            <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><span className="text-xl">{'\u{1F4CA}'}</span> Performance Summary</h2>
+            <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><span className="text-xl">{'{String.fromCodePoint(0x1F4CA)}'}</span> Performance Summary</h2>
             <p className="text-gray-300 text-sm leading-relaxed">{sampleInsights.summary}</p>
           </div>
 
           {sampleInsights.trends.length > 0 && (
             <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #3b82f6'}}>
-              <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><span className="text-xl">{'\u{1F4C8}'}</span> Trends & Patterns</h2>
+              <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><span className="text-xl">{'{String.fromCodePoint(0x1F4C8)}'}</span> Trends & Patterns</h2>
               <div className="space-y-3">
                 {sampleInsights.trends.map((trend, idx) => (
                   <div key={idx} className="flex items-start gap-3"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2 flex-shrink-0" /><p className="text-gray-300 text-sm">{trend}</p></div>
@@ -2064,7 +2064,7 @@ const LoginPage = () => {
 
           {sampleInsights.recommendations.length > 0 && (
             <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #22c55e'}}>
-              <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><span className="text-xl">{'\u{1F4A1}'}</span> Recommendations</h2>
+              <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><span className="text-xl">{'{String.fromCodePoint(0x1F4A1)}'}</span> Recommendations</h2>
               <div className="space-y-3">
                 {sampleInsights.recommendations.map((rec, idx) => (
                   <div key={idx} className="flex items-start gap-3 bg-green-500/5 rounded-lg p-3"><span className="text-green-400 font-bold text-sm">{idx + 1}.</span><p className="text-gray-300 text-sm">{rec}</p></div>
@@ -2075,7 +2075,7 @@ const LoginPage = () => {
 
           {sampleInsights.alerts.length > 0 && (
             <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #ef4444'}}>
-              <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><span className="text-xl">{'\u{1F6A8}'}</span> Alerts</h2>
+              <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><span className="text-xl">{'{String.fromCodePoint(0x1F6A8)}'}</span> Alerts</h2>
               <div className="space-y-3">
                 {sampleInsights.alerts.map((alert, idx) => (
                   <div key={idx} className={`flex items-start gap-3 rounded-lg p-3 ${alert.level === 'warning' ? 'bg-red-500/10 border border-red-500/20' : 'bg-yellow-500/10 border border-yellow-500/20'}`}>
@@ -2090,7 +2090,7 @@ const LoginPage = () => {
           {/* No data state */}
           {!hasAnyData && (
             <div className="glass-card rounded-2xl p-12 text-center">
-              <span className="text-4xl mb-4 block">{'\u{1F4CA}'}</span>
+              <span className="text-4xl mb-4 block">{'{String.fromCodePoint(0x1F4CA)}'}</span>
               <h3 className="text-xl font-bold text-white mb-2">No Data to Analyze</h3>
               <p className="text-gray-400 text-sm max-w-md mx-auto">Connect your fitness platforms (WHOOP, Strava) in Settings to start receiving AI-powered analysis of your training, recovery, and performance trends.</p>
               <button onClick={() => window.location.hash = '#/settings'} className="mt-4 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold py-2 px-6 rounded-lg transition">Go to Settings</button>
