@@ -830,6 +830,12 @@ class DashboardHandler(BaseHandler):
                 else:
                     tip = "Low recovery detected - prioritize rest and active recovery."
 
+            # Get latest strain for Exercise pillar fallback
+            latest_strain = cursor.execute(
+                "SELECT strain FROM daily_summaries WHERE user_id=? AND strain IS NOT NULL ORDER BY date DESC LIMIT 1",
+                (user_id,)
+            ).fetchone()
+
             self.write({
                 "user": user,
                 "readiness": {
@@ -875,7 +881,8 @@ class DashboardHandler(BaseHandler):
                     "whoop": {"connected": has_whoop, "dataCount": whoop_activities_count},
                     "strava": {"connected": has_strava, "dataCount": strava_activities_count}
                 },
-                "lastSynced": last_synced
+                "lastSynced": last_synced,
+                "latest_strain": latest_strain["strain"] if latest_strain else None
             })
         except Exception as e:
             import sys
@@ -1274,6 +1281,17 @@ class ReportsHandler(BaseHandler):
                 ds_sleep = cursor.fetchone()['avg']
                 if ds_sleep:
                     sleep_avg = ds_sleep * 60
+
+            # Get latest recovery data
+            latest_recovery = cursor.execute(
+                "SELECT recovery_score, hrv, resting_hr FROM recovery_metrics WHERE user_id=? AND recovery_score IS NOT NULL ORDER BY date DESC LIMIT 1",
+                (user_id,)
+            ).fetchone()
+            recovery_obj = {
+                "percentage": latest_recovery["recovery_score"] if latest_recovery else None,
+                "hrv": latest_recovery["hrv"] if latest_recovery else None,
+                "resting_hr": latest_recovery["resting_hr"] if latest_recovery else None
+            }
 
             conn.close()
 
@@ -2913,7 +2931,8 @@ class AnalyzeHandler(BaseHandler):
                 "sleepTrend": full_sleep_trend,
                 "strainTrend": full_strain_trend,
                 "recoveryTrend": full_recovery_trend,
-                "dataSources": data_sources
+                "dataSources": data_sources,
+                "recovery": recovery_obj
             })
         except Exception as e:
             print(f"Analyze error: {e}\n{traceback.format_exc()}")
