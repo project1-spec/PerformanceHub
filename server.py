@@ -241,6 +241,21 @@ def init_database():
 
     conn.commit()
 
+    # Add missing columns to daily_summaries for WHOOP integration
+    for col_stmt in [
+            "ALTER TABLE daily_summaries ADD COLUMN recovery_score REAL",
+                    "ALTER TABLE daily_summaries ADD COLUMN sleep_hours REAL",
+                            "ALTER TABLE daily_summaries ADD COLUMN strain REAL",
+                                ]:
+                                        try:
+                                                    cursor.execute(col_stmt)
+                                                            except sqlite3.OperationalError:
+                                                                        pass  # Column already exists
+
+                                                # Unique indexes for upsert support
+                                                    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_summaries_user_date ON daily_summaries(user_id, date)")
+                                                        cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_recovery_metrics_user_date ON recovery_metrics(user_id, date)")
+
     # Seed data if database is empty
     cursor.execute("SELECT COUNT(*) FROM users")
     if cursor.fetchone()[0] == 0:
@@ -1997,7 +2012,7 @@ class StravaOAuthCallbackHandler(BaseHandler):
                     print(f"[STRAVA CONNECT] Got {len(activities)} activities", flush=True)
                     for act in activities:
                         cursor.execute(
-                            """INSERT OR IGNORE INTO activities
+                            """INSERT OR REPLACE INTO activities
                             (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, calories, avg_hr, max_hr, created_at)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                             (
@@ -2135,14 +2150,14 @@ class WhoopOAuthCallbackHandler(BaseHandler):
                     recovery_data = json.loads(recovery_response.body)
                     records = recovery_data.get("records", [])
                     for rec in records:
-                        score = rec.get("score", {})
+                        score = rec.get("score") or {}
                         rec_score = score.get('recovery_score')
                         rec_rhr = score.get('resting_heart_rate')
                         rec_hrv = score.get('hrv_rmssd_milli')
                         rec_date = rec.get('created_at', now)[:10]
 
                         cursor.execute(
-                            """INSERT OR IGNORE INTO activities
+                            """INSERT OR REPLACE INTO activities
                             (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, calories, avg_hr, max_hr, created_at)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                             (
@@ -2269,7 +2284,7 @@ class StravaSyncHandler(BaseHandler):
                 now = datetime.datetime.utcnow().isoformat()
                 for act in activities:
                     cursor.execute(
-                        """INSERT OR IGNORE INTO activities
+                        """INSERT OR REPLACE INTO activities
                         (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, calories, avg_hr, max_hr, created_at)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (
@@ -2354,7 +2369,7 @@ class WhoopSyncHandler(BaseHandler):
                 records = recovery_data.get("records", [])
                 print(f"[WHOOP SYNC] Got {len(records)} recovery records", flush=True)
                 for rec in records:
-                    score = rec.get("score", {})
+                    score = rec.get("score") or {}
                     rec_score = score.get("recovery_score")
                     rec_rhr = score.get("resting_heart_rate")
                     rec_hrv = score.get("hrv_rmssd_milli")
@@ -2362,7 +2377,7 @@ class WhoopSyncHandler(BaseHandler):
 
                     # Store in activities table
                     cursor.execute(
-                        """INSERT OR IGNORE INTO activities
+                        """INSERT OR REPLACE INTO activities
                         (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, calories, avg_hr, max_hr, created_at)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (
@@ -2410,10 +2425,10 @@ class WhoopSyncHandler(BaseHandler):
                 sleep_data = json.loads(sleep_response.body)
                 sleep_records = sleep_data.get("records", [])
                 for s in sleep_records:
-                    score = s.get("score", {})
+                    score = s.get("score") or {}
                     total_sleep_ms = score.get("stage_summary", {}).get("total_in_bed_time_milli", 0) or 0
                     cursor.execute(
-                        """INSERT OR IGNORE INTO activities
+                        """INSERT OR REPLACE INTO activities
                         (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, calories, avg_hr, max_hr, created_at)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (
@@ -2444,11 +2459,11 @@ class WhoopSyncHandler(BaseHandler):
                 cycle_data = json.loads(cycle_response.body)
                 cycle_records = cycle_data.get("records", [])
                 for cyc in cycle_records:
-                    score = cyc.get("score", {})
+                    score = cyc.get("score") or {}
                     strain = score.get("strain")
                     if strain is not None:
                         cursor.execute(
-                            """INSERT OR IGNORE INTO activities
+                            """INSERT OR REPLACE INTO activities
                             (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, calories, avg_hr, max_hr, created_at)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                             (
@@ -2477,9 +2492,9 @@ class WhoopSyncHandler(BaseHandler):
             if workout_response.code == 200:
                 workout_data = json.loads(workout_response.body)
                 for w in workout_data.get("records", []):
-                    score = w.get("score", {})
+                    score = w.get("score") or {}
                     cursor.execute(
-                        """INSERT OR IGNORE INTO activities
+                        """INSERT OR REPLACE INTO activities
                         (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, calories, avg_hr, max_hr, created_at)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (
