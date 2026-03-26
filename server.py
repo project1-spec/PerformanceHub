@@ -378,16 +378,19 @@ def seed_database(conn):
 
 
     
-    # Seed recovery metrics (WHOOP-like data)
-    import random
-    random.seed(42)
-    for i in range(7):
-        d = (datetime.date.today() - datetime.timedelta(days=i)).isoformat()
-        rec_score = random.randint(55, 95)
-        hrv_val = random.randint(35, 85)
-        rhr_val = random.randint(48, 62)
-        sleep_h = round(random.uniform(5.5, 8.5), 1)
-        strain_val = round(random.uniform(6.0, 18.0), 1)
+    # Seed recovery metrics with real WHOOP weekly data
+    whoop_weekly = [
+        # (days_ago, recovery%, hrv_ms, rhr_bpm, sleep_hrs, strain)
+        (6, 52, 42, 55, 6.1, 12.1),  # Friday
+        (5, 27, 28, 61, 4.8, 5.2),   # Saturday
+        (4, 62, 51, 53, 7.2, 13.0),  # Sunday
+        (3, 37, 33, 58, 5.5, 4.1),   # Monday
+        (2, 65, 55, 52, 7.8, 5.3),   # Tuesday
+        (1, 46, 38, 56, 6.3, 7.9),   # Wednesday
+        (0, 73, 61, 50, 8.1, 5.2),   # Thursday (today)
+    ]
+    for days_ago, rec_score, hrv_val, rhr_val, sleep_h, strain_val in whoop_weekly:
+        d = (datetime.date.today() - datetime.timedelta(days=days_ago)).isoformat()
         cursor.execute(
             "INSERT OR IGNORE INTO recovery_metrics (user_id, date, recovery_score, hrv, rhr, source) VALUES (?, ?, ?, ?, ?, ?)",
             (user_id, d, rec_score, hrv_val, rhr_val, 'whoop')
@@ -1265,7 +1268,12 @@ class ReportsHandler(BaseHandler):
             calories = cursor.fetchone()['total'] or 0
 
             cursor.execute("SELECT AVG(total_minutes) as avg FROM sleep_records WHERE user_id = ?", (user_id,))
-            sleep_avg = cursor.fetchone()['avg'] or 0
+            sleep_avg = cursor.fetchone()['avg']
+            if not sleep_avg:
+                cursor.execute("SELECT AVG(sleep_hours) as avg FROM daily_summaries WHERE user_id = ? AND sleep_hours IS NOT NULL", (user_id,))
+                ds_sleep = cursor.fetchone()['avg']
+                if ds_sleep:
+                    sleep_avg = ds_sleep * 60
 
             conn.close()
 
@@ -1278,7 +1286,7 @@ class ReportsHandler(BaseHandler):
                     "feedback": "Excellent training consistency"
                 },
                 "recovery": {
-                    "score": int(recovery_avg) if recovery_avg else 75,
+                    "score": int(recovery_avg) if recovery_avg else None,
                     "feedback": "Good recovery patterns",
                     "trend": "improving"
                 },
@@ -1288,14 +1296,14 @@ class ReportsHandler(BaseHandler):
                     "feedback": "Maintain current nutrition plan"
                 },
                 "sleep": {
-                    "avgMinutes": int(sleep_avg) if sleep_avg else 420,
-                    "score": 80,
+                    "avgMinutes": int(sleep_avg) if sleep_avg else None,
+                    "score": min(100, round((sleep_avg / 480) * 100)) if sleep_avg else None,
                     "feedback": "Sleep quality is excellent"
                 },
                 "aiSummary": "You're performing well overall. Your training consistency and recovery metrics show good balance. Keep maintaining your current routine.",
                 "highlights": [
                     "Completed " + str(workout_count) + " workouts this period",
-                    "Recovery score averaging " + str(int(recovery_avg) if recovery_avg else 75) + "%",
+                    "Recovery score averaging " + (str(int(recovery_avg)) + "%" if recovery_avg else "N/A") + ",",
                     "Sleep quality remains excellent at " + str(int(sleep_avg / 60) if sleep_avg else 7) + " hrs avg",
                     "Consistent training load maintained throughout the week"
                 ],
@@ -2853,24 +2861,9 @@ class AnalyzeHandler(BaseHandler):
             if not real_insights:
                 real_insights = ["Connect WHOOP or Strava to see personalized insights."]
 
-            # If no real data, provide demo trend
+            # If no real data, return empty lists (no fake data)
             if not trend_data:
-                import random
-                random.seed(42)
-                base = datetime.date.today() - datetime.timedelta(days=days)
                 trend_data = []
-                num_points = min(days, 14) if days <= 30 else min(days, 24)
-                for i in range(num_points):
-                    d = base + datetime.timedelta(days=i * max(1, days // num_points))
-                    trend_data.append({
-                        "name": d.strftime('%b %d'),
-                        "performance": 280 + random.randint(0, 200),
-                        "duration": 30 + random.randint(0, 40),
-                        "count": random.randint(1, 3),
-                        "recovery": 40 + random.randint(0, 55),
-                        "sleep": round(5.5 + random.random() * 3.5, 1),
-                        "strain": round(4 + random.random() * 14, 1)
-                    })
 
             # Data sources
             cursor.execute(
