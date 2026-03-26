@@ -282,6 +282,18 @@ def seed_database(conn):
     )
     user_id = cursor.lastrowid
 
+    # Create coach user
+    coach_email = "coach@performancehub.com"
+    coach_name = "Coach Williams"
+    coach_password = "coach123"
+    coach_password_hash = bcrypt.hashpw(coach_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+    cursor.execute(
+        "INSERT INTO users (email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)",
+        (coach_email, coach_name, coach_password_hash, 'coach', now)
+    )
+    coach_id = cursor.lastrowid
+
     # Create goals
     goals = [
         ("Complete 59 miles running", "running_distance", 59, 35, "miles"),
@@ -783,11 +795,11 @@ class DashboardHandler(BaseHandler):
             tip = None
             if recovery_score is not None:
                 if recovery_score >= 80:
-                    tip = "Your recovery is strong ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ great day for a high-intensity session."
+                    tip = "Your recovery is strong - great day for a high-intensity session."
                 elif recovery_score >= 50:
-                    tip = "Moderate recovery ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ consider a lighter training day."
+                    tip = "Moderate recovery - consider a lighter training day."
                 else:
-                    tip = "Low recovery detected ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ prioritize rest and active recovery."
+                    tip = "Low recovery detected - prioritize rest and active recovery."
 
             self.write({
                 "user": user,
@@ -2905,6 +2917,77 @@ class SPAHandler(tornado.web.RequestHandler):
             self.write("Not found")
 
 # Main application
+
+class CoachDashboardHandler(BaseHandler):
+    """Get coach dashboard data showing athletes' metrics."""
+
+    def get(self):
+        try:
+            if not self.require_auth():
+                return
+            user = self.get_current_user()
+            if user['role'] != 'coach':
+                self.set_status(403)
+                self.write({"error": "Coach access required"})
+                return
+
+            conn = get_db()
+            cursor = conn.cursor()
+            # Get all athlete users
+            cursor.execute("SELECT id, name, email, created_at FROM users WHERE role = 'athlete'")
+            athletes = [dict(row) for row in cursor.fetchall()]
+
+            athlete_data = []
+            for athlete in athletes:
+                aid = athlete['id']
+                # Get latest recovery
+                cursor.execute("SELECT recovery_score FROM recovery_metrics WHERE user_id = ? AND recovery_score IS NOT NULL ORDER BY date DESC LIMIT 1", (aid,))
+                rec = cursor.fetchone()
+                recovery = rec['recovery_score'] if rec else None
+                # Check daily_summaries too
+                if recovery is None:
+                    cursor.execute("SELECT recovery_score FROM daily_summaries WHERE user_id = ? AND recovery_score IS NOT NULL ORDER BY date DESC LIMIT 1", (aid,))
+                    ds = cursor.fetchone()
+                    recovery = ds['recovery_score'] if ds else None
+
+                # Get recent activity count
+                cursor.execute("SELECT COUNT(*) as c FROM activities WHERE user_id = ?", (aid,))
+                activity_count = cursor.fetchone()['c']
+
+                # Get active goals
+                cursor.execute("SELECT COUNT(*) as c FROM goals WHERE user_id = ? AND status = 'active'", (aid,))
+                goal_count = cursor.fetchone()['c']
+
+                athlete_data.append({
+                    "id": aid,
+                    "name": athlete['name'],
+                    "email": athlete['email'],
+                    "recovery": recovery,
+                    "activityCount": activity_count,
+                    "activeGoals": goal_count
+                })
+
+            conn.close()
+            self.write({"athletes": athlete_data})
+        except Exception as e:
+            self.set_status(500)
+            self.write({"error": "Server error", "detail": str(e)})
+
+
+# OAuth placeholder handlers for future SSO integration
+class GoogleOAuthHandler(BaseHandler):
+    """Placeholder for Google SSO."""
+    def get(self):
+        self.set_status(501)
+        self.write({"error": "Google SSO coming soon"})
+
+class AppleOAuthHandler(BaseHandler):
+    """Placeholder for Apple SSO."""
+    def get(self):
+        self.set_status(501)
+        self.write({"error": "Apple SSO coming soon"})
+
+
 def make_app():
     """Create Tornado application."""
     return tornado.web.Application([
@@ -2916,6 +2999,11 @@ def make_app():
 
         # Dashboard
         (r"/api/dashboard", DashboardHandler),
+        (r"/api/coach/dashboard", CoachDashboardHandler),
+
+        # OAuth SSO placeholders
+        (r"/api/auth/oauth/google", GoogleOAuthHandler),
+        (r"/api/auth/oauth/apple", AppleOAuthHandler),
 
         # Activities
         (r"/api/activities", ActivitiesHandler),
@@ -2990,6 +3078,7 @@ if __name__ == "__main__":
     print(f"Database: {DB_PATH}")
     print(f"Static files: {STATIC_DIR}")
     print(f"Demo user: demo@performancehub.com / demo123")
+    print(f"Coach user: coach@performancehub.com / coach123")
 
     # Start server
     app.listen(PORT)
