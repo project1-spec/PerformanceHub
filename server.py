@@ -741,6 +741,16 @@ class DashboardHandler(BaseHandler):
 
             print(f"[DASHBOARD] Connected: whoop={has_whoop}({whoop_activities_count} items), strava={has_strava}({strava_activities_count} items)", flush=True)
 
+            # Get last synced timestamp
+            last_synced = None
+            cursor.execute(
+                "SELECT last_synced FROM platform_connections WHERE user_id = ? ORDER BY last_synced DESC LIMIT 1",
+                (user_id,)
+            )
+            sync_row = cursor.fetchone()
+            if sync_row and sync_row['last_synced']:
+                last_synced = sync_row['last_synced']
+
             conn.close()
 
             # Build tip based on real data
@@ -752,16 +762,6 @@ class DashboardHandler(BaseHandler):
                     tip = "Moderate recovery â consider a lighter training day."
                 else:
                     tip = "Low recovery detected â prioritize rest and active recovery."
-
-            # Get last synced timestamp
-            last_synced = None
-            cursor.execute(
-                "SELECT last_synced FROM platform_connections WHERE user_id = ? ORDER BY last_synced DESC LIMIT 1",
-                (user_id,)
-            )
-            sync_row = cursor.fetchone()
-            if sync_row and sync_row['last_synced']:
-                last_synced = sync_row['last_synced']
 
             self.write({
                 "user": user,
