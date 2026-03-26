@@ -750,7 +750,7 @@
             ))}
             {(!data.connectedPlatforms || data.connectedPlatforms.length === 0) && (
               <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full px-3 py-1">
-                <span className="text-xs font-medium text-yellow-400">No integrations connected — go to Settings to connect WHOOP or Strava</span>
+                <span className="text-xs font-medium text-yellow-400">No integrations connected â go to Settings to connect WHOOP or Strava</span>
               </div>
             )}
           </div>
@@ -896,7 +896,7 @@
                     <div key={idx}>
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm text-gray-300">{item.label}</span>
-                        {item.value != null ? (<span className="text-sm font-bold text-white">{item.value}</span>) : (<span className="text-sm text-gray-500 italic">No data</span>)}
+                        {item.value != null ? (<span className="text-sm font-bold" style={item.color ? {color: item.color} : {color: 'white'}}>{item.value}</span>) : (<span className="text-sm text-gray-500 italic">No data</span>)}
                       </div>
                       <div className="w-full bg-white/5 rounded-full h-1.5">
                         <div className={`bg-gradient-to-r ${item.color} h-1.5 rounded-full transition-all duration-700`} style={{width: `${item.bar}%`}} />
@@ -1076,7 +1076,7 @@
                         <h3 className="font-bold text-white">{workout.name}</h3>
                         <span className="text-xs text-gray-400">{workout.date}</span>
                       </div>
-                      <p className="text-sm text-gray-400 mb-3">{workout.duration} min • RPE: {workout.rpe}</p>
+                      <p className="text-sm text-gray-400 mb-3">{workout.duration} min â¢ RPE: {workout.rpe}</p>
                       {workout.notes && <p className="text-sm text-gray-300 mb-2">{workout.notes}</p>}
                       <div className="flex gap-2">
                         <span className="bg-blue-100 text-primary-600 text-xs px-2 py-1 rounded">
@@ -1532,7 +1532,7 @@
                 )}
 
                 <button onClick={() => setTab('leaderboard')} className="w-full text-primary-600 hover:text-primary-700 font-semibold text-sm">
-                  View Full Leaderboard →
+                  View Full Leaderboard â
                 </button>
               </div>
             ))}
@@ -1708,10 +1708,27 @@
 
       const data = dashData || {};
       const recovery = data.recovery || {};
+        // Derive WHOOP values from trendData if recovery object is empty
+        const latestTrend = data.trendData && data.trendData.length > 0 ? data.trendData[data.trendData.length - 1] : null;
+        const latestRecoveryTrend = data.recoveryTrend && data.recoveryTrend.length > 0 ? data.recoveryTrend[data.recoveryTrend.length - 1] : null;
+        const latestSleepTrend = data.sleepTrend && data.sleepTrend.length > 0 ? data.sleepTrend[data.sleepTrend.length - 1] : null;
+        const latestStrainTrend = data.strainTrend && data.strainTrend.length > 0 ? data.strainTrend[data.strainTrend.length - 1] : null;
+        if (!recovery.percentage && latestRecoveryTrend) { recovery.percentage = latestRecoveryTrend.value; }
+        if (!recovery.percentage && latestTrend) { recovery.percentage = latestTrend.recovery; }
+        if (!recovery.hrv && latestTrend) { recovery.hrv = latestTrend.hrv; }
+        if (!recovery.rhr && latestTrend) { recovery.rhr = latestTrend.rhr; }
+        if (!recovery.sleepHours && latestSleepTrend) { recovery.sleepHours = latestSleepTrend.value; }
+        if (!recovery.sleepHours && latestTrend && latestTrend.sleep) { recovery.sleepHours = latestTrend.sleep; }
+        // WHOOP-style color coding functions
+        const getRecoveryColor = (val) => val >= 70 ? '#00d084' : val >= 30 ? '#ffc107' : '#ef4444';
+        const getSleepColor = (val) => val >= 7 ? '#00d084' : val >= 5 ? '#ffc107' : '#ef4444';
+        const getStrainColor = (val) => val < 10 ? '#00d084' : val <= 15 ? '#ffc107' : '#ef4444';
+        const getHrvColor = (val) => val > 50 ? '#00d084' : val >= 30 ? '#ffc107' : '#ef4444';
+        const getRhrColor = (val) => val < 60 ? '#00d084' : val <= 75 ? '#ffc107' : '#ef4444';
       const dataSources = data.dataSources || {};
       const hasWhoop = dataSources.whoop?.connected;
       const hasStrava = dataSources.strava?.connected;
-      const hasAnyData = (dataSources.whoop?.dataCount > 0) || (dataSources.strava?.dataCount > 0);
+      const hasAnyData = (dataSources.whoop?.dataCount > 0) || (dataSources.strava?.dataCount > 0) || (data.recoveryTrend && data.recoveryTrend.length > 0) || (data.trendData && data.trendData.length > 0);
       const activities = data.recentActivities || [];
       const stravaActs = activities.filter(a => a.platform === 'strava');
 
@@ -1801,11 +1818,11 @@
                   <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">WHOOP Data <SourceBadge source="whoop" /></h3>
                   <div className="space-y-3">
                     {[
-                      { label: 'Recovery Score', value: recovery.percentage != null ? `${recovery.percentage}%` : null },
-                      { label: 'HRV', value: recovery.hrv != null ? `${Math.round(recovery.hrv)} ms` : null },
-                      { label: 'Resting Heart Rate', value: recovery.rhr != null ? `${recovery.rhr} bpm` : null },
-                      { label: 'Sleep Duration', value: recovery.sleepHours != null ? `${recovery.sleepHours} hours` : null },
-                      { label: 'Strain', value: data.stepsStrain?.strain != null ? String(Math.round(data.stepsStrain.strain * 10) / 10) : null },
+                    { label: 'Recovery Score', value: recovery.percentage != null ? `${recovery.percentage}%` : null, color: recovery.percentage != null ? getRecoveryColor(recovery.percentage) : null },
+                    { label: 'HRV', value: recovery.hrv != null ? `${Math.round(recovery.hrv)} ms` : null, color: recovery.hrv != null ? getHrvColor(recovery.hrv) : null },
+                    { label: 'Resting Heart Rate', value: recovery.rhr != null ? `${recovery.rhr} bpm` : null, color: recovery.rhr != null ? getRhrColor(recovery.rhr) : null },
+                    { label: 'Sleep Duration', value: recovery.sleepHours != null ? `${recovery.sleepHours} hours` : null, color: recovery.sleepHours != null ? getSleepColor(recovery.sleepHours) : null },
+                    { label: 'Strain', value: (latestStrainTrend?.value ?? data.stepsStrain?.strain) != null ? String(Math.round((latestStrainTrend?.value ?? data.stepsStrain?.strain) * 10) / 10) : null, color: (latestStrainTrend?.value ?? data.stepsStrain?.strain) != null ? getStrainColor(latestStrainTrend?.value ?? data.stepsStrain?.strain) : null },
                     ].map((item, idx) => (
                       <div key={idx} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
                         <span className="text-sm text-gray-300">{item.label}</span>
@@ -1852,12 +1869,12 @@
               <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">Recovery Trend <SourceBadge source="whoop" /></h2>
               <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={recoveryTrend}>
-                  <defs><linearGradient id="analyzeRecovery" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#14b8a6" stopOpacity={0.6} /><stop offset="95%" stopColor="#14b8a6" stopOpacity={0} /></linearGradient></defs>
+                  <defs><linearGradient id="analyzeRecovery" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#00d084" stopOpacity={0.6} /><stop offset="95%" stopColor="#00d084" stopOpacity={0} /></linearGradient></defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                   <XAxis dataKey="name" stroke="#94a3b8" tick={{fontSize:11}} />
                   <YAxis stroke="#94a3b8" tick={{fontSize:11}} domain={[0, 100]} />
                   <Tooltip contentStyle={{backgroundColor:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', color:'#fff'}} />
-                  <Area type="monotone" dataKey="score" name="Recovery %" stroke="#14b8a6" fillOpacity={1} fill="url(#analyzeRecovery)" strokeWidth={3} dot={{r: 4, strokeWidth: 2, fill: "#14b8a6"}} />
+                  <Area type="monotone" dataKey="score" name="Recovery %" stroke="#00d084" fillOpacity={1} fill="url(#analyzeRecovery)" strokeWidth={3} dot={{r: 4, strokeWidth: 2, fill: "#00d084"}} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -1870,7 +1887,7 @@
                                                                   <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">Sleep Quality Trend</h2>
                                                                                 <ResponsiveContainer width="100%" height={300}>
                                                                                                 <AreaChart data={data.trendData}>
-                                                                                                                  <defs><linearGradient id="sleepGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.6} /><stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} /></linearGradient></defs>
+                                                                                                                  <defs><linearGradient id="sleepGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#a78bfa" stopOpacity={0.6} /><stop offset="95%" stopColor="#a78bfa" stopOpacity={0} /></linearGradient></defs>
                                                                                                                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                                                                                                                                                       <XAxis dataKey="name" stroke="#94a3b8" tick={{fontSize:11}} />
                                                                                                                                                                         <YAxis stroke="#94a3b8" tick={{fontSize:11}} domain={[4, 10]} label={{value: "hours", angle: -90, position: "insideLeft", style: {fill: "#94a3b8", fontSize: 12}}} />
@@ -1883,7 +1900,7 @@
                                                                                                                                                                                                                                                                                 <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">Exercise Strain Trend</h2>
                                                                                                                                                                                                                                                                                               <ResponsiveContainer width="100%" height={300}>
                                                                                                                                                                                                                                                                                                               <AreaChart data={data.trendData}>
-                                                                                                                                                                                                                                                                                                                                <defs><linearGradient id="strainGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f59e0b" stopOpacity={0.6} /><stop offset="95%" stopColor="#f59e0b" stopOpacity={0} /></linearGradient></defs>
+                                                                                                                                                                                                                                                                                                                                <defs><linearGradient id="strainGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#22c55e" stopOpacity={0.6} /><stop offset="95%" stopColor="#22c55e" stopOpacity={0} /></linearGradient></defs>
                                                                                                                                                                                                                                                                                                                                                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                                                                                                                                                                                                                                                                                                                                                                     <XAxis dataKey="name" stroke="#94a3b8" tick={{fontSize:11}} />
                                                                                                                                                                                                                                                                                                                                                                                       <YAxis stroke="#94a3b8" tick={{fontSize:11}} domain={[0, 21]} />
