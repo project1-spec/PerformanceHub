@@ -19,17 +19,8 @@ import urllib.parse
 from functools import wraps
 from typing import Optional, Dict, Any, List
 import traceback
-import logging
 import tornado.httpclient
 import tornado.escape
-
-# Logging Setup
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    handlers=[logging.StreamHandler()]
-)
-logger = logging.getLogger("performancehub")
 
 # Configuration
 PORT = int(os.environ.get("PORT", 8080))
@@ -40,8 +31,8 @@ COOKIE_NAME = "performancehub_session"
 BASE_URL = os.environ.get("BASE_URL", "https://performancehub.onrender.com")
 
 # OAuth Configuration
-STRAVA_CLIENT_ID = os.environ.get("STRAVA_CLIENT_ID", "173625")
-STRAVA_CLIENT_SECRET = os.environ.get("STRAVA_CLIENT_SECRET", "ba72b2f88b0fb888ac50720a3d36acbd28cb098a")
+STRAVA_CLIENT_ID = os.environ.get("STRAVA_CLIENT_ID", "")
+STRAVA_CLIENT_SECRET = os.environ.get("STRAVA_CLIENT_SECRET", "")
 WHOOP_CLIENT_ID = os.environ.get("WHOOP_CLIENT_ID", "8740dff2-f351-4fa3-b43b-e98154c12b39")
 WHOOP_CLIENT_SECRET = os.environ.get("WHOOP_CLIENT_SECRET", "315d57cf2d3c7bdb365053a947812ebc990649f144ceff2bd8798b40ba66da7b")
 
@@ -649,10 +640,14 @@ class DashboardHandler(BaseHandler):
             cursor.execute("SELECT SUM(distance_meters) / 1609.34 as distance FROM activities WHERE user_id = ?", (user_id,))
             distance = cursor.fetchone()['distance'] or 0
 
-            # Get latest recovery score
-            cursor.execute("SELECT recovery_score FROM recovery_metrics WHERE user_id = ? ORDER BY date DESC LIMIT 1", (user_id,))
+            # Get latest recovery score (from WHOOP via recovery_metrics)
+            cursor.execute("SELECT recovery_score, hrv, rhr, source FROM recovery_metrics WHERE user_id = ? ORDER BY date DESC LIMIT 1", (user_id,))
             recovery_row = cursor.fetchone()
-            recovery_score = recovery_row['recovery_score'] if recovery_row else 75
+            recovery_score = recovery_row['recovery_score'] if recovery_row else None
+            recovery_hrv = recovery_row['hrv'] if recovery_row else None
+            recovery_rhr = recovery_row['rhr'] if recovery_row else None
+            recovery_source = recovery_row['source'] if recovery_row else None
+            print(f"[DASHBOARD] Recovery data for user {user_id}: score={recovery_score}, hrv={recovery_hrv}, rhr={recovery_rhr}, source={recovery_source}", flush=True)
 
             # Get latest metrics
             cursor.execute(
@@ -660,8 +655,32 @@ class DashboardHandler(BaseHandler):
                 (user_id,)
             )
             latest_summary = cursor.fetchone()
-            steps = latest_summary['steps'] if latest_summary else 8200
-            calories_active = latest_summary['calories_active'] if latest_summary else 406
+            steps = latest_summary['steps'] if latest_summary else None
+            calories_active = latest_summary['calories_active'] if latest_summary else None
+
+            # Get WHOOP strain from activities (latest WHOOP workout)
+            cursor.execute(
+                "SELECT name FROM activities WHERE user_id = ? AND platform = 'whoop' AND type = 'workout' ORDER BY start_time DESC LIMIT 1",
+                (user_id,)
+            )
+            whoop_workout_row = cursor.fetchone()
+            strain_value = None
+            if whoop_workout_row:
+                import re
+                strain_match = re.search(r'Strain ([\d.]+)', whoop_workout_row['name'] or '')
+                if strain_match:
+                    strain_value = float(strain_match.group(1))
+
+            # Get WHOOP sleep data
+            cursor.execute(
+                "SELECT duration_seconds FROM activities WHERE user_id = ? AND platform = 'whoop' AND type = 'sleep' ORDER BY start_time DESC LIMIT 1",
+                (user_id,)
+            )
+            sleep_row = cursor.fetchone()
+            sleep_hours = round(sleep_row['duration_seconds'] / 3600, 1) if sleep_row else None
+
+            print(f"[DASHBOARD] WHOOP data for user {user_id}: strain={strain_value}, sleep={sleep_hours}h", flush=True)
+            print(f"[DASHBOARD] Steps={steps}, Calories={calories_active}, Workouts={total_workouts}", flush=True)
 
             # Get recent activities
             cursor.execute(
@@ -699,16 +718,25 @@ class DashboardHandler(BaseHandler):
             )
             connected_platforms = [dict(row) for row in cursor.fetchall()]
 
-            # Generate readiness forecast (hardcoded demo data)
-            readiness_forecast = [
-                {"day": "Mon", "score": 77},
-                {"day": "Tue", "score": 72},
-                {"day": "Wed", "score": 85},
-                {"day": "Thu", "score": 68},
-                {"day": "Fri", "score": 79},
-                {"day": "Sat", "score": 88},
-                {"day": "Sun", "score": 82},
-            ]
+            # Readiness forecast from real recovery trends (or null if no data)
+            cursor.execute(
+                "SELECT date, recovery_score FROM recovery_metrics WHERE user_id = ? ORDER BY date DESC LIMIT 7",
+                (user_id,)
+            )
+            forecast_rows = cursor.fetchall()
+            if forecast_rows:
+                readiness_forecast = []
+                for row in forecast_rows:
+                    try:
+                        d = datetime.date.fromisoformat(row['date'])
+                        label = day_names[d.weekday()]
+                    except Exception:
+                        label = row['date'][-5:]
+                    readiness_forecast.append({"day": label, "score": row['recovery_score']})
+                readiness_forecast.reverse()
+            else:
+                readiness_forecast = None
+            print(f"[DASHBOARD] Readiness forecast: {readiness_forecast}", flush=True)
 
             # Generate trends
             cursor.execute(
@@ -733,48 +761,96 @@ class DashboardHandler(BaseHandler):
             )
             weekly_activity = [{"date": row['date'], "activities": row['activities'], "distance": round(row['distance'], 1)} for row in cursor.fetchall()]
 
+            # Performance trend data for AreaChart (calories per day for last 7 days)
+            cursor.execute(
+                "SELECT ds.date, ds.calories_active FROM daily_summaries ds WHERE ds.user_id = ? ORDER BY ds.date ASC LIMIT 7",
+                (user_id,)
+            )
+            trend_rows = cursor.fetchall()
+            day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+            if trend_rows:
+                trend_data = []
+                for row in trend_rows:
+                    try:
+                        d = datetime.date.fromisoformat(row['date'])
+                        label = day_names[d.weekday()]
+                    except Exception:
+                        label = row['date'][-5:]
+                    trend_data.append({"name": label, "calories": row['calories_active']})
+            else:
+                trend_data = None
+
+            # Determine what data sources are actually available
+            has_whoop = any(p['platform'] == 'whoop' for p in connected_platforms)
+            has_strava = any(p['platform'] == 'strava' for p in connected_platforms)
+            strava_activities_count = 0
+            whoop_activities_count = 0
+            if has_strava:
+                cursor.execute("SELECT COUNT(*) as c FROM activities WHERE user_id = ? AND platform = 'strava'", (user_id,))
+                strava_activities_count = cursor.fetchone()['c']
+            if has_whoop:
+                cursor.execute("SELECT COUNT(*) as c FROM activities WHERE user_id = ? AND platform = 'whoop'", (user_id,))
+                whoop_activities_count = cursor.fetchone()['c']
+
+            print(f"[DASHBOARD] Connected: whoop={has_whoop}({whoop_activities_count} items), strava={has_strava}({strava_activities_count} items)", flush=True)
+
             conn.close()
 
-
-            # Generate trend data for chart
-            trend_data = [
-                {"day": "Mon", "calories": 2100, "steps": 8500, "recovery": 75},
-                {"day": "Tue", "calories": 1850, "steps": 6200, "recovery": 82},
-                {"day": "Wed", "calories": 2400, "steps": 10200, "recovery": 68},
-                {"day": "Thu", "calories": 1950, "steps": 7800, "recovery": 79},
-                {"day": "Fri", "calories": 2200, "steps": 9100, "recovery": 71},
-                {"day": "Sat", "calories": 2600, "steps": 12500, "recovery": 85},
-                {"day": "Sun", "calories": 1700, "steps": 5400, "recovery": 90},
-            ]
+            # Build tip based on real data
+            tip = None
+            if recovery_score is not None:
+                if recovery_score >= 80:
+                    tip = "Your recovery is strong — great day for a high-intensity session."
+                elif recovery_score >= 50:
+                    tip = "Moderate recovery — consider a lighter training day."
+                else:
+                    tip = "Low recovery detected — prioritize rest and active recovery."
 
             self.write({
                 "user": user,
                 "readiness": {
                     "forecast": readiness_forecast,
-                    "outlook": {"status": "ready", "message": "You're in great shape"},
-                    "tip": "Maintain your current training load and focus on sleep quality"
+                    "outlook": None,
+                    "tip": tip
                 },
-                "metrics": {
-                    "recovery": recovery_score,
-                    "workouts": {"current": total_workouts, "goal": 20},
+                "recovery": {
+                    "percentage": recovery_score,
+                    "hrv": recovery_hrv,
+                    "rhr": recovery_rhr,
+                    "source": recovery_source,
+                    "sleepHours": sleep_hours
+                },
+                "workouts": {
+                    "completed": total_workouts if total_workouts > 0 else None,
+                    "goal": 20
+                },
+                "stepsStrain": {
                     "steps": steps,
-                    "strain": 14.2,
-                    "calories": calories_active,
-                    "protein": 145
+                    "strain": strain_value,
+                    "source": "whoop" if strain_value else None
                 },
-                "goals": goals,
+                "nutrition": {
+                    "calories": calories_active,
+                    "protein": None,
+                    "source": None
+                },
+                "goals": goals if goals else None,
                 "stats": {
-                    "totalWorkouts": total_workouts,
-                    "caloriesBurned": int(calories_burned),
-                    "distance": round(distance, 1),
+                    "totalWorkouts": total_workouts if total_workouts > 0 else None,
+                    "caloriesBurned": int(calories_burned) if calories_burned > 0 else None,
+                    "distance": round(distance, 1) if distance > 0 else None,
                     "recoveryScore": recovery_score
                 },
-                "trends": trends,
+                "trends": trends if trends else None,
                 "trendData": trend_data,
-                "activityDistribution": activity_distribution,
-                "weeklyActivity": weekly_activity,
-                "recentActivities": recent_activities,
-                "connectedPlatforms": connected_platforms
+                "activityDistribution": activity_distribution if activity_distribution else None,
+                "weeklyActivity": weekly_activity if weekly_activity else None,
+                "recentActivities": recent_activities if recent_activities else None,
+                "connectedPlatforms": connected_platforms,
+                "dataSources": {
+                    "whoop": {"connected": has_whoop, "dataCount": whoop_activities_count},
+                    "strava": {"connected": has_strava, "dataCount": strava_activities_count}
+                }
             })
         except Exception as e:
             import sys
@@ -921,41 +997,36 @@ class WorkoutsHandler(BaseHandler):
                 (user_id,)
             )
             workouts = [dict(row) for row in cursor.fetchall()]
-            conn.close()
 
+            # Format for frontend workoutHistory
             workout_history = []
-            total_duration = 0
-            total_rpe = 0
-            rpe_count = 0
+            total_minutes = 0
             for w in workouts:
-                dur = w.get('duration_minutes', 0) or 0
-                total_duration += dur
-                rpe_val = w.get('rpe', 0) or 0
-                if rpe_val:
-                    total_rpe += rpe_val
-                    rpe_count += 1
+                total_minutes += w.get('duration_minutes', 0) or 0
                 try:
-                    from datetime import datetime as _dt
-                    dt = _dt.fromisoformat(w.get('created_at', w.get('date', ''))[:19])
+                    dt = datetime.datetime.fromisoformat(w['created_at'].replace('Z', '+00:00'))
                     date_str = dt.strftime('%b %d, %Y')
                 except Exception:
-                    date_str = w.get('created_at', w.get('date', ''))[:10]
+                    date_str = 'Recently'
                 workout_history.append({
-                    "id": w.get('id', 0),
-                    "name": w.get('name', 'Workout'),
-                    "type": (w.get('type', 'general') or 'general').replace('_', ' ').title(),
-                    "duration": dur,
-                    "rpe": w.get('rpe', '-') or '-',
-                    "notes": w.get('notes', '') or '',
-                    "coachFeedback": w.get('coach_feedback', '') or '',
+                    "id": w['id'],
+                    "name": w['name'],
+                    "type": (w.get('type') or 'general').replace('_', ' ').title(),
+                    "duration": w.get('duration_minutes', 0),
+                    "rpe": w.get('rpe', '-'),
+                    "notes": w.get('notes', ''),
+                    "coachFeedback": w.get('coach_feedback', ''),
                     "date": date_str,
                 })
+
+            conn.close()
+
             self.write({
                 "workouts": workouts,
                 "workoutHistory": workout_history,
-                "thisWeek": len(workouts),
-                "totalTime": str(total_duration // 60) + "h " + str(total_duration % 60) + "m",
-                "avgIntensity": round(total_rpe / rpe_count, 1) if rpe_count else 6.5
+                "thisWeek": str(len(workouts)),
+                "totalTime": str(total_minutes) + " min",
+                "avgIntensity": "High" if workouts else "N/A"
             })
         except Exception as e:
             print(f"Get workouts error: {e}\n{traceback.format_exc()}")
@@ -1252,38 +1323,33 @@ class FeedHandler(BaseHandler):
 
             posts = [dict(row) for row in cursor.fetchall()]
 
-            # Get user info for each post
+            # Get user info for each post and format for frontend
+            items = []
             for post in posts:
                 cursor.execute("SELECT name, email FROM users WHERE id = ?", (post['user_id'],))
                 user_info = cursor.fetchone()
-                if user_info:
-                    post['userName'] = user_info['name']
-                    post['userEmail'] = user_info['email']
+                user_name = user_info['name'] if user_info else 'Unknown'
+                initials = ''.join(w[0] for w in user_name.split()[:2]).upper() if user_name else '??'
+                # Format date
+                try:
+                    dt = datetime.datetime.fromisoformat(post['created_at'].replace('Z', '+00:00'))
+                    date_str = dt.strftime('%b %d, %Y')
+                except Exception:
+                    date_str = 'Recently'
+                items.append({
+                    "id": post['id'],
+                    "initials": initials,
+                    "name": user_name,
+                    "type": post['type'].replace('_', ' ').title(),
+                    "date": date_str,
+                    "title": post['title'] or '',
+                    "description": post['content'] or '',
+                    "likes": post['likes'] or 0,
+                    "comments": post['comments_count'] or 0,
+                })
 
             conn.close()
 
-            items = []
-            for post in posts:
-                user_name = post.get('user_name', post.get('username', 'User'))
-                parts = user_name.split()
-                initials = (parts[0][0] + (parts[-1][0] if len(parts) > 1 else '')).upper() if parts else 'U'
-                try:
-                    from datetime import datetime as _dt
-                    dt = _dt.fromisoformat(post.get('created_at', '')[:19])
-                    date_str = dt.strftime('%b %d, %Y')
-                except Exception:
-                    date_str = post.get('created_at', '')[:10]
-                items.append({
-                    "id": post.get('id', 0),
-                    "initials": initials,
-                    "name": user_name,
-                    "type": (post.get('type', 'post') or 'post').replace('_', ' ').title(),
-                    "date": date_str,
-                    "title": post.get('title', ''),
-                    "description": post.get('content', ''),
-                    "likes": post.get('likes', 0) or 0,
-                    "comments": post.get('comments_count', 0) or 0,
-                })
             self.write({"posts": posts, "items": items})
         except Exception as e:
             print(f"Get feed error: {e}\n{traceback.format_exc()}")
@@ -1388,31 +1454,31 @@ class GroupsHandler(BaseHandler):
 
             groups = [dict(row) for row in cursor.fetchall()]
 
-            # Get member count for each group
+            # Get member count and format for frontend
+            items = []
             for group in groups:
                 cursor.execute("SELECT COUNT(*) as count FROM group_members WHERE group_id = ?", (group['id'],))
                 group['memberCount'] = cursor.fetchone()['count']
-
-            conn.close()
-
-            items = []
-            for group in groups:
-                user_progress = 0
-                if group.get('goal_value') and group['goal_value'] > 0:
-                    user_progress = min(100, int((group.get('user_progress', 0) or 0) / group['goal_value'] * 100))
+                # Get user's progress in this group
+                cursor.execute("SELECT progress FROM group_members WHERE group_id = ? AND user_id = ?", (group['id'], user_id))
+                member_row = cursor.fetchone()
+                user_progress = member_row['progress'] if member_row else 0
                 items.append({
                     "id": group['id'],
                     "name": group['name'],
                     "description": group.get('description', ''),
                     "type": group.get('type', 'challenge'),
-                    "memberCount": group.get('memberCount', group.get('member_count', 0)),
-                    "goalValue": group.get('goal_value', 0) or 0,
-                    "goalUnit": group.get('goal_unit', '') or '',
+                    "memberCount": group['memberCount'],
+                    "goalValue": group.get('goal_value', 0),
+                    "goalUnit": group.get('goal_unit', ''),
                     "progress": user_progress,
-                    "startDate": group.get('start_date', '') or '',
-                    "endDate": group.get('end_date', '') or '',
-                    "code": group.get('code', '') or '',
+                    "startDate": group.get('start_date', ''),
+                    "endDate": group.get('end_date', ''),
+                    "code": group.get('code', ''),
                 })
+
+            conn.close()
+
             self.write({"groups": groups, "items": items})
         except Exception as e:
             print(f"Get groups error: {e}\n{traceback.format_exc()}")
@@ -1669,14 +1735,15 @@ class IntegrationConnectHandler(BaseHandler):
                 # Store state in cookie for CSRF protection
                 self.set_secure_cookie("oauth_state", state, expires_days=0.01)
                 self.set_secure_cookie("oauth_user_id", str(user_id), expires_days=0.01)
+                redirect_uri = f"{BASE_URL}/api/oauth/strava/callback"
                 auth_url = (
                     f"https://www.strava.com/oauth/authorize"
                     f"?client_id={STRAVA_CLIENT_ID}"
+                    f"&redirect_uri={urllib.parse.quote(redirect_uri)}"
                     f"&response_type=code"
-                    f"&scope=read,activity:read_all"
+                    f"&scope=activity:read_all,read_all"
                     f"&state={state}"
                     f"&approval_prompt=auto"
-            f"&redirect_uri=https://performancehub.onrender.com/api/oauth/strava/callback"
                 )
                 self.write({"redirect": auth_url})
                 return
@@ -1685,11 +1752,13 @@ class IntegrationConnectHandler(BaseHandler):
                 state = secrets.token_hex(16)
                 self.set_secure_cookie("oauth_state", state, expires_days=0.01)
                 self.set_secure_cookie("oauth_user_id", str(user_id), expires_days=0.01)
+                redirect_uri = f"{BASE_URL}/api/integrations/"
                 auth_url = (
                     f"https://api.prod.whoop.com/oauth/oauth2/auth"
                     f"?client_id={WHOOP_CLIENT_ID}"
+                    f"&redirect_uri={urllib.parse.quote(redirect_uri)}"
                     f"&response_type=code"
-                    f"&scope=read:recovery%20read:cycles%20read:sleep%20read:workout%20read:profile%20read:body_measurement%20offline"
+                    f"&scope=read:recovery+read:cycles+read:sleep+read:workout+read:profile+read:body_measurement+offline"
                     f"&state={state}"
                 )
                 self.write({"redirect": auth_url})
@@ -1906,6 +1975,7 @@ class StravaOAuthCallbackHandler(BaseHandler):
             user_id = int(user_id_cookie.decode())
 
             # Exchange code for token
+            redirect_uri = f"{BASE_URL}/api/oauth/strava/callback"
             http_client = tornado.httpclient.AsyncHTTPClient()
 
             body = urllib.parse.urlencode({
@@ -1913,7 +1983,6 @@ class StravaOAuthCallbackHandler(BaseHandler):
                 "client_secret": STRAVA_CLIENT_SECRET,
                 "code": code,
                 "grant_type": "authorization_code",
-            "redirect_uri": "https://performancehub.onrender.com/api/oauth/strava/callback",
             })
 
             response = await http_client.fetch(
@@ -1925,7 +1994,7 @@ class StravaOAuthCallbackHandler(BaseHandler):
             )
 
             if response.code != 200:
-                logger.error(f"Strava token exchange failed: status={response.code} body={response.body}")
+                print(f"Strava token exchange failed: {response.code} {response.body}")
                 self.redirect(f"/?oauth_error=strava_token_failed")
                 return
 
@@ -1958,21 +2027,23 @@ class StravaOAuthCallbackHandler(BaseHandler):
 
             # Now fetch recent activities from Strava
             try:
+                print(f"[STRAVA CONNECT] Fetching activities for user {user_id}...", flush=True)
                 activities_response = await http_client.fetch(
                     "https://www.strava.com/api/v3/athlete/activities?per_page=10",
                     headers={"Authorization": f"Bearer {access_token}"},
                     raise_error=False
                 )
+                print(f"[STRAVA CONNECT] Activities API: status={activities_response.code}", flush=True)
                 if activities_response.code == 200:
                     activities = json.loads(activities_response.body)
+                    print(f"[STRAVA CONNECT] Got {len(activities)} activities", flush=True)
                     for act in activities:
                         cursor.execute(
                             """INSERT OR IGNORE INTO activities
                             (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, calories, avg_hr, max_hr, created_at)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                             (
-                                user_id,
-                                'strava',
+                                user_id, 'strava',
                                 act.get('name', 'Strava Activity'),
                                 act.get('type', 'workout'),
                                 act.get('sport_type', act.get('type', 'workout')),
@@ -1986,9 +2057,11 @@ class StravaOAuthCallbackHandler(BaseHandler):
                             )
                         )
                     conn.commit()
-                    logger.info(f"Synced {len(activities)} Strava activities for user {user_id}")
+                    print(f"[STRAVA CONNECT] Synced {len(activities)} activities for user {user_id}", flush=True)
+                else:
+                    print(f"[STRAVA CONNECT] Activities API failed: {activities_response.code} {activities_response.body[:200]}", flush=True)
             except Exception as sync_err:
-                logger.warning(f"Strava activity sync error (non-fatal): {sync_err}", exc_info=True)
+                print(f"[STRAVA CONNECT] Activity sync error (non-fatal): {sync_err}", flush=True)
 
             conn.close()
 
@@ -2000,7 +2073,7 @@ class StravaOAuthCallbackHandler(BaseHandler):
             self.redirect("/?page=settings&oauth_success=strava")
 
         except Exception as e:
-            logger.error(f"Strava OAuth callback error: {e}", exc_info=True)
+            print(f"Strava OAuth callback error: {e}\n{traceback.format_exc()}")
             self.redirect(f"/?oauth_error=strava_server_error")
 
 
@@ -2028,6 +2101,7 @@ class WhoopOAuthCallbackHandler(BaseHandler):
             user_id = int(user_id_cookie.decode())
 
             # Exchange code for token
+            redirect_uri = f"{BASE_URL}/api/integrations/"
             http_client = tornado.httpclient.AsyncHTTPClient()
 
             body = urllib.parse.urlencode({
@@ -2035,6 +2109,7 @@ class WhoopOAuthCallbackHandler(BaseHandler):
                 "client_secret": WHOOP_CLIENT_SECRET,
                 "code": code,
                 "grant_type": "authorization_code",
+                "redirect_uri": redirect_uri,
             })
 
             response = await http_client.fetch(
@@ -2046,7 +2121,7 @@ class WhoopOAuthCallbackHandler(BaseHandler):
             )
 
             if response.code != 200:
-                logger.error(f"WHOOP token exchange failed: status={response.code} body={response.body}")
+                print(f"WHOOP token exchange failed: {response.code} {response.body}")
                 self.redirect(f"/?oauth_error=whoop_token_failed")
                 return
 
@@ -2070,7 +2145,7 @@ class WhoopOAuthCallbackHandler(BaseHandler):
                     profile = json.loads(profile_response.body)
                     platform_user_id = str(profile.get("user_id", ""))
             except Exception as profile_err:
-                logger.warning(f"WHOOP profile fetch error (non-fatal): {profile_err}", exc_info=True)
+                print(f"WHOOP profile fetch error (non-fatal): {profile_err}")
 
             conn = get_db()
             cursor = conn.cursor()
@@ -2089,41 +2164,62 @@ class WhoopOAuthCallbackHandler(BaseHandler):
 
             conn.commit()
 
-            # Fetch WHOOP recovery data
+            # Fetch WHOOP recovery data on initial connect
             try:
+                print(f"[WHOOP CONNECT] Fetching initial recovery data for user {user_id}...", flush=True)
                 recovery_response = await http_client.fetch(
                     "https://api.prod.whoop.com/developer/v1/recovery?limit=10",
                     headers={"Authorization": f"Bearer {access_token}"},
                     raise_error=False
                 )
+                print(f"[WHOOP CONNECT] Recovery API: status={recovery_response.code}", flush=True)
                 if recovery_response.code == 200:
                     recovery_data = json.loads(recovery_response.body)
                     records = recovery_data.get("records", [])
                     for rec in records:
                         score = rec.get("score", {})
+                        rec_score = score.get('recovery_score')
+                        rec_rhr = score.get('resting_heart_rate')
+                        rec_hrv = score.get('hrv_rmssd_milli')
+                        rec_date = rec.get('created_at', now)[:10]
+
                         cursor.execute(
                             """INSERT OR IGNORE INTO activities
                             (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, calories, avg_hr, max_hr, created_at)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                             (
-                                user_id,
-                                'whoop',
-                                f"Recovery: {score.get('recovery_score', 'N/A')}%",
-                                'recovery',
-                                'recovery',
+                                user_id, 'whoop',
+                                f"Recovery: {rec_score or 'N/A'}%",
+                                'recovery', 'recovery',
                                 rec.get('created_at', now),
-                                0,
-                                0,
-                                0,
-                                int(score.get('resting_heart_rate', 0)),
-                                0,
-                                now
+                                0, 0, 0,
+                                int(rec_rhr or 0),
+                                0, now
                             )
                         )
+
+                        # Store in recovery_metrics for dashboard
+                        if rec_score is not None:
+                            cursor.execute(
+                                """INSERT OR REPLACE INTO recovery_metrics
+                                (user_id, date, hrv, rhr, spo2, skin_temp, recovery_score, sleep_quality, source)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                                (
+                                    user_id, rec_date,
+                                    round(rec_hrv, 1) if rec_hrv else None,
+                                    int(rec_rhr) if rec_rhr else None,
+                                    score.get('spo2_percentage'),
+                                    score.get('skin_temp_celsius'),
+                                    int(rec_score),
+                                    None, 'whoop'
+                                )
+                            )
                     conn.commit()
-                    logger.info(f"Synced {len(records)} WHOOP recovery records for user {user_id}")
+                    print(f"[WHOOP CONNECT] Synced {len(records)} recovery records + recovery_metrics for user {user_id}", flush=True)
+                else:
+                    print(f"[WHOOP CONNECT] Recovery API failed: {recovery_response.code} {recovery_response.body[:200]}", flush=True)
             except Exception as sync_err:
-                logger.warning(f"WHOOP recovery sync error (non-fatal): {sync_err}", exc_info=True)
+                print(f"[WHOOP CONNECT] Recovery sync error (non-fatal): {sync_err}", flush=True)
 
             conn.close()
 
@@ -2133,7 +2229,7 @@ class WhoopOAuthCallbackHandler(BaseHandler):
             self.redirect("/?page=settings&oauth_success=whoop")
 
         except Exception as e:
-            logger.error(f"WHOOP OAuth callback error: {e}", exc_info=True)
+            print(f"WHOOP OAuth callback error: {e}\n{traceback.format_exc()}")
             self.redirect(f"/?oauth_error=whoop_server_error")
 
 
@@ -2201,11 +2297,13 @@ class StravaSyncHandler(BaseHandler):
 
             # Fetch activities
             http_client = tornado.httpclient.AsyncHTTPClient()
+            print(f"[STRAVA SYNC] Fetching activities for user {user_id}...", flush=True)
             activities_response = await http_client.fetch(
                 "https://www.strava.com/api/v3/athlete/activities?per_page=20",
                 headers={"Authorization": f"Bearer {access_token}"},
                 raise_error=False
             )
+            print(f"[STRAVA SYNC] Activities API response: status={activities_response.code}", flush=True)
 
             synced = 0
             if activities_response.code == 200:
@@ -2237,6 +2335,9 @@ class StravaSyncHandler(BaseHandler):
                     (now, user_id)
                 )
                 conn.commit()
+                print(f"[STRAVA SYNC] Successfully synced {synced} activities", flush=True)
+            else:
+                print(f"[STRAVA SYNC] Activities API failed: status={activities_response.code} body={activities_response.body[:300]}", flush=True)
 
             conn.close()
 
@@ -2247,7 +2348,7 @@ class StravaSyncHandler(BaseHandler):
                 "itemsSynced": synced
             })
         except Exception as e:
-            logger.error(f"Strava sync error: {e}", exc_info=True)
+            print(f"[STRAVA SYNC] Error: {e}\n{traceback.format_exc()}", flush=True)
             self.set_status(500)
             self.write({"error": "Server error"})
 
@@ -2283,30 +2384,131 @@ class WhoopSyncHandler(BaseHandler):
             synced = 0
 
             # Fetch recovery data
+            print(f"[WHOOP SYNC] Fetching recovery data for user {user_id}...", flush=True)
             recovery_response = await http_client.fetch(
                 "https://api.prod.whoop.com/developer/v1/recovery?limit=10",
                 headers={"Authorization": f"Bearer {access_token}"},
                 raise_error=False
             )
+            print(f"[WHOOP SYNC] Recovery API response: status={recovery_response.code}", flush=True)
             if recovery_response.code == 200:
                 recovery_data = json.loads(recovery_response.body)
-                for rec in recovery_data.get("records", []):
+                records = recovery_data.get("records", [])
+                print(f"[WHOOP SYNC] Got {len(records)} recovery records", flush=True)
+                for rec in records:
                     score = rec.get("score", {})
+                    rec_score = score.get("recovery_score")
+                    rec_rhr = score.get("resting_heart_rate")
+                    rec_hrv = score.get("hrv_rmssd_milli")
+                    rec_date = rec.get('created_at', now)[:10]  # Extract date part
+
+                    # Store in activities table
                     cursor.execute(
                         """INSERT OR IGNORE INTO activities
                         (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, calories, avg_hr, max_hr, created_at)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (
                             user_id, 'whoop',
-                            f"Recovery: {score.get('recovery_score', 'N/A')}%",
+                            f"Recovery: {rec_score or 'N/A'}%",
                             'recovery', 'recovery',
                             rec.get('created_at', now),
                             0, 0, 0,
-                            int(score.get('resting_heart_rate', 0)),
+                            int(rec_rhr or 0),
+                            0, now
+                        )
+                    )
+
+                    # Also store in recovery_metrics table for dashboard
+                    if rec_score is not None:
+                        cursor.execute(
+                            """INSERT OR REPLACE INTO recovery_metrics
+                            (user_id, date, hrv, rhr, spo2, skin_temp, recovery_score, sleep_quality, source)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                            (
+                                user_id, rec_date,
+                                round(rec_hrv, 1) if rec_hrv else None,
+                                int(rec_rhr) if rec_rhr else None,
+                                score.get('spo2_percentage'),
+                                score.get('skin_temp_celsius'),
+                                int(rec_score),
+                                None,
+                                'whoop'
+                            )
+                        )
+                    synced += 1
+                print(f"[WHOOP SYNC] Stored {synced} recovery records + recovery_metrics", flush=True)
+            else:
+                print(f"[WHOOP SYNC] Recovery API failed: {recovery_response.code} {recovery_response.body[:200]}", flush=True)
+
+            # Fetch sleep data
+            print(f"[WHOOP SYNC] Fetching sleep data...", flush=True)
+            sleep_response = await http_client.fetch(
+                "https://api.prod.whoop.com/developer/v1/activity/sleep?limit=10",
+                headers={"Authorization": f"Bearer {access_token}"},
+                raise_error=False
+            )
+            print(f"[WHOOP SYNC] Sleep API response: status={sleep_response.code}", flush=True)
+            if sleep_response.code == 200:
+                sleep_data = json.loads(sleep_response.body)
+                sleep_records = sleep_data.get("records", [])
+                for s in sleep_records:
+                    score = s.get("score", {})
+                    total_sleep_ms = score.get("stage_summary", {}).get("total_in_bed_time_milli", 0) or 0
+                    cursor.execute(
+                        """INSERT OR IGNORE INTO activities
+                        (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, calories, avg_hr, max_hr, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (
+                            user_id, 'whoop',
+                            f"Sleep: {round(total_sleep_ms/3600000, 1)}h",
+                            'sleep', 'sleep',
+                            s.get('start', now),
+                            int(total_sleep_ms / 1000),
+                            0, 0,
+                            int(score.get('respiratory_rate', 0) or 0),
                             0, now
                         )
                     )
                     synced += 1
+                print(f"[WHOOP SYNC] Stored {len(sleep_records)} sleep records", flush=True)
+            else:
+                print(f"[WHOOP SYNC] Sleep API failed: {sleep_response.code} {sleep_response.body[:200]}", flush=True)
+
+            # Fetch cycle data (for strain)
+            print(f"[WHOOP SYNC] Fetching cycle data...", flush=True)
+            cycle_response = await http_client.fetch(
+                "https://api.prod.whoop.com/developer/v1/cycle?limit=10",
+                headers={"Authorization": f"Bearer {access_token}"},
+                raise_error=False
+            )
+            print(f"[WHOOP SYNC] Cycle API response: status={cycle_response.code}", flush=True)
+            if cycle_response.code == 200:
+                cycle_data = json.loads(cycle_response.body)
+                cycle_records = cycle_data.get("records", [])
+                for cyc in cycle_records:
+                    score = cyc.get("score", {})
+                    strain = score.get("strain")
+                    if strain is not None:
+                        cursor.execute(
+                            """INSERT OR IGNORE INTO activities
+                            (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, calories, avg_hr, max_hr, created_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                            (
+                                user_id, 'whoop',
+                                f"Cycle - Strain {round(strain, 1)}",
+                                'cycle', 'cycle',
+                                cyc.get('start', now),
+                                0, 0,
+                                int(score.get('kilojoule', 0) or 0),
+                                int(score.get('average_heart_rate', 0) or 0),
+                                int(score.get('max_heart_rate', 0) or 0),
+                                now
+                            )
+                        )
+                        synced += 1
+                print(f"[WHOOP SYNC] Stored {len(cycle_records)} cycle records", flush=True)
+            else:
+                print(f"[WHOOP SYNC] Cycle API failed: {cycle_response.code} {cycle_response.body[:200]}", flush=True)
 
             # Fetch workouts
             workout_response = await http_client.fetch(
@@ -2351,7 +2553,7 @@ class WhoopSyncHandler(BaseHandler):
                 "itemsSynced": synced
             })
         except Exception as e:
-            logger.error(f"WHOOP sync error: {e}", exc_info=True)
+            print(f"WHOOP sync error: {e}\n{traceback.format_exc()}")
             self.set_status(500)
             self.write({"error": "Server error"})
 
@@ -2392,10 +2594,10 @@ class WhoopWebhookHandler(BaseHandler):
     def post(self):
         try:
             data = json.loads(self.request.body.decode('utf-8'))
-            logger.info(f"WHOOP webhook received: {data}")
+            print(f"WHOOP webhook received: {data}")
             self.write({"message": "Webhook received"})
         except Exception as e:
-            logger.error(f"WHOOP webhook error: {e}", exc_info=True)
+            print(f"WHOOP webhook error: {e}")
             self.set_status(500)
             self.write({"error": "Server error"})
 
@@ -2412,6 +2614,7 @@ class AnalyzeHandler(BaseHandler):
             user_id = user['id']
             time_range = self.get_argument('range', '30days')
 
+            # Parse range
             days = 30
             if time_range == '60days':
                 days = 60
@@ -2423,18 +2626,21 @@ class AnalyzeHandler(BaseHandler):
 
             cutoff = (datetime.datetime.now() - datetime.timedelta(days=days)).isoformat()
 
+            # Total activities in range
             cursor.execute(
                 "SELECT COUNT(*) as count FROM activities WHERE user_id = ? AND start_time >= ?",
                 (user_id, cutoff)
             )
             total_activities = cursor.fetchone()['count']
 
+            # Connected platforms
             cursor.execute(
                 "SELECT COUNT(*) as count FROM platform_connections WHERE user_id = ?",
                 (user_id,)
             )
             platforms_connected = cursor.fetchone()['count']
 
+            # Trend data: group activities by date for more data points
             cursor.execute(
                 "SELECT DATE(start_time) as day, COUNT(*) as count, "
                 "COALESCE(SUM(calories), 0) as total_cal, COALESCE(SUM(duration_seconds)/60, 0) as total_dur "
@@ -2473,11 +2679,19 @@ class AnalyzeHandler(BaseHandler):
                         "count": random.randint(1, 3)
                     })
 
+            # Data sources
             cursor.execute(
                 "SELECT platform, connected_at, last_synced FROM platform_connections WHERE user_id = ?",
                 (user_id,)
             )
-            platform_display = {'strava': 'Strava', 'myfitnesspal': 'MyFitnessPal', 'whoop': 'WHOOP', 'garmin': 'Garmin', 'apple_health': 'Apple Health', 'fitbit': 'Fitbit'}
+            platform_display = {
+                'strava': 'Strava',
+                'myfitnesspal': 'MyFitnessPal',
+                'whoop': 'WHOOP',
+                'garmin': 'Garmin',
+                'apple_health': 'Apple Health',
+                'fitbit': 'Fitbit',
+            }
             data_sources = []
             for row in cursor.fetchall():
                 raw_ts = row['last_synced'] or row['connected_at']
@@ -2511,7 +2725,7 @@ class AnalyzeHandler(BaseHandler):
                 "dataSources": data_sources
             })
         except Exception as e:
-            print(f"Analyze error: {e}\\n{traceback.format_exc()}")
+            print(f"Analyze error: {e}\n{traceback.format_exc()}")
             self.set_status(500)
             self.write({"error": "Server error"})
 
@@ -2582,7 +2796,6 @@ def make_app():
         # OAuth Callbacks
         (r"/api/oauth/strava/callback", StravaOAuthCallbackHandler),
         (r"/api/integrations/", WhoopOAuthCallbackHandler),
-        (r"/api/oauth/whoop/callback", WhoopOAuthCallbackHandler),
 
         # Platform-specific sync
         (r"/api/sync/strava", StravaSyncHandler),
