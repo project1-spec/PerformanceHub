@@ -567,6 +567,7 @@
           const data = await res.json();
           console.log('[Dashboard] API response:', JSON.stringify(data, null, 2));
           setDashboardData(data);
+          return data;
         } catch (err) {
           console.error('[Dashboard] Fetch error:', err);
           setError(err.message);
@@ -591,7 +592,18 @@
         } finally { setSyncing(false); }
       };
 
-      useEffect(() => { fetchDashboard(); }, []);
+      useEffect(() => {
+        fetchDashboard().then(dashData => {
+          // Auto-sync if connected platforms exist but last sync was >5 min ago
+          if (dashData && dashData.connectedPlatforms && dashData.connectedPlatforms.length > 0) {
+            const lastSync = dashData.lastSynced ? new Date(dashData.lastSynced).getTime() : 0;
+            const fiveMinAgo = Date.now() - 5 * 60 * 1000;
+            if (lastSync < fiveMinAgo) {
+              handleSync();
+            }
+          }
+        }).catch(() => {});
+      }, []);
 
       if (loading) {
         return (<div className="flex items-center justify-center min-h-[60vh]"><div className="spinner" style={{width:40,height:40,borderWidth:4}} /></div>);
@@ -706,6 +718,9 @@
               </button>
             </div>
           </div>
+          {data.lastSynced && (
+            <p className="text-xs text-gray-400 mt-1">Last synced: {new Date(data.lastSynced).toLocaleString()}</p>
+          )}
 
           {/* Connected integrations status */}
           <div className="flex gap-2 flex-wrap">
