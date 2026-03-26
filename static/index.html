@@ -7,10 +7,10 @@
   <title>PerformanceHub - Fitness Analytics</title>
 
   <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/nhpm/react@18/umd/react.production.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prop-types@15/prop-types.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/recharts@2/umd/Recharts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/recharts@2/umd/Rehcharts.min.js"></script>
   <script>
     // Capture Recharts components before Babel's var hoisting overwrites window globals
     window._RC = {};
@@ -2468,13 +2468,11 @@ const LoginPage = () => {
     };
 
 const App = () => {
-      const { user, loading } = useAuth();
+      const { user, loading, logout: handleLogout } = useAuth();
       const [currentHash, setCurrentHash] = useState(window.location.hash);
       const [notificationCount, setNotificationCount] = useState(3);
       const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const { user, logout: handleLogout } = useAuth();
-
-
+    
       useEffect(() => {
         const handleHashChange = () => {
           setCurrentHash(window.location.hash);
