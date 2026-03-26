@@ -638,6 +638,2458 @@
       // Pillar scores based on real data only
       const exerciseScore = workouts.completed != null ? Math.min(100, Math.round((workouts.completed / (workouts.goal || 20)) * 100)) : null;
       const recoveryScore = recovery.percentage;
+      const nutritionScore = nutrition.calories != null ? Math.min(100, Math.round((nutrition.calories / 800) * 100)) : null;
+      const mindsetScore = null;
+
+      const pillars = [
+        { name: 'Exercise', score: exerciseScore, color: '#22c55e', gradient: 'gaugeGreen', icon: '\u{1F3CB}',
+          source: dataSources.strava?.connected ? 'strava' : null,
+          metrics: [
+            { label: 'Strain', value: stepsStrain.strain != null ? String(Math.round(stepsStrain.strain * 10) / 10) : null, source: stepsStrain.strain != null ? 'whoop' : null },
+            { label: 'Workouts', value: workouts.completed != null ? String(workouts.completed) : null, source: dataSources.strava?.connected ? 'strava' : null },
+            { label: 'Distance', value: data.stats?.distance != null ? `${data.stats.distance}mi` : null, source: dataSources.strava?.connected ? 'strava' : null },
+            { label: 'Active Min', value: null, source: null },
+          ]
+        },
+        { name: 'Recovery', score: recoveryScore, color: '#3b82f6', gradient: 'gaugeBlue', icon: '\u{1F4A4}',
+          source: dataSources.whoop?.connected ? 'whoop' : null,
+          metrics: [
+            { label: 'Recovery', value: recoveryScore != null ? `${recoveryScore}%` : null, source: recovery.source },
+            { label: 'HRV', value: recovery.hrv != null ? `${Math.round(recovery.hrv)}ms` : null, source: recovery.source },
+            { label: 'Resting HR', value: recovery.rhr != null ? `${recovery.rhr}bpm` : null, source: recovery.source },
+            { label: 'Sleep', value: recovery.sleepHours != null ? `${recovery.sleepHours}h` : null, source: recovery.source },
+          ]
+        },
+        { name: 'Nutrition', score: nutritionScore, color: '#f59e0b', gradient: 'gaugeOrange', icon: '\u{1F34E}',
+          source: null,
+          metrics: [
+            { label: 'Calories', value: nutrition.calories != null ? String(nutrition.calories) : null, source: nutrition.source },
+            { label: 'Protein', value: nutrition.protein != null ? `${nutrition.protein}g` : null, source: nutrition.source },
+            { label: 'Hydration', value: null, source: null },
+            { label: 'Quality', value: null, source: null },
+          ]
+        },
+        { name: 'Mindset', score: mindsetScore, color: '#a855f7', gradient: 'gaugePurple', icon: '\u{1F9E0}',
+          source: null,
+          metrics: [
+            { label: 'Stress', value: null, source: null },
+            { label: 'Mindfulness', value: null, source: null },
+            { label: 'Mood', value: null, source: null },
+            { label: 'Focus', value: null, source: null },
+          ]
+        },
+      ];
+
+      // Trends from real recovery data
+      const pillarTrendData = data.trends && data.trends.length > 0
+        ? data.trends.map(t => {
+            const d = t.date ? new Date(t.date) : null;
+            const dayName = d ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()] : t.date;
+            return { name: dayName, recovery: t.recovery_score };
+          }).reverse()
+        : null;
+
+      return (
+        <div className="space-y-6 animate-fade-in">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-extrabold gradient-text">Welcome back, {user?.name || 'Athlete'}</h1>
+              <p className="text-gray-400 text-sm mt-1">Here's your performance overview</p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => window.location.hash = '#/workouts'} className="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
+                <Icons.Plus /> Log Workout
+              </button>
+              <button onClick={handleSync} disabled={syncing} className="glass-card hover:bg-white/10 text-white text-sm font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2 border border-white/10 disabled:opacity-50">
+                <Icons.RefreshCw className={syncing ? 'animate-spin' : ''} /> {syncing ? 'Syncing...' : 'Sync'}
+              </button>
+            </div>
+          </div>
+
+          {/* Connected integrations status */}
+          <div className="flex gap-2 flex-wrap">
+            {(data.connectedPlatforms || []).map((p, i) => (
+              <div key={i} className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-full px-3 py-1">
+                <div className="w-2 h-2 rounded-full bg-green-400" />
+                <span className="text-xs font-medium text-green-400">{p.platform.charAt(0).toUpperCase() + p.platform.slice(1)} connected</span>
+              </div>
+            ))}
+            {(!data.connectedPlatforms || data.connectedPlatforms.length === 0) && (
+              <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full px-3 py-1">
+                <span className="text-xs font-medium text-yellow-400">No integrations connected — go to Settings to connect WHOOP or Strava</span>
+              </div>
+            )}
+          </div>
+
+          {/* 4 PILLAR SCORE CARDS */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {pillars.map((pillar, idx) => (
+              <div key={idx} className="glass-card rounded-2xl p-5 text-center relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300" style={{borderTop: `3px solid ${pillar.score != null ? pillar.color : '#4b5563'}`}}>
+                {pillar.score != null && (<div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{background: `radial-gradient(circle at 50% 0%, ${pillar.color}15, transparent 70%)`}} />)}
+                <div className="relative z-10">
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <span className="text-lg">{pillar.icon}</span>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">{pillar.name}</h3>
+                    <SourceBadge source={pillar.source} />
+                  </div>
+                  <div className="relative inline-flex items-center justify-center mb-3">
+                    <CircularGauge score={pillar.score} color={pillar.color} gradientId={pillar.gradient} />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      {pillar.score != null ? (
+                        <><span className="text-3xl font-black text-white">{pillar.score}</span><span className="text-[10px] text-gray-400 font-medium uppercase">Score</span></>
+                      ) : (
+                        <span className="text-sm text-gray-500 italic">No data</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {pillar.metrics.map((m, mi) => (
+                      <div key={mi} className="text-left bg-white/5 rounded-lg px-2 py-1.5">
+                        <p className="text-[10px] text-gray-400">{m.label}</p>
+                        <div className="flex items-center gap-1">
+                          {m.value != null ? (
+                            <><p className="text-sm font-bold text-white">{m.value}</p><SourceBadge source={m.source} /></>
+                          ) : (
+                            <p className="text-sm text-gray-500 italic">{'\u2014'}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* AI READINESS */}
+          <div className="glass-card rounded-2xl p-6">
+            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <span className="text-xl">{'\u{1F9E0}'}</span> AI Readiness Insights
+            </h2>
+            {data.readiness?.forecast ? (
+              <>
+                <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+                  {data.readiness.forecast.map((day, idx) => (
+                    <div key={idx} className="flex flex-col items-center gap-2 min-w-fit">
+                      <span className="text-xs font-medium text-gray-400">{day.day}</span>
+                      <span className={`px-3 py-1 rounded-full text-sm font-bold text-white ${day.score >= 80 ? 'bg-green-500/80' : day.score >= 65 ? 'bg-yellow-500/80' : 'bg-orange-500/80'}`}>{day.score}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 mb-3">Based on real WHOOP recovery data</p>
+              </>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-gray-500 italic">No readiness data available</p>
+                <p className="text-xs text-gray-400 mt-1">Connect WHOOP and sync to see your readiness forecast</p>
+              </div>
+            )}
+            {data.readiness?.tip && (
+              <p className="text-sm text-gray-300">{'\u{1F4A1}'} <strong className="text-white">AI Tip:</strong> {data.readiness.tip}</p>
+            )}
+          </div>
+
+          {/* PERFORMANCE TRENDS */}
+          <div className="glass-card rounded-2xl p-6">
+            <h2 className="text-lg font-bold text-white mb-4">Performance Trends</h2>
+            {pillarTrendData && pillarTrendData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <AreaChart data={pillarTrendData}>
+                  <defs><linearGradient id="trendRecovery" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} /><stop offset="95%" stopColor="#3b82f6" stopOpacity={0} /></linearGradient></defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="name" stroke="#64748b" tick={{fontSize:12}} />
+                  <YAxis stroke="#64748b" tick={{fontSize:12}} domain={[0, 100]} />
+                  <Tooltip contentStyle={{backgroundColor:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'12px', color:'#fff'}} />
+                  <Legend />
+                  <Area type="monotone" dataKey="recovery" name="Recovery (WHOOP)" stroke="#3b82f6" fillOpacity={1} fill="url(#trendRecovery)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-500 italic">No trend data available</p>
+                <p className="text-xs text-gray-400 mt-1">Sync your connected integrations to see trends over time</p>
+              </div>
+            )}
+          </div>
+
+          {/* DETAILED BREAKDOWNS */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #22c55e'}}>
+              <h3 className="text-base font-bold text-white mb-3 flex items-center gap-2">
+                {'\u{1F3CB}'} Exercise Details
+                {dataSources.strava?.connected && <SourceBadge source="strava" />}
+              </h3>
+              {data.goals && data.goals.length > 0 ? (
+                <div className="space-y-3">
+                  {data.goals.slice(0, 3).map((goal, idx) => {
+                    const current = goal.current_value || 0;
+                    const target = goal.target_value || 1;
+                    const pct = Math.min(100, Math.round((current / target) * 100));
+                    return (
+                      <div key={idx}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm text-gray-300">{goal.name}</span>
+                          <span className="text-xs text-gray-400">{current} / {target} {goal.unit || ''}</span>
+                        </div>
+                        <div className="w-full bg-white/5 rounded-full h-2">
+                          <div className="bg-gradient-to-r from-green-500 to-green-400 h-2 rounded-full transition-all duration-700" style={{width: `${pct}%`}} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-gray-500 italic">No exercise data</p>
+                  <p className="text-xs text-gray-400 mt-1">{dataSources.strava?.connected ? 'Hit Sync to fetch latest Strava data' : 'Connect Strava to track workouts'}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #3b82f6'}}>
+              <h3 className="text-base font-bold text-white mb-3 flex items-center gap-2">
+                {'\u{1F4A4}'} Recovery Details
+                {dataSources.whoop?.connected && <SourceBadge source="whoop" />}
+              </h3>
+              {recovery.percentage != null ? (
+                <div className="space-y-4">
+                  {[
+                    { label: 'Recovery Score', value: `${recovery.percentage}%`, bar: recovery.percentage, color: 'from-blue-500 to-blue-400' },
+                    { label: 'HRV (ms)', value: recovery.hrv != null ? String(Math.round(recovery.hrv)) : null, bar: recovery.hrv != null ? Math.min(100, recovery.hrv) : 0, color: 'from-blue-500 to-cyan-400' },
+                    { label: 'Resting HR (bpm)', value: recovery.rhr != null ? String(recovery.rhr) : null, bar: recovery.rhr != null ? Math.min(100, Math.round((60 / recovery.rhr) * 100)) : 0, color: 'from-blue-500 to-indigo-400' },
+                    { label: 'Sleep', value: recovery.sleepHours != null ? `${recovery.sleepHours}h` : null, bar: recovery.sleepHours != null ? Math.min(100, Math.round((recovery.sleepHours / 8) * 100)) : 0, color: 'from-blue-500 to-purple-400' },
+                  ].map((item, idx) => (
+                    <div key={idx}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-gray-300">{item.label}</span>
+                        {item.value != null ? (<span className="text-sm font-bold text-white">{item.value}</span>) : (<span className="text-sm text-gray-500 italic">No data</span>)}
+                      </div>
+                      <div className="w-full bg-white/5 rounded-full h-1.5">
+                        <div className={`bg-gradient-to-r ${item.color} h-1.5 rounded-full transition-all duration-700`} style={{width: `${item.bar}%`}} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-gray-500 italic">No recovery data</p>
+                  <p className="text-xs text-gray-400 mt-1">{dataSources.whoop?.connected ? 'Hit Sync to fetch latest WHOOP data' : 'Connect WHOOP to track recovery'}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* SUMMARY STATS */}
+          <div className="glass-card rounded-2xl p-6">
+            <h3 className="text-base font-bold text-white mb-3">Summary</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: 'Total Workouts', value: data.stats?.totalWorkouts, icon: '\u{1F4AA}', source: dataSources.strava?.connected ? 'strava' : null },
+                { label: 'Calories Burned', value: data.stats?.caloriesBurned, icon: '\u{1F525}', source: dataSources.strava?.connected ? 'strava' : null },
+                { label: 'Distance (mi)', value: data.stats?.distance, icon: '\u{1F3C3}', source: dataSources.strava?.connected ? 'strava' : null },
+                { label: 'Recovery Score', value: data.stats?.recoveryScore != null ? `${data.stats.recoveryScore}%` : null, icon: '\u{2764}', source: dataSources.whoop?.connected ? 'whoop' : null },
+              ].map((stat, idx) => (
+                <div key={idx} className="bg-white/5 rounded-xl p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-lg">{stat.icon}</span>
+                    <SourceBadge source={stat.source} />
+                  </div>
+                  {stat.value != null ? (<p className="text-xl font-bold text-white">{stat.value}</p>) : (<p className="text-sm text-gray-500 italic">No data</p>)}
+                  <p className="text-xs text-gray-400">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* RECENT ACTIVITIES */}
+          <div className="glass-card rounded-2xl p-6">
+            <h2 className="text-lg font-bold text-white mb-4">Recent Activities</h2>
+            {data.recentActivities && data.recentActivities.length > 0 ? (
+              <div className="space-y-2">
+                {data.recentActivities.map((activity, idx) => (
+                  <div key={idx} className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold ${activity.platform === 'strava' ? 'bg-orange-500' : activity.platform === 'whoop' ? 'bg-teal-500' : 'bg-gray-600'}`}>
+                      {(activity.type || activity.sport || '??').substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-white text-sm truncate">{activity.name}</p>
+                        <SourceBadge source={activity.platform} />
+                      </div>
+                      <p className="text-xs text-gray-400">{activity.distance > 0 ? `${activity.distance}km \u00B7 ` : ''}{activity.duration} min</p>
+                    </div>
+                    <p className="text-xs text-gray-500 whitespace-nowrap">{activity.timeAgo}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500 italic">No activities recorded</p>
+                <p className="text-xs text-gray-400 mt-1">Connect integrations and sync, or log a workout manually</p>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    // Workouts Page
+    const WorkoutsPage = () => {
+      const [workoutsData, setWorkoutsData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+      const [tab, setTab] = useState('history');
+
+      useEffect(() => {
+        const fetchWorkouts = async () => {
+          try {
+            const res = await fetch('/api/workouts');
+            if (!res.ok) throw new Error('Failed to fetch workouts');
+            const data = await res.json();
+            setWorkoutsData(data);
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchWorkouts();
+      }, []);
+
+      if (loading) {
+        return (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="spinner" />
+          </div>
+        );
+      }
+
+      if (error) {
+        return (
+          <div className="p-4 bg-red-900/30 border border-red-500/30 text-red-300 rounded">
+            Error: {error}
+          </div>
+        );
+      }
+
+      const data = workoutsData || {};
+
+      return (
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-white">Workout Log</h1>
+            <button onClick={() => alert('Workout logging coming soon! Track your workouts in the History tab.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
+              <Icons.Plus /> Start Workout
+            </button>
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { label: 'This Week', value: data.thisWeek || '7', icon: Icons.Activity },
+              { label: 'Total Time', value: data.totalTime || '420 min', icon: Icons.Clock },
+              { label: 'Avg Intensity', value: data.avgIntensity || 'High', icon: Icons.Zap },
+            ].map((stat, idx) => (
+              <div key={idx} className="glass-card rounded-xl p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 text-sm font-medium">{stat.label}</p>
+                  <p className="text-2xl font-bold text-white">{stat.value}</p>
+                </div>
+                <div className="text-primary-600">
+                  <stat.icon />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-4 border-b border-white/10">
+            <button
+              onClick={() => setTab('history')}
+              className={`px-4 py-2 font-medium ${
+                tab === 'history'
+                  ? 'text-primary-600 border-b-2 border-primary-600'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              History
+            </button>
+            <button
+              onClick={() => setTab('templates')}
+              className={`px-4 py-2 font-medium ${
+                tab === 'templates'
+                  ? 'text-primary-600 border-b-2 border-primary-600'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Templates
+            </button>
+          </div>
+
+          {/* History Tab */}
+          {tab === 'history' && (
+            <div className="space-y-4">
+              {(data.workoutHistory || []).map((workout, idx) => (
+                <div key={idx} className="glass-card rounded-xl p-4">
+                  <div className="flex items-start gap-4">
+                    <div className="text-primary-600 mt-1">
+                      <Icons.Activity />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-bold text-white">{workout.name}</h3>
+                        <span className="text-xs text-gray-400">{workout.date}</span>
+                      </div>
+                      <p className="text-sm text-gray-400 mb-3">{workout.duration} min • RPE: {workout.rpe}</p>
+                      {workout.notes && <p className="text-sm text-gray-300 mb-2">{workout.notes}</p>}
+                      <div className="flex gap-2">
+                        <span className="bg-blue-100 text-primary-600 text-xs px-2 py-1 rounded">
+                          {workout.type}
+                        </span>
+                      </div>
+                      {workout.coachFeedback && (
+                        <div className="mt-3 bg-blue-500/10 border-l-4 border-primary-600 p-3">
+                          <p className="text-xs font-medium text-primary-600 mb-1">Coach Feedback</p>
+                          <p className="text-sm text-gray-300">{workout.coachFeedback}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Templates Tab */}
+          {tab === 'templates' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {(data.templates || []).map((template, idx) => (
+                <div key={idx} className="glass-card rounded-xl p-4 cursor-pointer hover:shadow-lg transition">
+                  <h3 className="font-bold text-white mb-2">{template.name}</h3>
+                  <p className="text-sm text-gray-400 mb-3">{template.duration} min</p>
+                  <p className="text-xs text-gray-400 mb-3">{template.description}</p>
+                  <button onClick={() => alert(`Starting ${template.name}! Workout timer will begin shortly.`)} className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+                    Start
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // Reports Page
+    const ReportsPage = () => {
+      const [reportsData, setReportsData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+      const [timeRange, setTimeRange] = useState('7days');
+
+      useEffect(() => {
+        const fetchReports = async () => {
+          try {
+            const res = await fetch(`/api/reports?range=${timeRange}`);
+            if (!res.ok) throw new Error('Failed to fetch reports');
+            const data = await res.json();
+            setReportsData(data);
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchReports();
+      }, [timeRange]);
+
+      if (loading) {
+        return (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="spinner" />
+          </div>
+        );
+      }
+
+      if (error) {
+        return (
+          <div className="p-4 bg-red-900/30 border border-red-500/30 text-red-300 rounded">
+            Error: {error}
+          </div>
+        );
+      }
+
+      const data = reportsData || {};
+
+      const renderGauge = (score, label, status) => {
+        const color = score >= 75 ? '#10B981' : score >= 65 ? '#FBBF24' : '#EF4444';
+        const cx = 70, cy = 70, r = 60, thickness = 15;
+        const innerR = r - thickness;
+        const pct = Math.min(100, Math.max(0, score)) / 100;
+        const describeArc = (startDeg, endDeg, outerR, innerRadius) => {
+          const toRad = (d) => (d * Math.PI) / 180;
+          const sx = cx + outerR * Math.cos(toRad(startDeg));
+          const sy = cy - outerR * Math.sin(toRad(startDeg));
+          const ex = cx + outerR * Math.cos(toRad(endDeg));
+          const ey = cy - outerR * Math.sin(toRad(endDeg));
+          const ix = cx + innerRadius * Math.cos(toRad(endDeg));
+          const iy = cy - innerRadius * Math.sin(toRad(endDeg));
+          const isx = cx + innerRadius * Math.cos(toRad(startDeg));
+          const isy = cy - innerRadius * Math.sin(toRad(startDeg));
+          const sweep = startDeg - endDeg;
+          const largeArc = sweep > 180 ? 1 : 0;
+          return [
+            `M ${sx} ${sy}`,
+            `A ${outerR} ${outerR} 0 ${largeArc} 1 ${ex} ${ey}`,
+            `L ${ix} ${iy}`,
+            `A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${isx} ${isy}`,
+            'Z'
+          ].join(' ');
+        };
+        const bgPath = describeArc(180, 0, r, innerR);
+        const endAngle = 180 - (pct * 180);
+        const valuePath = pct > 0 ? describeArc(180, Math.max(0, endAngle), r, innerR) : '';
+
+        return (
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex flex-col items-center">
+              <div style={{ position: 'relative', width: 140, height: 80 }}>
+                <svg width="140" height="80" viewBox="0 0 140 80">
+                  <path d={bgPath} fill="#e5e7eb" />
+                  {pct > 0 && <path d={valuePath} fill={color} />}
+                </svg>
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, textAlign: 'center' }}>
+                  <span className="text-3xl font-bold text-white">{score}</span>
+                </div>
+              </div>
+              <span className="text-sm font-medium text-gray-400 mt-1">{label}</span>
+              {status && (
+                <span className="mt-2 bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded">
+                  {status}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      };
+
+      return (
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-white">Reports</h1>
+            <div className="flex gap-4">
+              <select
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value)}
+                className="px-4 py-2 border border-white/10 rounded-lg bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="7days">Last 7 Days</option>
+                <option value="30days">Last 30 Days</option>
+                <option value="90days">Last 90 Days</option>
+              </select>
+              <button onClick={() => alert('AI Report generated! Check the summary below for your latest insights.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+                Generate AI Report
+              </button>
+            </div>
+          </div>
+
+          {/* Score Gauges */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {renderGauge(data.overallScore || 82, 'Overall', 'On Track')}
+            {renderGauge(data.exerciseScore || 88, 'Exercise', null)}
+            {renderGauge(data.recoveryScore || 75, 'Recovery', null)}
+            {renderGauge(data.nutritionScore || 72, 'Nutrition', null)}
+          </div>
+
+          {/* AI Performance Summary */}
+          <div className="glass-card rounded-2xl p-6">
+            <h2 className="text-xl font-bold text-white mb-2">AI Performance Summary</h2>
+            <p className="text-xs text-gray-400 mb-4">Generated {data.generatedDate || 'today'}</p>
+            <p className="text-gray-300 leading-relaxed">{data.summary || 'Your fitness performance is excellent this week. You maintained consistency across all metrics with a strong focus on recovery and nutrition. Continue this momentum for optimal results.'}</p>
+          </div>
+
+          {/* Weekly Highlights and Focus Areas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Highlights */}
+            <div className="glass-card rounded-2xl p-6">
+              <h2 className="text-xl font-bold text-white mb-4">Weekly Highlights</h2>
+              <ul className="space-y-3">
+                {(data.highlights || []).map((highlight, idx) => (
+                  <li key={idx} className="flex items-start gap-3">
+                    <div className="text-green-600 mt-1 flex-shrink-0">
+                      <Icons.Check />
+                    </div>
+                    <span className="text-gray-300">{highlight}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Areas to Focus */}
+            <div className="glass-card rounded-2xl p-6">
+              <h2 className="text-xl font-bold text-white mb-4">Areas to Focus On</h2>
+              <ul className="space-y-3">
+                {(data.focusAreas || []).map((area, idx) => (
+                  <li key={idx} className="flex items-start gap-3">
+                    <div className="text-yellow-600 mt-1 flex-shrink-0">
+                      <Icons.AlertTriangle />
+                    </div>
+                    <span className="text-gray-300">{area}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // Goals Page
+    const GoalsPage = () => {
+      const [goalsData, setGoalsData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+
+      useEffect(() => {
+        const fetchGoals = async () => {
+          try {
+            const res = await fetch('/api/goals');
+            if (!res.ok) throw new Error('Failed to fetch goals');
+            const data = await res.json();
+            setGoalsData(data);
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchGoals();
+      }, []);
+
+      if (loading) {
+        return (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="spinner" />
+          </div>
+        );
+      }
+
+      if (error) {
+        return (
+          <div className="p-4 bg-red-900/30 border border-red-500/30 text-red-300 rounded">
+            Error: {error}
+          </div>
+        );
+      }
+
+      const data = goalsData || {};
+
+      return (
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-white">Goals</h1>
+            <button onClick={() => alert('Goal creation coming soon! You can track your existing goals below.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
+              <Icons.Plus /> New Goal
+            </button>
+          </div>
+
+          {/* Goals Cards */}
+          <div className="space-y-4">
+            {(data.goals || []).map((goal, idx) => {
+              const current = goal.current_value || 0;
+              const target = goal.target_value || 1;
+              const isLowerBetter = goal.type === 'weight' || (goal.name && goal.name.toLowerCase().includes('loss'));
+              let pct;
+              if (isLowerBetter) {
+                pct = current <= target ? 100 : Math.max(0, Math.min(99, Math.round((1 - (current - target) / target) * 100)));
+              } else {
+                pct = Math.min(100, Math.round((current / target) * 100));
+              }
+
+              const progressColor =
+                pct >= 75
+                  ? 'bg-green-600'
+                  : pct >= 50
+                  ? 'bg-yellow-600'
+                  : 'bg-red-600';
+
+              const statusColor =
+                goal.status === 'completed'
+                  ? 'bg-green-500/20 text-green-400'
+                  : goal.status === 'active'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-gray-100 text-gray-300';
+
+              const statusLabel = goal.status === 'active' ? 'In Progress' : goal.status === 'completed' ? 'Completed' : goal.status;
+
+              return (
+                <div key={idx} className="glass-card rounded-2xl p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start gap-4">
+                      <div className="text-primary-600 text-2xl">
+                        <Icons.Target />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-white">{goal.name}</h3>
+                        <p className="text-sm text-gray-400">{target} {goal.unit || ''}</p>
+                      </div>
+                    </div>
+                    <span className={`text-xs font-semibold px-3 py-1 rounded-full ${statusColor}`}>
+                      {statusLabel}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-400">Progress</span>
+                        <span className="text-sm font-medium text-white">{pct}%</span>
+                      </div>
+                      <div className="w-full bg-white/10 rounded-full h-3">
+                        <div className={`${progressColor} h-3 rounded-full`} style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-400">
+                        {current} / {target} {goal.unit || ''}
+                      </span>
+                      <button onClick={() => alert('Progress updated! Your goal tracking is being synced.')} className="text-primary-600 hover:text-primary-700 text-sm font-semibold">
+                        Update Progress
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    };
+
+    // Groups Page
+    const GroupsPage = () => {
+      const [groupsData, setGroupsData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+      const [tab, setTab] = useState('competitions');
+
+      useEffect(() => {
+        const fetchGroups = async () => {
+          try {
+            const res = await fetch(`/api/groups?tab=${tab}`);
+            if (!res.ok) throw new Error('Failed to fetch groups');
+            const data = await res.json();
+            setGroupsData(data);
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchGroups();
+      }, [tab]);
+
+      if (loading) {
+        return (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="spinner" />
+          </div>
+        );
+      }
+
+      if (error) {
+        return (
+          <div className="p-4 bg-red-900/30 border border-red-500/30 text-red-300 rounded">
+            Error: {error}
+          </div>
+        );
+      }
+
+      const data = groupsData || {};
+
+      return (
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-white">Groups & Challenges</h1>
+            <div className="flex gap-2">
+              <button onClick={() => alert('Enter a group code to join! This feature is coming soon.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+                Join with Code
+              </button>
+              <button onClick={() => alert('Group creation coming soon! Create challenges and compete with friends.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+                Create Group
+              </button>
+            </div>
+          </div>
+
+          {/* Tab Bar */}
+          <div className="flex gap-4 border-b border-white/10">
+            {['competitions', 'leaderboard', 'mygroups', 'discover'].map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`px-4 py-2 font-medium capitalize ${
+                  tab === t
+                    ? 'text-primary-600 border-b-2 border-primary-600'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {t === 'mygroups' ? 'My Groups' : t}
+              </button>
+            ))}
+          </div>
+
+          {/* Competitions / Content */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {(data.items || []).map((item, idx) => (
+              <div key={idx} className="glass-card rounded-2xl p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-white">{item.name}</h3>
+                    <p className="text-sm text-gray-400 mt-1">{item.description}</p>
+                  </div>
+                  {item.badge && (
+                    <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-full font-semibold">
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+
+                {item.daysLeft && (
+                  <p className="text-xs text-gray-400 mb-3">{item.daysLeft} days left</p>
+                )}
+
+                {item.goal && <p className="text-sm text-gray-300 mb-4">{item.goal}</p>}
+
+                {/* Leaderboard */}
+                {item.leaderboard && (
+                  <div className="space-y-2 mb-4">
+                    {item.leaderboard.slice(0, 3).map((entry, i) => (
+                      <div key={i} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
+                        <div className="w-6 text-center">
+                          {i === 0 && <Icons.Trophy className="text-yellow-500" />}
+                          {i === 1 && <Icons.Medal className="text-gray-400" />}
+                          {i === 2 && <Icons.Medal className="text-orange-400" />}
+                          {i > 2 && <span className="text-xs font-bold">{i + 1}</span>}
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-primary-600 text-white text-xs font-bold flex items-center justify-center">
+                          {entry.initials}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-white">{entry.name}</p>
+                          <div className="w-full bg-white/10 rounded-full h-1 mt-1">
+                            <div
+                              className="bg-primary-600 h-1 rounded-full"
+                              style={{ width: `${entry.progress}%` }}
+                            />
+                          </div>
+                        </div>
+                        <span className="text-xs font-semibold text-gray-400">{entry.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button onClick={() => setTab('leaderboard')} className="w-full text-primary-600 hover:text-primary-700 font-semibold text-sm">
+                  View Full Leaderboard →
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    // Feed Page
+    const FeedPage = () => {
+      const [feedData, setFeedData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+      const [filter, setFilter] = useState('all');
+
+      useEffect(() => {
+        const fetchFeed = async () => {
+          try {
+            const res = await fetch(`/api/feed?filter=${filter}`);
+            if (!res.ok) throw new Error('Failed to fetch feed');
+            const data = await res.json();
+            setFeedData(data);
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchFeed();
+      }, [filter]);
+
+      if (loading) {
+        return (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="spinner" />
+          </div>
+        );
+      }
+
+      if (error) {
+        return (
+          <div className="p-4 bg-red-900/30 border border-red-500/30 text-red-300 rounded">
+            Error: {error}
+          </div>
+        );
+      }
+
+      const data = feedData || {};
+
+      const badgeColor = (type) => {
+        switch (type) {
+          case 'Achievement':
+            return 'bg-yellow-100 text-yellow-700';
+          case 'Workout':
+            return 'bg-green-500/20 text-green-400';
+          default:
+            return 'bg-blue-100 text-blue-700';
+        }
+      };
+
+      return (
+        <div className="max-w-2xl mx-auto space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-white">Activity Feed</h1>
+            <button onClick={() => alert('Post sharing coming soon! Share your achievements with the community.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
+              <Icons.Plus /> Post Update
+            </button>
+          </div>
+
+          {/* Filter Tabs */}
+          <div className="flex gap-2 overflow-x-auto">
+            {['all', 'workouts', 'achievements', 'goals', 'challenges'].map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-4 py-2 rounded-full font-medium whitespace-nowrap capitalize ${
+                  filter === f
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-gray-100 text-gray-300 hover:bg-white/10'
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+
+          {/* Feed Items */}
+          <div className="space-y-4">
+            {(data.items || []).map((item, idx) => (
+              <div key={idx} className="glass-card rounded-2xl p-6">
+                <div className="flex items-start gap-4 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-primary-600 text-white text-sm font-bold flex items-center justify-center">
+                    {item.initials}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-white">{item.name}</p>
+                      <span className={`text-xs font-semibold px-2 py-1 rounded ${badgeColor(item.type)}`}>
+                        {item.type}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-400">{item.date}</p>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <h3 className="font-bold text-white mb-1">{item.title}</h3>
+                  <p className="text-gray-300">{item.description}</p>
+                </div>
+
+                <div className="flex items-center gap-4 pt-4 border-t border-white/10">
+                  <button onClick={(e) => { const btn = e.currentTarget; const span = btn.querySelector('span'); const current = parseInt(span.textContent); span.textContent = current + 1; btn.classList.add('text-red-600'); btn.classList.remove('text-gray-400'); }} className="flex items-center gap-2 text-gray-400 hover:text-red-600 transition">
+                    <Icons.Heart />
+                    <span className="text-xs">{item.likes}</span>
+                  </button>
+                  <button onClick={() => alert('Comments coming soon!')} className="flex items-center gap-2 text-gray-400 hover:text-primary-600 transition">
+                    <Icons.MessageCircle />
+                    <span className="text-xs">{item.comments}</span>
+                  </button>
+                  <button onClick={() => { navigator.clipboard && navigator.clipboard.writeText(window.location.href); alert('Link copied to clipboard!'); }} className="flex items-center gap-2 text-gray-400 hover:text-primary-600 transition">
+                    <Icons.Share2 />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    // Analyze Page
+    const AnalyzePage = () => {
+      const [dashData, setDashData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+      const [refreshing, setRefreshing] = useState(false);
+
+      const fetchData = async () => {
+        try {
+          const res = await fetch('/api/dashboard');
+          if (!res.ok) throw new Error('Failed to fetch data');
+          const data = await res.json();
+          console.log('[Analyze] Dashboard data:', data);
+          setDashData(data);
+        } catch (err) {
+          console.error('[Analyze] Fetch error:', err);
+          setError(err.message);
+        } finally { setLoading(false); }
+      };
+
+      const handleRefresh = async () => {
+        setRefreshing(true);
+        const platforms = (dashData?.connectedPlatforms || []).map(p => p.platform);
+        for (const p of platforms) { try { await fetch(`/api/sync/${p}`, { method: 'POST' }); } catch(e) {} }
+        await fetchData();
+        setRefreshing(false);
+      };
+
+      useEffect(() => { fetchData(); }, []);
+
+      const SourceBadge = ({ source }) => {
+        if (!source) return null;
+        const configs = { strava: { bg: 'bg-orange-500/20', text: 'text-orange-400', label: 'Strava' }, whoop: { bg: 'bg-teal-500/20', text: 'text-teal-400', label: 'WHOOP' }, manual: { bg: 'bg-gray-500/20', text: 'text-gray-400', label: 'Manual' } };
+        const cfg = configs[source] || configs.manual;
+        return (<span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${cfg.bg} ${cfg.text}`}>{cfg.label}</span>);
+      };
+
+      if (loading) { return (<div className="flex items-center justify-center min-h-[60vh]"><div className="spinner" style={{width:40,height:40,borderWidth:4}} /></div>); }
+      if (error) { return (<div className="p-4 bg-red-900/30 border border-red-500/30 text-red-300 rounded-xl">Error: {error}</div>); }
+
+      const data = dashData || {};
+      const recovery = data.recovery || {};
+      const dataSources = data.dataSources || {};
+      const hasWhoop = dataSources.whoop?.connected;
+      const hasStrava = dataSources.strava?.connected;
+      const hasAnyData = (dataSources.whoop?.dataCount > 0) || (dataSources.strava?.dataCount > 0);
+      const activities = data.recentActivities || [];
+      const stravaActs = activities.filter(a => a.platform === 'strava');
+
+      // Recovery trend
+      const recoveryTrend = data.trends && data.trends.length > 0
+        ? data.trends.map(t => { const d = t.date ? new Date(t.date) : null; return { name: d ? d.toLocaleDateString('en-US', {month:'short', day:'numeric'}) : t.date, score: t.recovery_score }; }).reverse()
+        : null;
+
+      // Sample AI insights based on real data
+      const sampleInsights = {
+        summary: recovery.percentage != null
+          ? `Your current recovery score is ${recovery.percentage}%, which is ${recovery.percentage >= 80 ? 'excellent' : recovery.percentage >= 60 ? 'moderate' : 'below optimal'}. ${stravaActs.length > 0 ? `You have ${stravaActs.length} recent Strava activities logged.` : 'No recent Strava activities found.'} ${recovery.hrv ? `Your HRV of ${Math.round(recovery.hrv)}ms ${recovery.hrv > 50 ? 'indicates good autonomic balance.' : 'suggests room for improvement in recovery.'}` : ''}`
+          : hasAnyData ? `You have ${dataSources.strava?.dataCount || 0} Strava activities and ${dataSources.whoop?.dataCount || 0} WHOOP data points. Sync your integrations for more detailed analysis.`
+          : 'No fitness data available yet. Connect WHOOP or Strava in Settings to start receiving AI-powered insights.',
+        trends: [
+          recovery.percentage != null && recovery.percentage >= 70 ? 'Recovery scores are trending in a healthy range. Your body is responding well to your current training load.' : recovery.percentage != null ? 'Recovery scores are on the lower side. Consider reducing training intensity and prioritizing sleep.' : null,
+          stravaActs.length >= 3 ? `You have been consistently active with ${stravaActs.length} recent workouts. Maintain this frequency for optimal results.` : stravaActs.length > 0 ? 'Activity frequency is low. Aim for at least 3-4 workouts per week for cardiovascular health.' : null,
+          recovery.hrv != null ? `HRV at ${Math.round(recovery.hrv)}ms \u2014 ${recovery.hrv > 60 ? 'this is a strong indicator of good recovery and readiness for high-intensity training.' : recovery.hrv > 40 ? 'this is within normal range. Monitor for changes over the next few days.' : 'this is below typical ranges. Prioritize rest, hydration, and stress management.'}` : null,
+          recovery.sleepHours != null ? `Sleep duration of ${recovery.sleepHours}h \u2014 ${recovery.sleepHours >= 7.5 ? 'excellent! You are meeting recommended sleep targets.' : recovery.sleepHours >= 6 ? 'adequate, but aim for 7-9 hours for optimal recovery.' : 'insufficient. Poor sleep significantly impairs recovery and performance.'}` : null,
+        ].filter(Boolean),
+        recommendations: [
+          recovery.percentage != null && recovery.percentage >= 80 ? 'Your recovery is strong \u2014 today is a great day for high-intensity training or a challenging workout.' : recovery.percentage != null && recovery.percentage >= 50 ? 'Consider a moderate-intensity session today. Save high-intensity work for better recovery days.' : recovery.percentage != null ? 'Active recovery recommended: light walking, stretching, or yoga. Avoid intense training.' : null,
+          recovery.sleepHours != null && recovery.sleepHours < 7 ? 'Prioritize sleep: aim to get to bed 30 minutes earlier tonight. Sleep is your #1 recovery tool.' : null,
+          'Stay hydrated: aim for at least 2.5-3L of water daily, especially on active days.',
+        ].filter(Boolean),
+        alerts: [
+          recovery.percentage != null && recovery.percentage < 50 ? { level: 'warning', message: 'Low recovery detected. Overtraining risk is elevated. Consider taking a rest day.' } : null,
+          recovery.rhr != null && recovery.rhr > 70 ? { level: 'info', message: `Resting heart rate of ${recovery.rhr}bpm is higher than typical. Monitor for illness or stress.` } : null,
+          recovery.sleepHours != null && recovery.sleepHours < 6 ? { level: 'warning', message: 'Significant sleep deficit detected. This will impair recovery and cognitive function.' } : null,
+        ].filter(Boolean),
+      };
+
+      return (
+        <div className="space-y-6 animate-fade-in">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-extrabold gradient-text">AI Analysis</h1>
+              <p className="text-gray-400 text-sm mt-1">Data-driven insights from your connected integrations</p>
+            </div>
+            <button onClick={handleRefresh} disabled={refreshing} className="bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2 disabled:opacity-50">
+              <Icons.RefreshCw className={refreshing ? 'animate-spin' : ''} /> {refreshing ? 'Refreshing...' : 'Refresh Insights'}
+            </button>
+          </div>
+
+          {/* Sample insights disclaimer */}
+          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-2">
+            <span className="text-yellow-400 text-lg">{'\u26A0'}</span>
+            <div>
+              <p className="text-yellow-300 text-sm font-medium">Sample Insights {'\u2014'} Connect API key for live AI analysis</p>
+              <p className="text-yellow-400/70 text-xs mt-0.5">These insights are generated from templates based on your real data. Set the ANTHROPIC_API_KEY environment variable to enable Claude-powered analysis.</p>
+            </div>
+          </div>
+
+          {/* Data Sources */}
+          <div className="glass-card rounded-2xl p-6">
+            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Icons.Link2 className="w-5 h-5" /> Data Sources</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {[
+                { name: 'WHOOP', connected: hasWhoop, count: dataSources.whoop?.dataCount || 0, color: 'teal' },
+                { name: 'Strava', connected: hasStrava, count: dataSources.strava?.dataCount || 0, color: 'orange' },
+                { name: 'MyFitnessPal', connected: false, count: 0, color: 'red' },
+                { name: 'Garmin', connected: false, count: 0, color: 'blue' },
+              ].map((src, idx) => (
+                <div key={idx} className={`rounded-xl p-4 border ${src.connected ? `bg-${src.color}-500/10 border-${src.color}-500/20` : 'bg-white/5 border-white/10'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-bold text-white">{src.name}</span>
+                    {src.connected ? (<span className="w-2 h-2 rounded-full bg-green-400" />) : (<span className="w-2 h-2 rounded-full bg-gray-600" />)}
+                  </div>
+                  <p className={`text-xs ${src.connected ? 'text-green-400' : 'text-gray-500'}`}>{src.connected ? `${src.count} data points` : 'Not connected'}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* WHOOP + Strava Data sections */}
+          {hasAnyData && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {hasWhoop && (
+                <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #14b8a6'}}>
+                  <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">WHOOP Data <SourceBadge source="whoop" /></h3>
+                  <div className="space-y-3">
+                    {[
+                      { label: 'Recovery Score', value: recovery.percentage != null ? `${recovery.percentage}%` : null },
+                      { label: 'HRV', value: recovery.hrv != null ? `${Math.round(recovery.hrv)} ms` : null },
+                      { label: 'Resting Heart Rate', value: recovery.rhr != null ? `${recovery.rhr} bpm` : null },
+                      { label: 'Sleep Duration', value: recovery.sleepHours != null ? `${recovery.sleepHours} hours` : null },
+                      { label: 'Strain', value: data.stepsStrain?.strain != null ? String(Math.round(data.stepsStrain.strain * 10) / 10) : null },
+                    ].map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                        <span className="text-sm text-gray-300">{item.label}</span>
+                        {item.value != null ? (<span className="text-sm font-bold text-white">{item.value}</span>) : (<span className="text-sm text-gray-500 italic">No data</span>)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {hasStrava && (
+                <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #f97316'}}>
+                  <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">Strava Data <SourceBadge source="strava" /></h3>
+                  <div className="space-y-3">
+                    {[
+                      { label: 'Total Workouts', value: data.stats?.totalWorkouts != null ? String(data.stats.totalWorkouts) : null },
+                      { label: 'Total Distance', value: data.stats?.distance != null ? `${data.stats.distance} mi` : null },
+                      { label: 'Calories Burned', value: data.stats?.caloriesBurned != null ? String(data.stats.caloriesBurned) : null },
+                    ].map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                        <span className="text-sm text-gray-300">{item.label}</span>
+                        {item.value != null ? (<span className="text-sm font-bold text-white">{item.value}</span>) : (<span className="text-sm text-gray-500 italic">No data</span>)}
+                      </div>
+                    ))}
+                  </div>
+                  {stravaActs.length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-xs text-gray-400 mb-2 uppercase font-semibold tracking-wider">Recent Activities</p>
+                      {stravaActs.slice(0, 5).map((act, idx) => (
+                        <div key={idx} className="flex items-center justify-between py-1.5 text-xs">
+                          <span className="text-gray-300">{act.name}</span>
+                          <span className="text-white font-medium">{act.distance > 0 ? `${act.distance}km` : ''} {act.duration}min</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Recovery Trend Chart */}
+          {recoveryTrend && recoveryTrend.length > 0 && (
+            <div className="glass-card rounded-2xl p-6">
+              <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">Recovery Trend <SourceBadge source="whoop" /></h2>
+              <ResponsiveContainer width="100%" height={250}>
+                <AreaChart data={recoveryTrend}>
+                  <defs><linearGradient id="analyzeRecovery" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#14b8a6" stopOpacity={0.3} /><stop offset="95%" stopColor="#14b8a6" stopOpacity={0} /></linearGradient></defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="name" stroke="#64748b" tick={{fontSize:11}} />
+                  <YAxis stroke="#64748b" tick={{fontSize:11}} domain={[0, 100]} />
+                  <Tooltip contentStyle={{backgroundColor:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', color:'#fff'}} />
+                  <Area type="monotone" dataKey="score" name="Recovery %" stroke="#14b8a6" fillOpacity={1} fill="url(#analyzeRecovery)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* AI INSIGHTS */}
+          <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #8b5cf6'}}>
+            <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><span className="text-xl">{'\u{1F4CA}'}</span> Performance Summary</h2>
+            <p className="text-gray-300 text-sm leading-relaxed">{sampleInsights.summary}</p>
+          </div>
+
+          {sampleInsights.trends.length > 0 && (
+            <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #3b82f6'}}>
+              <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><span className="text-xl">{'\u{1F4C8}'}</span> Trends & Patterns</h2>
+              <div className="space-y-3">
+                {sampleInsights.trends.map((trend, idx) => (
+                  <div key={idx} className="flex items-start gap-3"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2 flex-shrink-0" /><p className="text-gray-300 text-sm">{trend}</p></div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {sampleInsights.recommendations.length > 0 && (
+            <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #22c55e'}}>
+              <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><span className="text-xl">{'\u{1F4A1}'}</span> Recommendations</h2>
+              <div className="space-y-3">
+                {sampleInsights.recommendations.map((rec, idx) => (
+                  <div key={idx} className="flex items-start gap-3 bg-green-500/5 rounded-lg p-3"><span className="text-green-400 font-bold text-sm">{idx + 1}.</span><p className="text-gray-300 text-sm">{rec}</p></div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {sampleInsights.alerts.length > 0 && (
+            <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #ef4444'}}>
+              <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><span className="text-xl">{'\u{1F6A8}'}</span> Alerts</h2>
+              <div className="space-y-3">
+                {sampleInsights.alerts.map((alert, idx) => (
+                  <div key={idx} className={`flex items-start gap-3 rounded-lg p-3 ${alert.level === 'warning' ? 'bg-red-500/10 border border-red-500/20' : 'bg-yellow-500/10 border border-yellow-500/20'}`}>
+                    <span className={alert.level === 'warning' ? 'text-red-400' : 'text-yellow-400'}>{'\u26A0'}</span>
+                    <p className={`text-sm ${alert.level === 'warning' ? 'text-red-300' : 'text-yellow-300'}`}>{alert.message}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* No data state */}
+          {!hasAnyData && (
+            <div className="glass-card rounded-2xl p-12 text-center">
+              <span className="text-4xl mb-4 block">{'\u{1F4CA}'}</span>
+              <h3 className="text-xl font-bold text-white mb-2">No Data to Analyze</h3>
+              <p className="text-gray-400 text-sm max-w-md mx-auto">Connect your fitness platforms (WHOOP, Strava) in Settings to start receiving AI-powered analysis of your training, recovery, and performance trends.</p>
+              <button onClick={() => window.location.hash = '#/settings'} className="mt-4 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold py-2 px-6 rounded-lg transition">Go to Settings</button>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // Settings Page
+    const SettingsPage = () => {
+      const [settingsData, setSettingsData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+      const [tab, setTab] = useState('integrations');
+
+      const [oauthMessage, setOauthMessage] = useState('');
+      const [filterCat, setFilterCat] = useState('All');
+      const [theme, setTheme] = useState('Light');
+      const [layout, setLayout] = useState('Standard');
+      const [units, setUnits] = useState('Imperial');
+      const [notifs, setNotifs] = useState({ 0: true, 1: true, 2: true, 3: false, 4: true });
+
+      useEffect(() => {
+        // Check for OAuth callback params
+        const params = new URLSearchParams(window.location.search);
+        const oauthSuccess = params.get('oauth_success');
+        const oauthError = params.get('oauth_error');
+        if (oauthSuccess) {
+          setOauthMessage(`Successfully connected ${oauthSuccess}!`);
+          // Clean up URL
+          window.history.replaceState({}, '', '/');
+        }
+        if (oauthError) {
+          setOauthMessage(`OAuth error: ${oauthError}`);
+          window.history.replaceState({}, '', '/');
+        }
+
+        const fetchSettings = async () => {
+          try {
+            const res = await fetch('/api/settings');
+            if (!res.ok) throw new Error('Failed to fetch settings');
+            const data = await res.json();
+            setSettingsData(data);
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchSettings();
+      }, []);
+
+      const handleConnect = async (platform) => {
+        try {
+          const res = await fetch(`/api/integrations/${platform}/connect`, {
+            method: 'POST',
+          });
+          if (res.ok) {
+            const result = await res.json();
+            // If server returns a redirect URL (real OAuth), navigate to it
+            if (result.redirect) {
+              window.location.href = result.redirect;
+              return;
+            }
+            // Otherwise refresh settings (mock connect)
+            const res2 = await fetch('/api/settings');
+            if (res2.ok) {
+              const data = await res2.json();
+              setSettingsData(data);
+            }
+          }
+        } catch (err) {
+          console.error('Connect failed:', err);
+        }
+      };
+
+      const handleDisconnect = async (platform) => {
+        try {
+          const res = await fetch(`/api/integrations/${platform}`, {
+            method: 'DELETE',
+          });
+          if (res.ok) {
+            // Refresh settings
+            const res2 = await fetch('/api/settings');
+            if (res2.ok) {
+              const data = await res2.json();
+              setSettingsData(data);
+            }
+          }
+        } catch (err) {
+          console.error('Disconnect failed:', err);
+        }
+      };
+
+      if (loading) {
+        return (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="spinner" />
+          </div>
+        );
+      }
+
+      if (error) {
+        return (
+          <div className="p-4 bg-red-900/30 border border-red-500/30 text-red-300 rounded">
+            Error: {error}
+          </div>
+        );
+      }
+
+      const data = settingsData || {};
+
+      const platformInfo = {
+        strava: { name: 'Strava', color: 'bg-orange-100', textColor: 'text-orange-600', category: 'Activity Tracking', badge: 'Connected', badgeColor: 'bg-green-500/20 text-green-400', lastSync: '2 hours ago' },
+        whoop: { name: 'WHOOP', color: 'bg-teal-100', textColor: 'text-teal-600', category: 'Recovery & Sleep', badge: 'Premium', badgeColor: 'bg-purple-100 text-purple-700' },
+        garmin: { name: 'Garmin Connect', color: 'bg-blue-100', textColor: 'text-blue-600', category: 'Activity Tracking', badge: null, badgeColor: null },
+        peloton: { name: 'Peloton', color: 'bg-red-100', textColor: 'text-red-600', category: 'Training', badge: null, badgeColor: null },
+        myfitnesspal: { name: 'MyFitnessPal', color: 'bg-green-100', textColor: 'text-green-600', category: 'Nutrition', badge: 'Connected', badgeColor: 'bg-green-500/20 text-green-400', lastSync: '1 hour ago' },
+        applehealth: { name: 'Apple Health', color: 'bg-gray-100', textColor: 'text-gray-400', category: 'Health Platform', badge: null, badgeColor: null },
+      };
+
+      return (
+        <div className="space-y-6">
+          {/* Header */}
+          <h1 className="text-3xl font-bold text-white">Settings</h1>
+
+          {/* Tabs */}
+          <div className="flex gap-4 border-b border-white/10 overflow-x-auto">
+            {['integrations', 'notifications', 'appearance', 'security', 'privacy'].map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`px-4 py-2 font-medium capitalize whitespace-nowrap ${
+                  tab === t
+                    ? 'text-primary-600 border-b-2 border-primary-600'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {t === 'privacy' ? 'Data & Privacy' : t}
+              </button>
+            ))}
+          </div>
+
+          {/* OAuth Status Message */}
+          {oauthMessage && (
+            <div className={`p-3 rounded-lg text-sm font-medium ${oauthMessage.includes('error') ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'}`}>
+              {oauthMessage}
+            </div>
+          )}
+
+          {/* Integrations Tab */}
+          {tab === 'integrations' && (
+            <div className="space-y-6">
+              {/* Category Filter */}
+              <div className="flex gap-2 overflow-x-auto">
+                {['All', 'Activity Tracking', 'Health Platform', 'Recovery & Sleep', 'Training', 'Nutrition'].map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setFilterCat(cat)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${filterCat === cat ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-300 hover:bg-white/10'}`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              {/* Platforms Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(platformInfo).filter(([key, info]) => filterCat === 'All' || info.category === filterCat).map(([key, info]) => {
+                  const isConnected = data.connectedPlatforms?.includes(key);
+
+                  return (
+                    <div key={key} className="glass-card rounded-xl p-4">
+                      <div className={`${info.color} ${info.textColor} w-12 h-12 rounded-lg flex items-center justify-center mb-3 font-bold text-lg`}>
+                        {info.name.substring(0, 1)}
+                      </div>
+
+                      <h3 className="font-bold text-white mb-1">{info.name}</h3>
+                      <p className="text-xs text-gray-400 mb-3">{info.category}</p>
+
+                      {info.badge && (
+                        <span className={`text-xs font-semibold px-2 py-1 rounded mb-2 block ${info.badgeColor}`}>
+                          {isConnected ? 'Connected' : info.badge}
+                        </span>
+                      )}
+
+                      {isConnected && info.lastSync && (
+                        <p className="text-xs text-gray-400 mb-3">Last synced: {info.lastSync}</p>
+                      )}
+
+                      <div className="space-y-2 mb-3">
+                        <p className="text-xs text-gray-400">Data types: Activities, Routes</p>
+                      </div>
+
+                      {isConnected ? (
+                        <div className="flex gap-2">
+                          <button onClick={() => alert(`${info.name} integration settings: Sync frequency, data permissions, and connection status.`)} className="flex-1 bg-white/10 hover:bg-gray-300 text-gray-300 text-xs font-semibold py-2 px-3 rounded transition">
+                            Settings
+                          </button>
+                          <button
+                            onClick={() => handleDisconnect(key)}
+                            className="bg-red-100 hover:bg-red-200 text-red-700 text-xs font-semibold py-2 px-3 rounded transition"
+                          >
+                            <Icons.X />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleConnect(key)}
+                          className="w-full bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold py-2 px-4 rounded transition"
+                        >
+                          Connect
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Other Tabs - Placeholder */}
+          {tab === 'notifications' && (
+            <div className="space-y-4">
+              <div className="glass-card rounded-2xl p-6">
+                <h2 className="text-xl font-bold text-white mb-4">Notification Preferences</h2>
+                <div className="space-y-4">
+                  {[
+                    { label: 'Workout Reminders', desc: 'Get reminded about scheduled workouts', on: true },
+                    { label: 'Goal Progress', desc: 'Updates when you make progress toward goals', on: true },
+                    { label: 'Recovery Alerts', desc: 'Notified when recovery score is low', on: true },
+                    { label: 'Social Activity', desc: 'Likes, comments, and group updates', on: false },
+                    { label: 'Weekly Summary', desc: 'Email digest of your weekly performance', on: true },
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                      <div>
+                        <p className="font-medium text-white">{item.label}</p>
+                        <p className="text-sm text-gray-500">{item.desc}</p>
+                      </div>
+                      <div onClick={() => setNotifs(prev => ({...prev, [idx]: !prev[idx]}))} className={`w-12 h-6 rounded-full cursor-pointer transition ${notifs[idx] ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                        <div className={`w-5 h-5 bg-white rounded-full shadow mt-0.5 transition-transform ${notifs[idx] ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {tab === 'appearance' && (
+            <div className="space-y-4">
+              <div className="glass-card rounded-2xl p-6">
+                <h2 className="text-xl font-bold text-white mb-4">Appearance</h2>
+                <div className="space-y-4">
+                  <div>
+                    <p className="font-medium text-white mb-2">Theme</p>
+                    <div className="flex gap-3">
+                      {['Light', 'Dark', 'System'].map((t) => (
+                        <button key={t} onClick={() => setTheme(t)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${t === theme ? 'border-blue-600 bg-blue-500/10 text-blue-700' : 'border-white/10 text-gray-400 hover:bg-white/5'}`}>{t}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-medium text-white mb-2">Dashboard Layout</p>
+                    <div className="flex gap-3">
+                      {['Compact', 'Standard', 'Expanded'].map((l) => (
+                        <button key={l} onClick={() => setLayout(l)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${l === layout ? 'border-blue-600 bg-blue-500/10 text-blue-700' : 'border-white/10 text-gray-400 hover:bg-white/5'}`}>{l}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-medium text-white mb-2">Units</p>
+                    <div className="flex gap-3">
+                      {['Imperial (mi, lbs)', 'Metric (km, kg)'].map((u) => (
+                        <button key={u} onClick={() => setUnits(u)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${u === units ? 'border-blue-600 bg-blue-500/10 text-blue-700' : 'border-white/10 text-gray-400 hover:bg-white/5'}`}>{u}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {tab === 'security' && (
+            <div className="space-y-4">
+              <div className="glass-card rounded-2xl p-6">
+                <h2 className="text-xl font-bold text-white mb-4">Security</h2>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                    <div>
+                      <p className="font-medium text-white">Password</p>
+                      <p className="text-sm text-gray-500">Last changed 30 days ago</p>
+                    </div>
+                    <button onClick={() => alert('Password change feature coming soon. Use your current password to log in.')} className="bg-gray-100 hover:bg-white/10 text-gray-300 text-sm font-medium py-2 px-4 rounded-lg transition">Change</button>
+                  </div>
+                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                    <div>
+                      <p className="font-medium text-white">Two-Factor Authentication</p>
+                      <p className="text-sm text-gray-500">Add an extra layer of security</p>
+                    </div>
+                    <button onClick={() => alert('2FA setup coming soon. This will add an authenticator app to your account.')} className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition">Enable</button>
+                  </div>
+                  <div className="flex items-center justify-between py-3">
+                    <div>
+                      <p className="font-medium text-white">Active Sessions</p>
+                      <p className="text-sm text-gray-500">1 active session on this device</p>
+                    </div>
+                    <button onClick={() => alert('You have 1 active session on this device. All other sessions have been logged out.')} className="bg-gray-100 hover:bg-white/10 text-gray-300 text-sm font-medium py-2 px-4 rounded-lg transition">Manage</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {tab === 'privacy' && (
+            <div className="space-y-4">
+              <div className="glass-card rounded-2xl p-6">
+                <h2 className="text-xl font-bold text-white mb-4">Data & Privacy</h2>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                    <div>
+                      <p className="font-medium text-white">Profile Visibility</p>
+                      <p className="text-sm text-gray-500">Who can see your profile and activities</p>
+                    </div>
+                    <select className="border border-white/10 rounded-lg bg-white/5 text-white px-3 py-1.5 text-sm">
+                      <option>Friends Only</option>
+                      <option>Public</option>
+                      <option>Private</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                    <div>
+                      <p className="font-medium text-white">Data Sharing</p>
+                      <p className="text-sm text-gray-500">Share anonymized data for research</p>
+                    </div>
+                    <div onClick={(e) => { const el = e.currentTarget; const isOn = el.classList.contains('bg-blue-600'); el.classList.toggle('bg-blue-600'); el.classList.toggle('bg-gray-300'); el.querySelector('div').classList.toggle('translate-x-6'); el.querySelector('div').classList.toggle('translate-x-0.5'); }} className="w-12 h-6 rounded-full cursor-pointer bg-gray-300">
+                      <div className="w-5 h-5 bg-white rounded-full shadow mt-0.5 transition-transform translate-x-0.5" />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between py-3">
+                    <div>
+                      <p className="font-medium text-white">Export Your Data</p>
+                      <p className="text-sm text-gray-500">Download all your data in JSON format</p>
+                    </div>
+                    <button onClick={() => alert('Data export initiated! Your data will be ready for download shortly.')} className="bg-gray-100 hover:bg-white/10 text-gray-300 text-sm font-medium py-2 px-4 rounded-lg transition">Export</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // ============================================================================
+    // Main App
+    // ============================================================================
+
+    const App = () => {
+      const { user, loading } = useAuth();
+      const [currentHash, setCurrentHash] = useState(window.location.hash);
+      const [notificationCount, setNotificationCount] = useState(3);
+      const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+      useEffect(() => {
+        const handleHashChange = () => {
+          setCurrentHash(window.location.hash);
+          setMobileMenuOpen(false);
+        };
+
+        window.addEventListener('hashchange', handleHashChange);
+        return () => window.removeEventListener('hashchange', handleHashChange);
+      }, []);
+
+      if (loading) {
+        return (
+          <div className="flex items-center justify-center min-h-screen bg-white">
+            <div className="spinner" />
+          </div>
+        );
+      }
+
+      // Route to appropriate page
+      const page = currentHash.slice(2) || '/';
+
+      if (!user && page !== 'login' && page !== 'register') {
+        return <LoginPage />;
+      }
+
+      if (!user) {
+        if (page === 'register') {
+          return <RegisterPage />;
+        }
+        return <LoginPage />;
+      }
+
+      // Authenticated pages
+      const renderPage = () => {
+        if (page === '/' || page === '' || page === 'dashboard') return <DashboardPage />;
+        if (page === 'workouts') return <WorkoutsPage />;
+        if (page === 'reports') return <ReportsPage />;
+        if (page === 'goals') return <GoalsPage />;
+        if (page === 'groups') return <GroupsPage />;
+        if (page === 'feed') return <FeedPage />;
+        if (page === 'analyze') return <AnalyzePage />;
+        if (page === 'settings') return <SettingsPage />;
+        return <DashboardPage />;
+      };
+
+      return (
+        <div className="min-h-screen bg-[#0f172a]">
+          {/* Top Navigation Bar */}
+          <nav className="bg-[#1e293b]/90 backdrop-blur-md text-white shadow-lg sticky top-0 z-50 border-b border-white/5">
+            <div className="px-4 sm:px-6 py-4">
+              <div className="flex items-center justify-between">
+                {/* Logo - clickable to navigate to dashboard */}
+                <a href="#/dashboard" onClick={(e) => { e.preventDefault(); window.location.hash = '#/dashboard'; }} className="flex items-center gap-2 font-bold text-xl hover:opacity-90 transition cursor-pointer" style={{textDecoration:'none',color:'inherit'}}>
+                  <Icons.Activity />
+                  PerformanceHub
+                </a>
+
+                {/* Nav Links */}
+                <div className="flex items-center gap-6">
+                  {[
+                    { href: '/dashboard', label: 'Dashboard' },
+                    { href: '/workouts', label: 'Workouts' },
+                    { href: '/reports', label: 'Reports' },
+                    { href: '/goals', label: 'Goals' },
+                    { href: '/groups', label: 'Groups' },
+                    { href: '/feed', label: 'Feed' },
+                    { href: '/analyze', label: 'Analyze' },
+                  ].map(({ href, label }) => {
+                    const isActive = currentHash === `#${href}` || (href === '/dashboard' && (currentHash === '' || currentHash === '#/' || currentHash === '#' || currentHash === '#/dashboard'));
+
+                    return (
+                      <a
+                        key={href}
+                        href={`#${href}`}
+                        className={`text-sm font-medium transition px-2 py-3 min-h-[44px] inline-flex items-center ${
+                          isActive
+                            ? 'text-white'
+                            : 'text-blue-300 hover:text-white'
+                        } hidden md:inline-flex`}
+                      >
+                        {label}
+                      </a>
+                    );
+                  })}
+                </div>
+
+                {/* Right Side: Notification, Settings, User, Hamburger */}
+                <div className="flex items-center gap-4">
+                  {/* Mobile hamburger */}
+                  <button
+                    className="md:hidden text-white p-2 min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2"
+                    onClick={() => setMobileMenuOpen(prev => !prev)}
+                    aria-label="Toggle menu"
+                    aria-expanded={mobileMenuOpen}
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      {mobileMenuOpen
+                        ? <path d="M18 6L6 18M6 6l12 12" />
+                        : <><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></>
+                      }
+                    </svg>
+                  </button>
+
+                  <button onClick={() => alert(`You have ${notificationCount} unread notifications. Notification center coming soon!`)} className="relative hidden sm:block">
+                    <Icons.Bell />
+                    {notificationCount > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                        {notificationCount}
+                      </span>
+                    )}
+                  </button>
+
+                  <a href="#/settings" className="hover:text-blue-100 transition hidden sm:block">
+                    <Icons.Settings />
+                  </a>
+
+                  <div className="flex items-center gap-2 border-l border-blue-400 pl-4">
+                    <div className="w-8 h-8 rounded-full bg-blue-300 text-primary-900 text-xs font-bold flex items-center justify-center">
+                      {user.name
+                        .split(' ')
+                        .map((n) => n[0])
+                        .join('')}
+                    </div>
+                    <span className="text-sm hidden sm:inline">{user.name}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile Nav Menu */}
+            {mobileMenuOpen && (
+              <div className="md:hidden bg-primary-700 px-6 py-3 space-y-2">
+                {[
+                  { href: '/dashboard', label: 'Dashboard' },
+                  { href: '/workouts', label: 'Workouts' },
+                  { href: '/reports', label: 'Reports' },
+                  { href: '/goals', label: 'Goals' },
+                  { href: '/groups', label: 'Groups' },
+                  { href: '/feed', label: 'Feed' },
+                  { href: '/analyze', label: 'Analyze' },
+                  { href: '/settings', label: 'Settings' },
+                ].map(({ href, label }) => {
+                  const isActive = currentHash === `#${href}` || (href === '/dashboard' && (currentHash === '' || currentHash === '#/' || currentHash === '#' || currentHash === '#/dashboard'));
+                  return (
+                    <a
+                      key={href}
+                      href={`#${href}`}
+                      className={`block py-3 px-2 min-h-[44px] text-sm font-medium transition ${isActive ? 'text-white bg-primary-600 rounded' : 'text-blue-300 hover:text-white'}`}
+                    >
+                      {label}
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Secondary Bar */}
+            <div className="bg-primary-700 px-6 py-2 hidden md:flex items-center justify-between text-sm">
+              <div className="flex items-center gap-4">
+                <select className="bg-transparent text-white focus:outline-none text-xs">
+                  <option>Last 7 Days</option>
+                  <option>Last 30 Days</option>
+                  <option>Last 90 Days</option>
+                </select>
+                <button onClick={() => window.location.reload()} className="text-blue-300 hover:text-white transition">
+                  <Icons.RefreshCw />
+                </button>
+                <button onClick={() => alert('Data export initiated! Your report will download shortly.')} className="text-blue-300 hover:text-white transition">
+                  <Icons.Download />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <a href="#/settings" className="text-blue-300 hover:text-white transition text-xs">
+                  Switch to Coach
+                </a>
+                <button
+                  onClick={() => {
+                    fetch('/api/auth/logout', { method: 'POST' })
+                      .then(() => {
+                        window.location.hash = '#/login';
+                        window.location.reload();
+                      })
+                      .catch(console.error);
+                  }}
+                  className="text-blue-300 hover:text-white transition text-xs"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          </nav>
+
+          {/* Main Content */}
+          <main className="px-4 sm:px-6 py-4 sm:py-6">
+            <div className="max-w-7xl mx-auto">
+              {renderPage()}
+            </div>
+          </main>
+        </div>
+      );
+    };
+
+    // ============================================================================
+    // Render App
+    // ============================================================================
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    );
+  </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PerformanceHub - Fitness Analytics</title>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prop-types@15/prop-types.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/recharts@2/umd/Recharts.min.js"></script>
+  <script>
+    // Capture Recharts components before Babel's var hoisting overwrites window globals
+    window._RC = {};
+    ['LineChart','Line','AreaChart','Area','BarChart','Bar','PieChart','Pie','Cell','XAxis','YAxis','CartesianGrid','Tooltip','Legend','ResponsiveContainer'].forEach(function(k) {
+      window._RC[k] = window[k] || (window.Recharts && window.Recharts[k]);
+    });
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              200: '#bfdbfe',
+              300: '#93c5fd',
+              400: '#60a5fa',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!--
+    TODO [BUG-004 / Optimization]: @babel/standalone is used for in-browser JSX
+    transpilation. For production, precompile JSX with a build step (Vite, esbuild,
+    or Babel CLI) and serve plain JS. This adds ~1.5MB and ~300ms to initial load.
+    See: https://babeljs.io/docs/babel-standalone#when-not-to-use-babelstandalone
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #0f172a; color: #e2e8f0; }
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(59,130,246,0.3); border-radius: 50%; border-top-color: #3b82f6; animation: spin 1s ease-in-out infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+    .glass-card { background: rgba(30,41,59,0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+    .gradient-text { background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .gauge-container { position: relative; width: 120px; height: 120px; margin: 0 auto; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, createContext, useContext } = React;
+    const { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } = window._RC;
+
+    // ============================================================================
+    // SVG Icons
+    // ============================================================================
+    const Icons = {
+      Home: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+      ),
+      Dumbbell: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M6 4h12M4 4v16M20 4v16M6 20h12" />
+        </svg>
+      ),
+      FileText: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="12" y1="13" x2="12" y2="17" />
+          <line x1="12" y1="13" x2="16" y2="13" />
+        </svg>
+      ),
+      Target: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10" />
+          <circle cx="12" cy="12" r="6" />
+          <circle cx="12" cy="12" r="2" />
+        </svg>
+      ),
+      Users: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+      ),
+      Rss: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16" />
+          <circle cx="5" cy="19" r="1" />
+        </svg>
+      ),
+      BarChart3: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="12" y1="3" x2="12" y2="15" />
+          <line x1="18" y1="6" x2="18" y2="15" />
+          <line x1="6" y1="9" x2="6" y2="15" />
+          <path d="M4 20h16" />
+        </svg>
+      ),
+      Bell: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
+      ),
+      Settings: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m3.08 3.08l4.24 4.24M1 12h6m6 0h6m-17.78 7.78l4.24-4.24m3.08-3.08l4.24-4.24" />
+        </svg>
+      ),
+      User: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      ),
+      LogOut: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+      ),
+      RefreshCw: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polyline points="23 4 23 10 17 10" />
+          <polyline points="1 20 1 14 7 14" />
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36M20.49 15a9 9 0 0 1-14.85 3.36" />
+        </svg>
+      ),
+      Download: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+      ),
+      Plus: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      ),
+      Heart: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+        </svg>
+      ),
+      MessageCircle: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      ),
+      Share2: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="18" cy="5" r="3" />
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="19" r="3" />
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+        </svg>
+      ),
+      ChevronRight: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      ),
+      Trophy: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M6 9H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2" />
+          <path d="M6 9c0 1 1 3 6 3s6-2 6-3" />
+          <path d="M6 9v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9" />
+          <path d="M9 5v2M15 5v2" />
+        </svg>
+      ),
+      Medal: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="7" cy="8" r="5" />
+          <circle cx="17" cy="8" r="5" />
+          <path d="M7 13v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-5" />
+        </svg>
+      ),
+      Activity: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+        </svg>
+      ),
+      Flame: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M8.5 14.5A4.5 4.5 0 0 0 12 19a4 4 0 0 1-4.5-4.5" />
+          <path d="M12 2v5m0 0a5 5 0 0 1 5 5c0 5-3 7.5-5 7.5s-5-2.5-5-7.5a5 5 0 0 1 5-5" />
+        </svg>
+      ),
+      Footprints: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M4 15s1-1 2-1s1.5.5 2 1l.5-7a1.5 1.5 0 0 1 3 0l.5 7c.5-.5 1-1 2-1s2 1 2 1" />
+          <path d="M12 13v8M8 21h8" />
+        </svg>
+      ),
+      Moon: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      ),
+      Zap: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+        </svg>
+      ),
+      TrendingUp: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polyline points="23 6 13.5 15.5 8.5 10.5 1 17" />
+          <polyline points="17 6 23 6 23 12" />
+        </svg>
+      ),
+      TrendingDown: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" />
+          <polyline points="17 18 23 18 23 12" />
+        </svg>
+      ),
+      Check: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      ),
+      AlertTriangle: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3.04h16.94a2 2 0 0 0 1.71-3.04l-8.47-14.14a2 2 0 0 0-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+      ),
+      Clock: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      ),
+      MapPin: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+          <circle cx="12" cy="10" r="3" />
+        </svg>
+      ),
+      Link2: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M15 7h3a5 5 0 0 1 5 5 5 5 0 0 1-5 5h-3m-6 0H6a5 5 0 0 1-5-5 5 5 0 0 1 5-5h3" />
+          <line x1="8" y1="12" x2="16" y2="12" />
+        </svg>
+      ),
+      X: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      ),
+    };
+
+    // ============================================================================
+    // Auth Context
+    // ============================================================================
+    const AuthContext = createContext(null);
+
+    const AuthProvider = ({ children }) => {
+      const [user, setUser] = useState(null);
+      const [loading, setLoading] = useState(true);
+
+      useEffect(() => {
+        const checkAuth = async () => {
+          try {
+            const res = await fetch('/api/auth/me');
+            if (res.ok) {
+              const data = await res.json();
+              setUser(data);
+            } else {
+              setUser(null);
+            }
+          } catch (err) {
+            console.error('Auth check failed:', err);
+            setUser(null);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        checkAuth();
+      }, []);
+
+      const login = async (email, password) => {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (!res.ok) {
+          throw new Error('Login failed');
+        }
+
+        const data = await res.json();
+        setUser(data);
+        return data;
+      };
+
+      const register = async (name, email, password) => {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password }),
+        });
+
+        if (!res.ok) {
+          throw new Error('Registration failed');
+        }
+
+        const data = await res.json();
+        setUser(data);
+        return data;
+      };
+
+      const logout = async () => {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        setUser(null);
+        window.location.hash = '#/login';
+      };
+
+      return (
+        <AuthContext.Provider value={{ user, setUser, loading, login, register, logout }}>
+          {children}
+        </AuthContext.Provider>
+      );
+    };
+
+    const useAuth = () => useContext(AuthContext);
+
+    // ============================================================================
+    // Pages
+    // ============================================================================
+
+    // Login Page
+    const LoginPage = () => {
+      const [email, setEmail] = useState('demo@performancehub.com');
+      const [password, setPassword] = useState('demo123');
+      const [error, setError] = useState('');
+      const [loading, setLoading] = useState(false);
+      const { login } = useAuth();
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        try {
+          await login(email, password);
+          window.location.hash = '#/dashboard';
+        } catch (err) {
+          setError(err.message || 'Login failed');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4">
+          <div className="glass-card rounded-2xl shadow-2xl w-full max-w-md p-8">
+            <h1 className="text-3xl font-bold text-primary-900 mb-2">PerformanceHub</h1>
+            <p className="text-gray-400 mb-6">Fitness Analytics Platform</p>
+
+            {error && (
+              <div className="bg-red-900/30 border border-red-500/30 text-red-300 px-4 py-3 rounded mb-4">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-gray-300 font-medium mb-2">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="demo@performancehub.com"
+                  className="w-full px-4 py-2 border border-white/10 rounded-lg bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-300 font-medium mb-2">Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="demo123"
+                  className="w-full px-4 py-2 border border-white/10 rounded-lg bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
+              >
+                {loading ? <span className="spinner" /> : 'Sign In'}
+              </button>
+            </form>
+
+            <p className="text-center text-gray-400 mt-6">
+              Don't have an account?{' '}
+              <a href="#/register" className="text-primary-600 hover:text-primary-700 font-medium">
+                Sign Up
+              </a>
+            </p>
+          </div>
+        </div>
+      );
+    };
+
+    // Register Page
+    const RegisterPage = () => {
+      const [name, setName] = useState('');
+      const [email, setEmail] = useState('');
+      const [password, setPassword] = useState('');
+      const [confirmPassword, setConfirmPassword] = useState('');
+      const [error, setError] = useState('');
+      const [loading, setLoading] = useState(false);
+      const { register } = useAuth();
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+
+        if (password !== confirmPassword) {
+          setError('Passwords do not match');
+          return;
+        }
+
+        setLoading(true);
+
+        try {
+          await register(name, email, password);
+          window.location.hash = '#/';
+        } catch (err) {
+          setError(err.message || 'Registration failed');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4">
+          <div className="glass-card rounded-2xl shadow-2xl w-full max-w-md p-8">
+            <h1 className="text-3xl font-bold text-primary-900 mb-2">PerformanceHub</h1>
+            <p className="text-gray-400 mb-6">Create Your Account</p>
+
+            {error && (
+              <div className="bg-red-900/30 border border-red-500/30 text-red-300 px-4 py-3 rounded mb-4">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-gray-300 font-medium mb-2">Full Name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="John Doe"
+                  className="w-full px-4 py-2 border border-white/10 rounded-lg bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-300 font-medium mb-2">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="w-full px-4 py-2 border border-white/10 rounded-lg bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-300 font-medium mb-2">Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-2 border border-white/10 rounded-lg bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-300 font-medium mb-2">Confirm Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-2 border border-white/10 rounded-lg bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
+              >
+                {loading ? <span className="spinner" /> : 'Create Account'}
+              </button>
+            </form>
+
+            <p className="text-center text-gray-400 mt-6">
+              Already have an account?{' '}
+              <a href="#/login" className="text-primary-600 hover:text-primary-700 font-medium">
+                Sign In
+              </a>
+            </p>
+          </div>
+        </div>
+      );
+    };
+
+    // Dashboard Page
+    const DashboardPage = () => {
+      const { user } = useAuth();
+      const [dashboardData, setDashboardData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+      const [syncing, setSyncing] = useState(false);
+
+      const fetchDashboard = async () => {
+        try {
+          const res = await fetch('/api/dashboard');
+          if (!res.ok) throw new Error('Failed to fetch dashboard');
+          const data = await res.json();
+          console.log('[Dashboard] API response:', JSON.stringify(data, null, 2));
+          setDashboardData(data);
+        } catch (err) {
+          console.error('[Dashboard] Fetch error:', err);
+          setError(err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const handleSync = async () => {
+        setSyncing(true);
+        try {
+          const platforms = (dashboardData?.connectedPlatforms || []).map(p => p.platform);
+          console.log('[Dashboard] Syncing platforms:', platforms);
+          for (const p of platforms) {
+            try {
+              const res = await fetch(`/api/sync/${p}`, { method: 'POST' });
+              const result = await res.json();
+              console.log(`[Dashboard] Sync ${p}:`, result);
+            } catch (e) { console.error(`[Dashboard] Sync ${p} failed:`, e); }
+          }
+          await fetchDashboard();
+        } finally { setSyncing(false); }
+      };
+
+      useEffect(() => { fetchDashboard(); }, []);
+
+      if (loading) {
+        return (<div className="flex items-center justify-center min-h-[60vh]"><div className="spinner" style={{width:40,height:40,borderWidth:4}} /></div>);
+      }
+      if (error) {
+        return (<div className="p-4 bg-red-900/30 border border-red-500/30 text-red-300 rounded-xl">Error: {error}</div>);
+      }
+
+      const data = dashboardData || {};
+
+      // Source Badge component
+      const SourceBadge = ({ source }) => {
+        if (!source) return null;
+        const configs = {
+          strava: { bg: 'bg-orange-500/20', text: 'text-orange-400', label: 'Strava' },
+          whoop: { bg: 'bg-teal-500/20', text: 'text-teal-400', label: 'WHOOP' },
+          manual: { bg: 'bg-gray-500/20', text: 'text-gray-400', label: 'Manual' },
+        };
+        const cfg = configs[source] || configs.manual;
+        return (<span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${cfg.bg} ${cfg.text}`}>{cfg.label}</span>);
+      };
+
+      // Circular Gauge SVG
+      const CircularGauge = ({ score, color, gradientId, size = 140 }) => {
+        const sw = 10, r = (size - sw) / 2, circ = 2 * Math.PI * r;
+        const progress = score != null ? (score / 100) * circ : 0;
+        const track = 'rgba(255,255,255,0.08)';
+        return (
+          <svg width={size} height={size} className="transform -rotate-90">
+            <defs><linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor={color} stopOpacity="1" /><stop offset="100%" stopColor={color} stopOpacity="0.5" /></linearGradient></defs>
+            <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={track} strokeWidth={sw} />
+            <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={score != null ? `url(#${gradientId})` : track} strokeWidth={sw} strokeDasharray={circ} strokeDashoffset={circ - progress} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
+          </svg>
+        );
+      };
+
+      // Real data from API
+      const recovery = data.recovery || {};
+      const workouts = data.workouts || {};
+      const stepsStrain = data.stepsStrain || {};
+      const nutrition = data.nutrition || {};
+      const dataSources = data.dataSources || {};
+
+      // Pillar scores based on real data only
+      const exerciseScore = workouts.completed != null ? Math.min(100, Math.round((workouts.completed / (workouts.goal || 20)) * 100)) : null;
+      const recoveryScore = recovery.percentage;
       const nutritionScore = null;
       const mindsetScore = null;
 
