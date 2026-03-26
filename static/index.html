@@ -609,7 +609,8 @@ const LoginPage = () => {
 
     // Dashboard Page
     const DashboardPage = () => {
-      const { user } = useAuth();
+      const { user, logout } = useAuth();
+      const handleLogout = () => { logout(); window.location.hash = '#/login'; };
       const [dashboardData, setDashboardData] = useState(null);
       const [loading, setLoading] = useState(true);
       const [error, setError] = useState('');
