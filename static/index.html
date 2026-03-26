@@ -2496,7 +2496,7 @@ const App = () => {
       const [notificationCount, setNotificationCount] = useState(3);
       const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
       const [profileOpen, setProfileOpen] = useState(false);
-      const profileRef = React.useRef(null);
+      
     
       useEffect(() => {
         const handleHashChange = () => {
@@ -2509,15 +2509,20 @@ const App = () => {
       }, []);
 
       useEffect(() => {
+        if (!profileOpen) return;
         const handleClickOutside = (e) => {
-          if (profileRef.current && !profileRef.current.contains(e.target)) {
+          if (!e.target.closest('[data-profile-menu]')) {
             setProfileOpen(false);
           }
         };
-        if (profileOpen) {
+        // Delay listener registration to avoid catching the opening click
+        const timer = setTimeout(() => {
           document.addEventListener('mousedown', handleClickOutside);
-        }
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        }, 10);
+        return () => {
+          clearTimeout(timer);
+          document.removeEventListener('mousedown', handleClickOutside);
+        };
       }, [profileOpen]);
 
       if (loading) {
@@ -2632,7 +2637,7 @@ const App = () => {
                     <Icons.Settings />
                   </a>
 
-                  <div className="relative" ref={profileRef}>
+                  <div className="relative" data-profile-menu="true">
                     <button
                       onClick={() => setProfileOpen(prev => !prev)}
                       className="flex items-center gap-2 border-l border-white/10 pl-4 hover:opacity-80 transition cursor-pointer"
