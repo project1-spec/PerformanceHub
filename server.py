@@ -403,7 +403,7 @@ def seed_database(conn):
         (user_id, 'whoop', now)
     )
 
-conn.commit()
+    conn.commit()
 
 # Database helper
 def get_db():
