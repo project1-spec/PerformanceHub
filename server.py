@@ -31,8 +31,8 @@ COOKIE_NAME = "performancehub_session"
 BASE_URL = os.environ.get("BASE_URL", "https://performancehub.onrender.com")
 
 # OAuth Configuration
-STRAVA_CLIENT_ID = os.environ.get("STRAVA_CLIENT_ID", "")
-STRAVA_CLIENT_SECRET = os.environ.get("STRAVA_CLIENT_SECRET", "")
+STRAVA_CLIENT_ID = os.environ.get("STRAVA_CLIENT_ID", "173625")
+STRAVA_CLIENT_SECRET = os.environ.get("STRAVA_CLIENT_SECRET", "ba72b2f88b0fb888ac50720a3d36acbd28cb098a")
 WHOOP_CLIENT_ID = os.environ.get("WHOOP_CLIENT_ID", "8740dff2-f351-4fa3-b43b-e98154c12b39")
 WHOOP_CLIENT_SECRET = os.environ.get("WHOOP_CLIENT_SECRET", "315d57cf2d3c7bdb365053a947812ebc990649f144ceff2bd8798b40ba66da7b")
 
@@ -282,53 +282,6 @@ def seed_database(conn):
             (user_id, name, type_, target, current, unit, start_date, end_date, "active")
         )
 
-    # Create activities (8-10 over last 30 days)
-    activities_data = [
-        ("Morning Run", "run", "running", "2026-03-22T07:00:00Z", 2400, 8500, 145, 450, 145, 165),
-        ("Cycling Session", "cycling", "cycling", "2026-03-21T17:30:00Z", 3600, 18200, 26400, 520, 130, 155),
-        ("Strength Training", "strength", "strength", "2026-03-20T06:30:00Z", 1800, 0, 0, 380, 95, 125),
-        ("Swimming Workout", "swim", "swimming", "2026-03-19T06:00:00Z", 2700, 3200, 1.5, 320, 140, 160),
-        ("Trail Running", "run", "running", "2026-03-18T08:00:00Z", 3000, 10000, 85, 520, 148, 170),
-        ("Cross Training", "cross", "strength", "2026-03-16T18:00:00Z", 1500, 0, 0, 280, 110, 140),
-        ("Yoga Session", "yoga", "flexibility", "2026-03-15T10:00:00Z", 1800, 0, 0, 150, 80, 95),
-        ("Evening Cycle", "cycling", "cycling", "2026-03-14T19:00:00Z", 2700, 16800, 24000, 450, 125, 150),
-        ("Speed Training", "run", "running", "2026-03-12T06:00:00Z", 1800, 6500, 0, 380, 155, 175),
-        ("Weekend Hike", "hike", "hiking", "2026-03-09T09:00:00Z", 5400, 15000, 200, 650, 120, 140),
-    ]
-
-    for name, activity_type, sport, start_time, duration, distance, elevation, calories, avg_hr, max_hr in activities_data:
-        cursor.execute(
-            "INSERT INTO activities (user_id, platform, name, type, sport, start_time, duration_seconds, distance_meters, elevation_gain, calories, avg_hr, max_hr, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (user_id, "strava", name, activity_type, sport, start_time, duration, distance, elevation, calories, avg_hr, max_hr, now)
-        )
-
-    # Create recovery metrics (last 7 days)
-    for i in range(7):
-        date = (datetime.date.today() - datetime.timedelta(days=i)).isoformat()
-        recovery_score = 70 + (i % 3) * 5
-        sleep_quality = 6 + (i % 4)
-        cursor.execute(
-            "INSERT INTO recovery_metrics (user_id, date, hrv, rhr, spo2, skin_temp, recovery_score, sleep_quality, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (user_id, date, 45.0 + (i % 5), 52 + (i % 4), 98.5, 98.2, recovery_score, sleep_quality, "whoop")
-        )
-
-    # Create sleep records (last 7 days)
-    for i in range(7):
-        date = (datetime.date.today() - datetime.timedelta(days=i)).isoformat()
-        total_mins = 420 + (i % 3) * 30
-        cursor.execute(
-            "INSERT INTO sleep_records (user_id, date, total_minutes, rem_minutes, deep_minutes, light_minutes, awake_minutes, efficiency, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (user_id, date, total_mins, int(total_mins * 0.2), int(total_mins * 0.15), int(total_mins * 0.55), int(total_mins * 0.1), 0.85 + (i % 3) * 0.05, "apple_watch")
-        )
-
-    # Create daily summaries (last 7 days)
-    for i in range(7):
-        date = (datetime.date.today() - datetime.timedelta(days=i)).isoformat()
-        cursor.execute(
-            "INSERT INTO daily_summaries (user_id, date, steps, calories_total, calories_active, distance_meters, stress_avg, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (user_id, date, 8000 + (i * 500) % 5000, 2400 + (i * 100) % 400, 600 + (i * 50) % 300, 8500 + (i * 1000) % 4000, 45 + (i % 4) * 5, "apple_watch")
-        )
-
     # Create workout logs (5 entries with coach feedback)
     workouts_data = [
         ("Monday Strength", "strength", 60, 7, "Good form on squats", "Excellent form! Keep up the intensity."),
@@ -395,18 +348,6 @@ def seed_database(conn):
             (user_id, type_, title, message, 0, now)
         )
 
-    # Create platform connections
-    platforms_data = [
-        ("strava", "abc123strava", "refresh_abc123", "2026-06-23T00:00:00Z", "strava_user_123"),
-        ("myfitnesspal", "xyz789mfp", "refresh_xyz789", "2026-06-23T00:00:00Z", "mfp_user_456"),
-        ("whoop", "whoop_token_abc", "refresh_whoop_abc", "2026-06-23T00:00:00Z", "whoop_user_789"),
-    ]
-
-    for platform, access_token, refresh_token, expires, platform_user_id in platforms_data:
-        cursor.execute(
-            "INSERT INTO platform_connections (user_id, platform, access_token, refresh_token, token_expires_at, platform_user_id, connected_at, last_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (user_id, platform, access_token, refresh_token, expires, platform_user_id, now, now)
-        )
 
     conn.commit()
 
@@ -806,11 +747,21 @@ class DashboardHandler(BaseHandler):
             tip = None
             if recovery_score is not None:
                 if recovery_score >= 80:
-                    tip = "Your recovery is strong — great day for a high-intensity session."
+                    tip = "Your recovery is strong â great day for a high-intensity session."
                 elif recovery_score >= 50:
-                    tip = "Moderate recovery — consider a lighter training day."
+                    tip = "Moderate recovery â consider a lighter training day."
                 else:
-                    tip = "Low recovery detected — prioritize rest and active recovery."
+                    tip = "Low recovery detected â prioritize rest and active recovery."
+
+            # Get last synced timestamp
+            last_synced = None
+            cursor.execute(
+                "SELECT last_synced FROM platform_connections WHERE user_id = ? ORDER BY last_synced DESC LIMIT 1",
+                (user_id,)
+            )
+            sync_row = cursor.fetchone()
+            if sync_row and sync_row['last_synced']:
+                last_synced = sync_row['last_synced']
 
             self.write({
                 "user": user,
@@ -856,7 +807,8 @@ class DashboardHandler(BaseHandler):
                 "dataSources": {
                     "whoop": {"connected": has_whoop, "dataCount": whoop_activities_count},
                     "strava": {"connected": has_strava, "dataCount": strava_activities_count}
-                }
+                },
+                "lastSynced": last_synced
             })
         except Exception as e:
             import sys
