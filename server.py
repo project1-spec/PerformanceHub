@@ -255,6 +255,7 @@ def init_database():
     # Unique indexes for upsert support
     cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_summaries_user_date ON daily_summaries(user_id, date)")
     cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_recovery_metrics_user_date ON recovery_metrics(user_id, date)")
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_activities_dedup ON activities(user_id, platform, type, start_time)")
 
     # Seed data if database is empty
     cursor.execute("SELECT COUNT(*) FROM users")
@@ -782,11 +783,11 @@ class DashboardHandler(BaseHandler):
             tip = None
             if recovery_score is not None:
                 if recovery_score >= 80:
-                    tip = "Your recovery is strong â great day for a high-intensity session."
+                    tip = "Your recovery is strong Ã¢ÂÂ great day for a high-intensity session."
                 elif recovery_score >= 50:
-                    tip = "Moderate recovery â consider a lighter training day."
+                    tip = "Moderate recovery Ã¢ÂÂ consider a lighter training day."
                 else:
-                    tip = "Low recovery detected â prioritize rest and active recovery."
+                    tip = "Low recovery detected Ã¢ÂÂ prioritize rest and active recovery."
 
             self.write({
                 "user": user,
@@ -2361,10 +2362,49 @@ class WhoopSyncHandler(BaseHandler):
                 return
 
             access_token = row['access_token']
+            refresh_token = row['refresh_token']
+            token_expires = row['token_expires_at']
+
+            # Check if WHOOP token is expired and refresh if needed
+            if token_expires:
+                try:
+                    exp_dt = datetime.datetime.fromisoformat(token_expires)
+                    if exp_dt < datetime.datetime.utcnow():
+                        print(f"[WHOOP SYNC] Token expired at {token_expires}, refreshing...", flush=True)
+                        http_client_refresh = tornado.httpclient.AsyncHTTPClient()
+                        refresh_body = urllib.parse.urlencode({
+                            "client_id": WHOOP_CLIENT_ID,
+                            "client_secret": WHOOP_CLIENT_SECRET,
+                            "grant_type": "refresh_token",
+                            "refresh_token": refresh_token,
+                        })
+                        refresh_response = await http_client_refresh.fetch(
+                            "https://api.prod.whoop.com/oauth/oauth2/token",
+                            method="POST",
+                            body=refresh_body,
+                            headers={"Content-Type": "application/x-www-form-urlencoded"},
+                            raise_error=False
+                        )
+                        if refresh_response.code == 200:
+                            new_tokens = json.loads(refresh_response.body)
+                            access_token = new_tokens.get("access_token", access_token)
+                            new_refresh = new_tokens.get("refresh_token", refresh_token)
+                            new_expires = (datetime.datetime.utcnow() + datetime.timedelta(seconds=new_tokens.get("expires_in", 3600))).isoformat()
+                            cursor.execute(
+                                "UPDATE platform_connections SET access_token = ?, refresh_token = ?, token_expires_at = ? WHERE user_id = ? AND platform = 'whoop'",
+                                (access_token, new_refresh, new_expires, user_id)
+                            )
+                            conn.commit()
+                            print(f"[WHOOP SYNC] Token refreshed successfully", flush=True)
+                        else:
+                            print(f"[WHOOP SYNC] Token refresh failed: {refresh_response.code} {refresh_response.body[:200]}", flush=True)
+                except Exception as refresh_err:
+                    print(f"[WHOOP SYNC] Token refresh error: {refresh_err}", flush=True)
             now = datetime.datetime.utcnow().isoformat()
 
             http_client = tornado.httpclient.AsyncHTTPClient()
             synced = 0
+            debug_info = {"recovery_status": None, "recovery_records": 0, "sleep_status": None, "sleep_records": 0, "cycle_status": None, "cycle_records": 0}
 
             # Fetch recovery data
             print(f"[WHOOP SYNC] Fetching recovery data for user {user_id}...", flush=True)
@@ -2374,10 +2414,13 @@ class WhoopSyncHandler(BaseHandler):
                 raise_error=False
             )
             print(f"[WHOOP SYNC] Recovery API response: status={recovery_response.code}", flush=True)
+            debug_info["recovery_status"] = recovery_response.code
             if recovery_response.code == 200:
                 recovery_data = json.loads(recovery_response.body)
                 records = recovery_data.get("records", [])
                 print(f"[WHOOP SYNC] Got {len(records)} recovery records", flush=True)
+                debug_info["recovery_records"] = len(records)
+                if records: debug_info["recovery_sample"] = str(records[0].get("score"))[:200]
                 for rec in records:
                     score = rec.get("score") or {}
                     rec_score = score.get("recovery_score")
@@ -2431,6 +2474,7 @@ class WhoopSyncHandler(BaseHandler):
                 raise_error=False
             )
             print(f"[WHOOP SYNC] Sleep API response: status={sleep_response.code}", flush=True)
+            debug_info["sleep_status"] = sleep_response.code
             if sleep_response.code == 200:
                 sleep_data = json.loads(sleep_response.body)
                 sleep_records = sleep_data.get("records", [])
@@ -2465,6 +2509,7 @@ class WhoopSyncHandler(BaseHandler):
                 raise_error=False
             )
             print(f"[WHOOP SYNC] Cycle API response: status={cycle_response.code}", flush=True)
+            debug_info["cycle_status"] = cycle_response.code
             if cycle_response.code == 200:
                 cycle_data = json.loads(cycle_response.body)
                 cycle_records = cycle_data.get("records", [])
@@ -2539,11 +2584,11 @@ class WhoopSyncHandler(BaseHandler):
             cy_row = cursor.fetchone()
             if cy_row:
                 import re as re_mod
-                strain_m = re_mod.search(r'Strain ([\\d.]+)', cy_row['name'] or '')
+                strain_m = re_mod.search(r'Strain ([\d.]+)', cy_row['name'] or '')
                 if strain_m:
                     latest_strain = float(strain_m.group(1))
             if best_recovery is not None or latest_sleep is not None or latest_strain is not None:
-                cursor.execute("INSERT OR REPLACE INTO daily_summaries (user_id, date, recovery_score, sleep_hours, strain) VALUES (?, ?, ?, ?, ?)", (user_id, today, best_recovery, latest_sleep, latest_strain))
+                cursor.execute("INSERT OR REPLACE INTO daily_summaries (user_id, date, recovery_score, sleep_hours, strain, source) VALUES (?, ?, ?, ?, ?, 'whoop')", (user_id, today, best_recovery, latest_sleep, latest_strain))
                 print(f"[WHOOP SYNC] Updated daily_summaries: recovery={best_recovery}, sleep={latest_sleep}h, strain={latest_strain}", flush=True)
 
             cursor.execute(
@@ -2557,7 +2602,8 @@ class WhoopSyncHandler(BaseHandler):
                 "platform": "whoop",
                 "synced": True,
                 "lastSynced": now,
-                "itemsSynced": synced
+                "itemsSynced": synced,
+                "debug": debug_info
             })
         except Exception as e:
             print(f"WHOOP sync error: {e}\n{traceback.format_exc()}")
