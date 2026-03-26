@@ -2472,23 +2472,7 @@ const App = () => {
       const [currentHash, setCurrentHash] = useState(window.location.hash);
       const [notificationCount, setNotificationCount] = useState(3);
       const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const [user, setUser] = useState(null);
-    const [authChecked, setAuthChecked] = useState(false);
-
-    // Check auth on mount
-    useEffect(() => {
-      fetch('/api/auth/me', { credentials: 'include' })
-        .then(r => r.ok ? r.json() : Promise.reject())
-        .then(u => { setUser(u); setAuthChecked(true); })
-        .catch(() => { setUser(null); setAuthChecked(true); });
-    }, []);
-
-    // Logout handler
-    const handleLogout = () => {
-      fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
-        .then(() => { setUser(null); window.location.hash = '#/login'; })
-        .catch(() => { setUser(null); window.location.hash = '#/login'; });
-    };
+    const { user, logout: handleLogout } = useAuth();
 
 
       useEffect(() => {
