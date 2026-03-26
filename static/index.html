@@ -377,7 +377,7 @@
 
         try {
           await login(email, password);
-          window.location.hash = '#/';
+          window.location.hash = '#/dashboard';
         } catch (err) {
           setError(err.message || 'Login failed');
         } finally {
@@ -1726,7 +1726,7 @@
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-2">
             <span className="text-yellow-400 text-lg">{'\u26A0'}</span>
             <div>
-              <p className="text-yellow-300 text-sm font-medium">Sample Insights \u2014 Connect API key for live AI analysis</p>
+              <p className="text-yellow-300 text-sm font-medium">Sample Insights {'\u2014'} Connect API key for live AI analysis</p>
               <p className="text-yellow-400/70 text-xs mt-0.5">These insights are generated from templates based on your real data. Set the ANTHROPIC_API_KEY environment variable to enable Claude-powered analysis.</p>
             </div>
           </div>
@@ -2268,7 +2268,7 @@
 
       // Authenticated pages
       const renderPage = () => {
-        if (page === '/' || page === '') return <DashboardPage />;
+        if (page === '/' || page === '' || page === 'dashboard') return <DashboardPage />;
         if (page === 'workouts') return <WorkoutsPage />;
         if (page === 'reports') return <ReportsPage />;
         if (page === 'goals') return <GoalsPage />;
@@ -2286,7 +2286,7 @@
             <div className="px-4 sm:px-6 py-4">
               <div className="flex items-center justify-between">
                 {/* Logo - clickable to navigate to dashboard */}
-                <a href="#/" className="flex items-center gap-2 font-bold text-xl hover:opacity-90 transition cursor-pointer" style={{textDecoration:'none',color:'inherit'}}>
+                <a href="#/dashboard" onClick={(e) => { e.preventDefault(); window.location.hash = '#/dashboard'; }} className="flex items-center gap-2 font-bold text-xl hover:opacity-90 transition cursor-pointer" style={{textDecoration:'none',color:'inherit'}}>
                   <Icons.Activity />
                   PerformanceHub
                 </a>
@@ -2294,7 +2294,7 @@
                 {/* Nav Links */}
                 <div className="flex items-center gap-6">
                   {[
-                    { href: '/', label: 'Dashboard' },
+                    { href: '/dashboard', label: 'Dashboard' },
                     { href: '/workouts', label: 'Workouts' },
                     { href: '/reports', label: 'Reports' },
                     { href: '/goals', label: 'Goals' },
@@ -2302,7 +2302,7 @@
                     { href: '/feed', label: 'Feed' },
                     { href: '/analyze', label: 'Analyze' },
                   ].map(({ href, label }) => {
-                    const isActive = currentHash === `#${href}` || (href === '/' && (currentHash === '' || currentHash === '#/' || currentHash === '#'));
+                    const isActive = currentHash === `#${href}` || (href === '/dashboard' && (currentHash === '' || currentHash === '#/' || currentHash === '#' || currentHash === '#/dashboard'));
 
                     return (
                       <a
@@ -2367,7 +2367,7 @@
             {mobileMenuOpen && (
               <div className="md:hidden bg-primary-700 px-6 py-3 space-y-2">
                 {[
-                  { href: '/', label: 'Dashboard' },
+                  { href: '/dashboard', label: 'Dashboard' },
                   { href: '/workouts', label: 'Workouts' },
                   { href: '/reports', label: 'Reports' },
                   { href: '/goals', label: 'Goals' },
@@ -2376,7 +2376,7 @@
                   { href: '/analyze', label: 'Analyze' },
                   { href: '/settings', label: 'Settings' },
                 ].map(({ href, label }) => {
-                  const isActive = currentHash === `#${href}` || (href === '/' && (currentHash === '' || currentHash === '#/' || currentHash === '#'));
+                  const isActive = currentHash === `#${href}` || (href === '/dashboard' && (currentHash === '' || currentHash === '#/' || currentHash === '#' || currentHash === '#/dashboard'));
                   return (
                     <a
                       key={href}
