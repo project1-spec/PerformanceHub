@@ -1961,14 +1961,18 @@ const LoginPage = () => {
             <div className="glass-card rounded-2xl p-6">
               <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">Recovery Trend <SourceBadge source="whoop" /></h2>
               <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={recoveryTrend}>
-                  <defs><linearGradient id="analyzeRecovery" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#00d084" stopOpacity={0.6} /><stop offset="95%" stopColor="#00d084" stopOpacity={0} /></linearGradient></defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="name" stroke="#94a3b8" tick={{fontSize:11}} />
-                  <YAxis stroke="#94a3b8" tick={{fontSize:11}} domain={[0, 100]} />
-                  <Tooltip contentStyle={{backgroundColor:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', color:'#fff'}} />
-                  <Area type="monotone" dataKey="score" name="Recovery %" stroke="#00d084" fillOpacity={1} fill="url(#analyzeRecovery)" strokeWidth={3} dot={{r: 4, strokeWidth: 2, fill: "#00d084"}} />
-                </AreaChart>
+                <BarChart data={recoveryTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                <XAxis dataKey="name" stroke="#94a3b8" tick={{fontSize:11}} />
+                <YAxis stroke="#94a3b8" tick={{fontSize:11}} domain={[0, 100]} />
+                <Tooltip contentStyle={{backgroundColor:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', color:'#fff'}} />
+                <Bar dataKey="score" name="Recovery %" radius={[4, 4, 0, 0]} shape={(props) => {
+                  const { x, y, width, height, payload } = props;
+                  const val = payload.score;
+                  const color = val >= 67 ? '#00d084' : val >= 34 ? '#f59e0b' : '#ef4444';
+                  return React.createElement('rect', { x, y, width, height, fill: color, rx: 4, ry: 4 });
+                }} />
+                </BarChart>
               </ResponsiveContainer>
             </div>
           )}
@@ -1979,27 +1983,25 @@ const LoginPage = () => {
                                                     <div className="glass-card rounded-2xl p-6">
                                                                   <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">Sleep Quality Trend</h2>
                                                                                 <ResponsiveContainer width="100%" height={300}>
-                                                                                                <AreaChart data={data.trendData}>
-                                                                                                                  <defs><linearGradient id="sleepGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#a78bfa" stopOpacity={0.6} /><stop offset="95%" stopColor="#a78bfa" stopOpacity={0} /></linearGradient></defs>
-                                                                                                                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                                                                                                                                                      <XAxis dataKey="name" stroke="#94a3b8" tick={{fontSize:11}} />
-                                                                                                                                                                        <YAxis stroke="#94a3b8" tick={{fontSize:11}} domain={[4, 10]} label={{value: "hours", angle: -90, position: "insideLeft", style: {fill: "#94a3b8", fontSize: 12}}} />
-                                                                                                                                                                                          <Tooltip contentStyle={{backgroundColor:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', color:'#fff'}} />
-                                                                                                                                                                                                            <Area type="monotone" dataKey="sleep" name="Sleep (hrs)" stroke="#8b5cf6" fillOpacity={1} fill="url(#sleepGrad)" strokeWidth={3} dot={{r: 4, strokeWidth: 2, fill: "#8b5cf6"}} />
-                                                                                                                                                                                                                            </AreaChart>
+                                                                                                <BarChart data={data.trendData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                <XAxis dataKey="name" stroke="#94a3b8" tick={{fontSize:11}} />
+                <YAxis stroke="#94a3b8" tick={{fontSize:11}} domain={[4, 10]} label={{value: "hours", angle: -90, position: "insideLeft", style: {fill: "#94a3b8", fontSize: 12}}} />
+                <Tooltip contentStyle={{backgroundColor:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', color:'#fff'}} />
+                <Bar dataKey="sleep" name="Sleep (hrs)" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                </BarChart>
                                                                                                                                                                                                                                           </ResponsiveContainer>
                                                                                                                                                                                                                                                       </div>
                                                                                                                                                                                                                                                                   <div className="glass-card rounded-2xl p-6">
                                                                                                                                                                                                                                                                                 <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">Exercise Strain Trend</h2>
                                                                                                                                                                                                                                                                                               <ResponsiveContainer width="100%" height={300}>
-                                                                                                                                                                                                                                                                                                              <AreaChart data={data.trendData}>
-                                                                                                                                                                                                                                                                                                                                <defs><linearGradient id="strainGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#22c55e" stopOpacity={0.6} /><stop offset="95%" stopColor="#22c55e" stopOpacity={0} /></linearGradient></defs>
-                                                                                                                                                                                                                                                                                                                                                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                                                                                                                                                                                                                                                                                                                                                                    <XAxis dataKey="name" stroke="#94a3b8" tick={{fontSize:11}} />
-                                                                                                                                                                                                                                                                                                                                                                                      <YAxis stroke="#94a3b8" tick={{fontSize:11}} domain={[0, 21]} />
-                                                                                                                                                                                                                                                                                                                                                                                                        <Tooltip contentStyle={{backgroundColor:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', color:'#fff'}} />
-                                                                                                                                                                                                                                                                                                                                                                                                                          <Area type="monotone" dataKey="strain" name="Strain" stroke="#f59e0b" fillOpacity={1} fill="url(#strainGrad)" strokeWidth={3} dot={{r: 4, strokeWidth: 2, fill: "#f59e0b"}} />
-                                                                                                                                                                                                                                                                                                                                                                                                                                          </AreaChart>
+                                                                                                                                                                                                                                                                                                              <BarChart data={data.trendData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                <XAxis dataKey="name" stroke="#94a3b8" tick={{fontSize:11}} />
+                <YAxis stroke="#94a3b8" tick={{fontSize:11}} domain={[0, 21]} />
+                <Tooltip contentStyle={{backgroundColor:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', color:'#fff'}} />
+                <Bar dataKey="strain" name="Strain" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                </BarChart>
                                                                                                                                                                                                                                                                                                                                                                                                                                                         </ResponsiveContainer>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                               </div>
@@ -2603,6 +2605,18 @@ const App = () => {
                         .join('')}
                     </div>
                     <span className="text-sm hidden sm:inline">{user.name}</span>
+                    <button
+                      onClick={() => { handleLogout(); window.location.hash = '#/login'; }}
+                      className="ml-2 p-1.5 rounded-lg hover:bg-white/10 transition text-gray-400 hover:text-red-400"
+                      title="Sign out"
+                      aria-label="Sign out"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
               </div>
