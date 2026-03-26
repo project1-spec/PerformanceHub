@@ -641,7 +641,26 @@
       };
 
       // Real data from API
-      const recovery = data.recovery || {};
+      const recovery = (() => {
+          const td = data.trendData || [];
+          const withRec = td.filter(t => t.recovery != null);
+          const latest = withRec.length > 0 ? withRec[withRec.length - 1] : {};
+          const withSleep = td.filter(t => t.sleep != null);
+          const latestSleep = withSleep.length > 0 ? withSleep[withSleep.length - 1] : {};
+          return {
+            percentage: latest.recovery != null ? latest.recovery : null,
+            hrv: latest.hrv != null ? latest.hrv : null,
+            rhr: latest.rhr != null ? latest.rhr : null,
+            sleepHours: latestSleep.sleep != null ? latestSleep.sleep : null,
+          };
+        })();
+        const stepsStrain = (() => {
+          const td = data.trendData || [];
+          const withStrain = td.filter(t => t.strain != null);
+          const latest = withStrain.length > 0 ? withStrain[withStrain.length - 1] : {};
+          return { strain: latest.strain != null ? latest.strain : null };
+        })();
+        data.stepsStrain = stepsStrain;
       const workouts = data.workouts || {};
       const stepsStrain = data.stepsStrain || {};
       const nutrition = data.nutrition || {};
@@ -1698,10 +1717,9 @@
       const stravaActs = activities.filter(a => a.platform === 'strava');
 
       // Recovery trend
-      const recoveryTrend = data.trends && data.trends.length > 0
-        ? data.trends.map(t => { const d = t.date ? new Date(t.date) : null; return { name: d ? d.toLocaleDateString('en-US', {month:'short', day:'numeric'}) : t.date, score: t.recovery_score }; }).reverse()
+      const recoveryTrend = data.recoveryTrend && data.recoveryTrend.length > 0
+        ? data.recoveryTrend.map(t => ({ name: t.date, score: t.value }))
         : null;
-
       // Sample AI insights based on real data
       const sampleInsights = {
         summary: recovery.percentage != null
@@ -1833,14 +1851,14 @@
           {recoveryTrend && recoveryTrend.length > 0 && (
             <div className="glass-card rounded-2xl p-6">
               <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">Recovery Trend <SourceBadge source="whoop" /></h2>
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={recoveryTrend}>
-                  <defs><linearGradient id="analyzeRecovery" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#14b8a6" stopOpacity={0.3} /><stop offset="95%" stopColor="#14b8a6" stopOpacity={0} /></linearGradient></defs>
+                  <defs><linearGradient id="analyzeRecovery" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#14b8a6" stopOpacity={0.6} /><stop offset="95%" stopColor="#14b8a6" stopOpacity={0} /></linearGradient></defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="name" stroke="#64748b" tick={{fontSize:11}} />
-                  <YAxis stroke="#64748b" tick={{fontSize:11}} domain={[0, 100]} />
+                  <XAxis dataKey="name" stroke="#94a3b8" tick={{fontSize:11}} />
+                  <YAxis stroke="#94a3b8" tick={{fontSize:11}} domain={[0, 100]} />
                   <Tooltip contentStyle={{backgroundColor:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', color:'#fff'}} />
-                  <Area type="monotone" dataKey="score" name="Recovery %" stroke="#14b8a6" fillOpacity={1} fill="url(#analyzeRecovery)" strokeWidth={2} />
+                  <Area type="monotone" dataKey="score" name="Recovery %" stroke="#14b8a6" fillOpacity={1} fill="url(#analyzeRecovery)" strokeWidth={3} dot={{r: 4, strokeWidth: 2, fill: "#14b8a6"}} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -1851,27 +1869,27 @@
                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                                     <div className="glass-card rounded-2xl p-6">
                                                                   <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">Sleep Quality Trend</h2>
-                                                                                <ResponsiveContainer width="100%" height={200}>
+                                                                                <ResponsiveContainer width="100%" height={300}>
                                                                                                 <AreaChart data={data.trendData}>
-                                                                                                                  <defs><linearGradient id="sleepGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} /><stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} /></linearGradient></defs>
+                                                                                                                  <defs><linearGradient id="sleepGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.6} /><stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} /></linearGradient></defs>
                                                                                                                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                                                                                                                                                      <XAxis dataKey="name" stroke="#64748b" tick={{fontSize:11}} />
-                                                                                                                                                                        <YAxis stroke="#64748b" tick={{fontSize:11}} domain={[4, 10]} />
+                                                                                                                                                      <XAxis dataKey="name" stroke="#94a3b8" tick={{fontSize:11}} />
+                                                                                                                                                                        <YAxis stroke="#94a3b8" tick={{fontSize:11}} domain={[4, 10]} label={{value: "hours", angle: -90, position: "insideLeft", style: {fill: "#94a3b8", fontSize: 12}}} />
                                                                                                                                                                                           <Tooltip contentStyle={{backgroundColor:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', color:'#fff'}} />
-                                                                                                                                                                                                            <Area type="monotone" dataKey="sleep" name="Sleep (hrs)" stroke="#8b5cf6" fillOpacity={1} fill="url(#sleepGrad)" strokeWidth={2} />
+                                                                                                                                                                                                            <Area type="monotone" dataKey="sleep" name="Sleep (hrs)" stroke="#8b5cf6" fillOpacity={1} fill="url(#sleepGrad)" strokeWidth={3} dot={{r: 4, strokeWidth: 2, fill: "#8b5cf6"}} />
                                                                                                                                                                                                                             </AreaChart>
                                                                                                                                                                                                                                           </ResponsiveContainer>
                                                                                                                                                                                                                                                       </div>
                                                                                                                                                                                                                                                                   <div className="glass-card rounded-2xl p-6">
                                                                                                                                                                                                                                                                                 <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">Exercise Strain Trend</h2>
-                                                                                                                                                                                                                                                                                              <ResponsiveContainer width="100%" height={200}>
+                                                                                                                                                                                                                                                                                              <ResponsiveContainer width="100%" height={300}>
                                                                                                                                                                                                                                                                                                               <AreaChart data={data.trendData}>
-                                                                                                                                                                                                                                                                                                                                <defs><linearGradient id="strainGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} /><stop offset="95%" stopColor="#f59e0b" stopOpacity={0} /></linearGradient></defs>
+                                                                                                                                                                                                                                                                                                                                <defs><linearGradient id="strainGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f59e0b" stopOpacity={0.6} /><stop offset="95%" stopColor="#f59e0b" stopOpacity={0} /></linearGradient></defs>
                                                                                                                                                                                                                                                                                                                                                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                                                                                                                                                                                                                                                                                                                                                                    <XAxis dataKey="name" stroke="#64748b" tick={{fontSize:11}} />
-                                                                                                                                                                                                                                                                                                                                                                                      <YAxis stroke="#64748b" tick={{fontSize:11}} domain={[0, 21]} />
+                                                                                                                                                                                                                                                                                                                                                                    <XAxis dataKey="name" stroke="#94a3b8" tick={{fontSize:11}} />
+                                                                                                                                                                                                                                                                                                                                                                                      <YAxis stroke="#94a3b8" tick={{fontSize:11}} domain={[0, 21]} />
                                                                                                                                                                                                                                                                                                                                                                                                         <Tooltip contentStyle={{backgroundColor:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', color:'#fff'}} />
-                                                                                                                                                                                                                                                                                                                                                                                                                          <Area type="monotone" dataKey="strain" name="Strain" stroke="#f59e0b" fillOpacity={1} fill="url(#strainGrad)" strokeWidth={2} />
+                                                                                                                                                                                                                                                                                                                                                                                                                          <Area type="monotone" dataKey="strain" name="Strain" stroke="#f59e0b" fillOpacity={1} fill="url(#strainGrad)" strokeWidth={3} dot={{r: 4, strokeWidth: 2, fill: "#f59e0b"}} />
                                                                                                                                                                                                                                                                                                                                                                                                                                           </AreaChart>
                                                                                                                                                                                                                                                                                                                                                                                                                                                         </ResponsiveContainer>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </div>
