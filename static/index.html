@@ -74,6 +74,11 @@
         from { opacity: 0; transform: translateY(-4px); }
         to { opacity: 1; transform: translateY(0); }
       }
+    
+      .pillar-mobile-fix { padding: 12px; }
+      @media (max-width: 768px) {
+        .pillar-mobile-fix { padding: 8px; gap: 8px; }
+      }
     </style>
 </head>
 <body>
@@ -439,7 +444,19 @@ const LoginPage = () => {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <div style="display:flex;gap:12px;margin-bottom:20px">
+                  <div onClick={() => { setEmail('alex.johnson@example.com'); setPassword('athlete123'); }} style={{flex:1,padding:'16px',borderRadius:'12px',border:'2px solid rgba(255,255,255,0.2)',cursor:'pointer',textAlign:'center',background:'rgba(255,255,255,0.05)'}}>
+                    <div style={{fontSize:'24px'}}>\u{1F3C3}</div>
+                    <div style={{fontWeight:'bold',color:'white'}}>Athlete</div>
+                    <div style={{fontSize:'12px',opacity:0.7,color:'#9ca3af'}}>Track your performance</div>
+                  </div>
+                  <div onClick={() => { setEmail('coach.mike@example.com'); setPassword('coach123'); }} style={{flex:1,padding:'16px',borderRadius:'12px',border:'2px solid rgba(255,255,255,0.2)',cursor:'pointer',textAlign:'center',background:'rgba(255,255,255,0.05)'}}>
+                    <div style={{fontSize:'24px'}}>\u{1F4CB}</div>
+                    <div style={{fontWeight:'bold',color:'white'}}>Coach</div>
+                    <div style={{fontSize:'12px',opacity:0.7,color:'#9ca3af'}}>Monitor your athletes</div>
+                  </div>
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-gray-300 font-medium mb-2">Email</label>
                 <input
@@ -752,7 +769,7 @@ const LoginPage = () => {
       const dataSources = data.dataSources || {};
 
       // Pillar scores based on real data only
-      const exerciseScore = workouts.completed != null ? Math.min(100, Math.round((workouts.completed / (workouts.goal || 20)) * 100)) : null;
+      const exerciseScore = workouts.completed != null ? Math.min(Math.round((workouts.completed / Math.max(workouts.goal || 5, 1)) * 100), 100) : (data.latest_strain != null ? Math.min(Math.round(data.latest_strain * 4.76), 100) : null);
       const recoveryScore = recovery.percentage;
       const nutritionScore = nutrition.calories != null ? Math.min(100, Math.round((nutrition.calories / 800) * 100)) : null;
       const mindsetScore = null;
@@ -836,7 +853,7 @@ const LoginPage = () => {
             ))}
             {(!data.connectedPlatforms || data.connectedPlatforms.length === 0) && (
               <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full px-3 py-1">
-                <span className="text-xs font-medium text-yellow-400">No integrations connected Ã¢ÂÂ go to Settings to connect WHOOP or Strava</span>
+                <span className="text-xs font-medium text-yellow-400">No integrations connected - go to Settings to connect WHOOP or Strava</span>
               </div>
             )}
           </div>
@@ -1172,7 +1189,7 @@ const LoginPage = () => {
                         <h3 className="font-bold text-white">{workout.name}</h3>
                         <span className="text-xs text-gray-400">{workout.date}</span>
                       </div>
-                      <p className="text-sm text-gray-400 mb-3">{workout.duration} min Ã¢ÂÂ¢ RPE: {workout.rpe}</p>
+                      <p className="text-sm text-gray-400 mb-3">{workout.duration} min * RPE: {workout.rpe}</p>
                       {workout.notes && <p className="text-sm text-gray-300 mb-2">{workout.notes}</p>}
                       <div className="flex gap-2">
                         <span className="bg-blue-100 text-primary-600 text-xs px-2 py-1 rounded">
@@ -1628,7 +1645,7 @@ const LoginPage = () => {
                 )}
 
                 <button onClick={() => setTab('leaderboard')} className="w-full text-primary-600 hover:text-primary-700 font-semibold text-sm">
-                  View Full Leaderboard Ã¢ÂÂ
+                  View Full Leaderboard ->
                 </button>
               </div>
             ))}
