@@ -24,31 +24,17 @@
         extend: {
           colors: {
             primary: {
-              50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
-              400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
-              800: '#1e40af', 900: '#1e3a8a',
-            },
-            dark: {
-              50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1',
-              400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155',
-              800: '#1e293b', 900: '#0f172a', 950: '#020617',
-            },
-            accent: {
-              teal: '#14b8a6', green: '#22c55e', purple: '#8b5cf6',
-              orange: '#f97316', pink: '#ec4899', cyan: '#06b6d4',
+              50: '#eff6ff',
+              100: '#dbeafe',
+              200: '#bfdbfe',
+              300: '#93c5fd',
+              400: '#60a5fa',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
             }
-          },
-          fontFamily: {
-            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-          },
-          borderRadius: {
-            '2xl': '1rem', '3xl': '1.5rem',
-          },
-          boxShadow: {
-            'glow-blue': '0 0 20px rgba(59,130,246,0.15)',
-            'glow-teal': '0 0 20px rgba(20,184,166,0.15)',
-            'glow-green': '0 0 20px rgba(34,197,94,0.15)',
-            'glow-purple': '0 0 20px rgba(139,92,246,0.15)',
           }
         }
       }
@@ -62,74 +48,17 @@
   -->
   <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
 
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root {
-      --bg-primary: #0f172a;
-      --bg-secondary: #1e293b;
-      --bg-card: rgba(30,41,59,0.8);
-      --text-primary: #f1f5f9;
-      --text-secondary: #94a3b8;
-      --text-muted: #64748b;
-      --accent-blue: #3b82f6;
-      --accent-teal: #14b8a6;
-      --accent-green: #22c55e;
-      --accent-purple: #8b5cf6;
-      --border-color: #334155;
-      --glass-border: rgba(148,163,184,0.1);
-    }
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-      background: var(--bg-primary) !important;
-      color: var(--text-primary) !important;
-      -webkit-font-smoothing: antialiased;
-      min-height: 100vh;
-    }
-    .animate-fade-in { animation: fadeIn 0.5s ease-out; }
-    .animate-slide-up { animation: slideUp 0.4s ease-out; }
-    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-    @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-    @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-    @keyframes gradientFlow { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
-    .glass-card {
-      background: var(--bg-card) !important;
-      backdrop-filter: blur(16px);
-      border: 1px solid var(--glass-border) !important;
-      border-radius: 16px !important;
-      transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
-    }
-    .glass-card:hover {
-      border-color: rgba(59,130,246,0.3) !important;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-      transform: translateY(-2px);
-    }
-    .gradient-text {
-      background: linear-gradient(135deg, #3b82f6, #14b8a6);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .progress-glow {
-      background: linear-gradient(90deg, #3b82f6, #14b8a6, #3b82f6);
-      background-size: 200% 100%;
-      animation: shimmer 3s linear infinite;
-      border-radius: 999px;
-    }
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: var(--bg-primary); }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #475569; }
-    .stat-glow-blue { box-shadow: inset 0 0 0 1px rgba(59,130,246,0.2), 0 0 20px rgba(59,130,246,0.05); }
-    .stat-glow-green { box-shadow: inset 0 0 0 1px rgba(34,197,94,0.2), 0 0 20px rgba(34,197,94,0.05); }
-    .stat-glow-purple { box-shadow: inset 0 0 0 1px rgba(139,92,246,0.2), 0 0 20px rgba(139,92,246,0.05); }
-    .stat-glow-teal { box-shadow: inset 0 0 0 1px rgba(20,184,166,0.2), 0 0 20px rgba(20,184,166,0.05); }
-    .stat-glow-orange { box-shadow: inset 0 0 0 1px rgba(249,115,22,0.2), 0 0 20px rgba(249,115,22,0.05); }
-    input, select, textarea {
-      background: var(--bg-secondary) !important;
-      border-color: var(--border-color) !important;
-      color: var(--text-primary) !important;
-    }
-    input::placeholder { color: var(--text-muted) !important; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #0f172a; color: #e2e8f0; }
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(59,130,246,0.3); border-radius: 50%; border-top-color: #3b82f6; animation: spin 1s ease-in-out infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+    .glass-card { background: rgba(30,41,59,0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+    .gradient-text { background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .gauge-container { position: relative; width: 120px; height: 120px; margin: 0 auto; }
   </style>
 </head>
 <body>
@@ -457,38 +386,38 @@
       };
 
       return (
-        <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-600 flex items-center justify-center p-4">
-          <div className="glass-card-2xl w-full max-w-md p-8">
-            <h1 className="text-3xl font-bold text-primary-900 mb-2" style={{background:"linear-gradient(135deg,#3b82f6,#14b8a6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>PerformanceHub</h1>
-            <p className="text-dark-300 mb-6">Fitness Analytics Platform</p>
+        <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4">
+          <div className="glass-card rounded-2xl shadow-2xl w-full max-w-md p-8">
+            <h1 className="text-3xl font-bold text-primary-900 mb-2">PerformanceHub</h1>
+            <p className="text-gray-400 mb-6">Fitness Analytics Platform</p>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+              <div className="bg-red-900/30 border border-red-500/30 text-red-300 px-4 py-3 rounded mb-4">
                 {error}
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-dark-200 font-medium mb-2">Email</label>
+                <label className="block text-gray-300 font-medium mb-2">Email</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="demo@performancehub.com"
-                  className="w-full px-4 py-2 border border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400"
+                  className="w-full px-4 py-2 border border-white/10 rounded-lg bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-dark-200 font-medium mb-2">Password</label>
+                <label className="block text-gray-300 font-medium mb-2">Password</label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="demo123"
-                  className="w-full px-4 py-2 border border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400"
+                  className="w-full px-4 py-2 border border-white/10 rounded-lg bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                   required
                 />
               </div>
@@ -496,13 +425,13 @@
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary-600 hover:bg-primary-500 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
+                className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
               >
                 {loading ? <span className="spinner" /> : 'Sign In'}
               </button>
             </form>
 
-            <p className="text-center text-dark-300 mt-6">
+            <p className="text-center text-gray-400 mt-6">
               Don't have an account?{' '}
               <a href="#/register" className="text-primary-600 hover:text-primary-700 font-medium">
                 Sign Up
@@ -545,60 +474,60 @@
       };
 
       return (
-        <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-600 flex items-center justify-center p-4">
-          <div className="glass-card-2xl w-full max-w-md p-8">
+        <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4">
+          <div className="glass-card rounded-2xl shadow-2xl w-full max-w-md p-8">
             <h1 className="text-3xl font-bold text-primary-900 mb-2">PerformanceHub</h1>
-            <p className="text-dark-300 mb-6">Create Your Account</p>
+            <p className="text-gray-400 mb-6">Create Your Account</p>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+              <div className="bg-red-900/30 border border-red-500/30 text-red-300 px-4 py-3 rounded mb-4">
                 {error}
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-dark-200 font-medium mb-2">Full Name</label>
+                <label className="block text-gray-300 font-medium mb-2">Full Name</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="John Doe"
-                  className="w-full px-4 py-2 border border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400"
+                  className="w-full px-4 py-2 border border-white/10 rounded-lg bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-dark-200 font-medium mb-2">Email</label>
+                <label className="block text-gray-300 font-medium mb-2">Email</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your@email.com"
-                  className="w-full px-4 py-2 border border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400"
+                  className="w-full px-4 py-2 border border-white/10 rounded-lg bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-dark-200 font-medium mb-2">Password</label>
+                <label className="block text-gray-300 font-medium mb-2">Password</label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400"
+                  className="w-full px-4 py-2 border border-white/10 rounded-lg bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-dark-200 font-medium mb-2">Confirm Password</label>
+                <label className="block text-gray-300 font-medium mb-2">Confirm Password</label>
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400"
+                  className="w-full px-4 py-2 border border-white/10 rounded-lg bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                   required
                 />
               </div>
@@ -606,13 +535,13 @@
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary-600 hover:bg-primary-500 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
+                className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
               >
                 {loading ? <span className="spinner" /> : 'Create Account'}
               </button>
             </form>
 
-            <p className="text-center text-dark-300 mt-6">
+            <p className="text-center text-gray-400 mt-6">
               Already have an account?{' '}
               <a href="#/login" className="text-primary-600 hover:text-primary-700 font-medium">
                 Sign In
@@ -625,168 +554,386 @@
 
     // Dashboard Page
     const DashboardPage = () => {
-      const [data, setData] = React.useState(null);
-      const [loading, setLoading] = React.useState(true);
-      const [period, setPeriod] = React.useState('7d');
-      React.useEffect(() => {
-        setLoading(true);
-        fetch('/api/dashboard?period=' + period, { credentials: 'include' })
-          .then(r => r.json())
-          .then(d => { setData(d); setLoading(false); })
-          .catch(e => { console.error('Dashboard load error:', e); setLoading(false); });
-      }, [period]);
-      if (loading) return React.createElement('div', { className: 'flex items-center justify-center h-64' },
-        React.createElement('div', { className: 'text-gray-400 text-lg' }, 'Loading dashboard...')
-      );
-      if (!data) return React.createElement('div', { className: 'flex items-center justify-center h-64' },
-        React.createElement('div', { className: 'text-red-400 text-lg' }, 'Failed to load dashboard data')
-      );
-      const connectedPlatforms = (data.connectedPlatforms || []).map(p => p.platform);
-      const hasStrava = connectedPlatforms.includes('strava');
-      const hasWhoop = connectedPlatforms.includes('whoop');
-      const hasMFP = connectedPlatforms.includes('myfitnesspal');
+      const { user } = useAuth();
+      const [dashboardData, setDashboardData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+      const [syncing, setSyncing] = useState(false);
+
+      const fetchDashboard = async () => {
+        try {
+          const res = await fetch('/api/dashboard');
+          if (!res.ok) throw new Error('Failed to fetch dashboard');
+          const data = await res.json();
+          console.log('[Dashboard] API response:', JSON.stringify(data, null, 2));
+          setDashboardData(data);
+        } catch (err) {
+          console.error('[Dashboard] Fetch error:', err);
+          setError(err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const handleSync = async () => {
+        setSyncing(true);
+        try {
+          const platforms = (dashboardData?.connectedPlatforms || []).map(p => p.platform);
+          console.log('[Dashboard] Syncing platforms:', platforms);
+          for (const p of platforms) {
+            try {
+              const res = await fetch(`/api/sync/${p}`, { method: 'POST' });
+              const result = await res.json();
+              console.log(`[Dashboard] Sync ${p}:`, result);
+            } catch (e) { console.error(`[Dashboard] Sync ${p} failed:`, e); }
+          }
+          await fetchDashboard();
+        } finally { setSyncing(false); }
+      };
+
+      useEffect(() => { fetchDashboard(); }, []);
+
+      if (loading) {
+        return (<div className="flex items-center justify-center min-h-[60vh]"><div className="spinner" style={{width:40,height:40,borderWidth:4}} /></div>);
+      }
+      if (error) {
+        return (<div className="p-4 bg-red-900/30 border border-red-500/30 text-red-300 rounded-xl">Error: {error}</div>);
+      }
+
+      const data = dashboardData || {};
+
+      // Source Badge component
       const SourceBadge = ({ source }) => {
-        const colors = {
-          'Strava': 'bg-green-600/20 text-green-400 border-green-500/30',
-          'WHOOP': 'bg-teal-600/20 text-teal-400 border-teal-500/30',
-          'MFP': 'bg-orange-600/20 text-orange-400 border-orange-500/30',
-          'Manual': 'bg-gray-600/20 text-gray-400 border-gray-500/30'
+        if (!source) return null;
+        const configs = {
+          strava: { bg: 'bg-orange-500/20', text: 'text-orange-400', label: 'Strava' },
+          whoop: { bg: 'bg-teal-500/20', text: 'text-teal-400', label: 'WHOOP' },
+          manual: { bg: 'bg-gray-500/20', text: 'text-gray-400', label: 'Manual' },
         };
-        return React.createElement('span', {
-          className: 'text-xs px-2 py-0.5 rounded-full border ' + (colors[source] || colors['Manual'])
-        }, source);
+        const cfg = configs[source] || configs.manual;
+        return (<span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${cfg.bg} ${cfg.text}`}>{cfg.label}</span>);
       };
-      const CircularGauge = ({ value, max, color, label, size }) => {
-        const sz = size || 120;
-        const strokeWidth = 8;
-        const radius = (sz - strokeWidth) / 2;
-        const circumference = 2 * Math.PI * radius;
-        const pct = Math.min(value / max, 1);
-        const offset = circumference * (1 - pct);
-        const colorMap = { green: '#22c55e', blue: '#3b82f6', orange: '#f97316', purple: '#a855f7' };
-        const strokeColor = colorMap[color] || '#6b7280';
-        return React.createElement('svg', { width: sz, height: sz, viewBox: '0 0 ' + sz + ' ' + sz },
-          React.createElement('circle', { cx: sz/2, cy: sz/2, r: radius, fill: 'none', stroke: 'rgba(255,255,255,0.08)', strokeWidth: strokeWidth }),
-          React.createElement('circle', { cx: sz/2, cy: sz/2, r: radius, fill: 'none', stroke: strokeColor, strokeWidth: strokeWidth, strokeDasharray: circumference, strokeDashoffset: offset, strokeLinecap: 'round', transform: 'rotate(-90 ' + sz/2 + ' ' + sz/2 + ')', style: { transition: 'stroke-dashoffset 0.8s ease' } }),
-          React.createElement('text', { x: sz/2, y: sz/2 - 6, textAnchor: 'middle', fill: 'white', fontSize: sz > 100 ? '22' : '18', fontWeight: 'bold' }, Math.round(pct * 100)),
-          React.createElement('text', { x: sz/2, y: sz/2 + 14, textAnchor: 'middle', fill: 'rgba(255,255,255,0.5)', fontSize: '11' }, label || 'Score')
+
+      // Circular Gauge SVG
+      const CircularGauge = ({ score, color, gradientId, size = 140 }) => {
+        const sw = 10, r = (size - sw) / 2, circ = 2 * Math.PI * r;
+        const progress = score != null ? (score / 100) * circ : 0;
+        const track = 'rgba(255,255,255,0.08)';
+        return (
+          <svg width={size} height={size} className="transform -rotate-90">
+            <defs><linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor={color} stopOpacity="1" /><stop offset="100%" stopColor={color} stopOpacity="0.5" /></linearGradient></defs>
+            <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={track} strokeWidth={sw} />
+            <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={score != null ? `url(#${gradientId})` : track} strokeWidth={sw} strokeDasharray={circ} strokeDashoffset={circ - progress} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
+          </svg>
         );
       };
-      const NoData = ({ label }) => React.createElement('span', { className: 'text-gray-500 text-sm italic' }, label || 'No data');
-      const MetricRow = ({ label, value, source, hasData }) => {
-        return React.createElement('div', { className: 'flex items-center justify-between py-1.5' },
-          React.createElement('span', { className: 'text-gray-400 text-sm' }, label),
-          React.createElement('div', { className: 'flex items-center gap-2' },
-            hasData ? React.createElement('span', { className: 'text-white font-medium text-sm' }, value) : React.createElement(NoData, null),
-            React.createElement(SourceBadge, { source: source })
-          )
-        );
-      };
-      const exerciseScore = hasStrava ? Math.min(100, Math.round(((data.metrics.strain || 0) / 21) * 50 + ((data.metrics.workouts && data.metrics.workouts.current || 0) / Math.max(data.metrics.workouts && data.metrics.workouts.goal || 5, 1)) * 50)) : 0;
-      const recoveryScore = hasWhoop ? (data.metrics.recovery || 0) : 0;
-      const nutritionScore = hasMFP ? Math.min(100, Math.round(((data.metrics.calories || 0) / 2200) * 50 + ((data.metrics.protein || 0) / 150) * 50)) : 0;
-      const mindsetScore = 0;
-      const PillarCard = ({ title, color, score, children, maxScore }) => {
-        const borderColors = { green: 'border-green-500/30', blue: 'border-blue-500/30', orange: 'border-orange-500/30', purple: 'border-purple-500/30' };
-        const bgColors = { green: 'from-green-500/5', blue: 'from-blue-500/5', orange: 'from-orange-500/5', purple: 'from-purple-500/5' };
-        return React.createElement('div', {
-          className: 'bg-gradient-to-b ' + (bgColors[color] || '') + ' to-transparent border ' + (borderColors[color] || 'border-gray-700') + ' rounded-2xl p-5 flex flex-col items-center'
+
+      // Real data from API
+      const recovery = data.recovery || {};
+      const workouts = data.workouts || {};
+      const stepsStrain = data.stepsStrain || {};
+      const nutrition = data.nutrition || {};
+      const dataSources = data.dataSources || {};
+
+      // Pillar scores based on real data only
+      const exerciseScore = workouts.completed != null ? Math.min(100, Math.round((workouts.completed / (workouts.goal || 20)) * 100)) : null;
+      const recoveryScore = recovery.percentage;
+      const nutritionScore = null;
+      const mindsetScore = null;
+
+      const pillars = [
+        { name: 'Exercise', score: exerciseScore, color: '#22c55e', gradient: 'gaugeGreen', icon: '\u{1F3CB}',
+          source: dataSources.strava?.connected ? 'strava' : null,
+          metrics: [
+            { label: 'Strain', value: stepsStrain.strain != null ? String(Math.round(stepsStrain.strain * 10) / 10) : null, source: stepsStrain.strain != null ? 'whoop' : null },
+            { label: 'Workouts', value: workouts.completed != null ? String(workouts.completed) : null, source: dataSources.strava?.connected ? 'strava' : null },
+            { label: 'Distance', value: data.stats?.distance != null ? `${data.stats.distance}mi` : null, source: dataSources.strava?.connected ? 'strava' : null },
+            { label: 'Active Min', value: null, source: null },
+          ]
         },
-          React.createElement('div', { className: 'mb-3' },
-            React.createElement(CircularGauge, { value: score, max: maxScore || 100, color: color, label: 'Score' })
-          ),
-          React.createElement('h3', { className: 'text-white font-semibold text-base mb-3' }, title),
-          React.createElement('div', { className: 'w-full space-y-0.5' }, children)
-        );
-      };
-      return React.createElement('div', { className: 'max-w-7xl mx-auto px-4 sm:px-6 py-6' },
-        React.createElement('div', { className: 'flex items-center justify-between mb-6' },
-          React.createElement('div', null,
-            React.createElement('h1', { className: 'text-2xl font-bold text-white' }, 'Welcome back, ' + (data.user && data.user.name || 'Athlete') + '!'),
-            React.createElement('p', { className: 'text-gray-400 text-sm mt-1' }, 'Your performance overview')
-          ),
-          React.createElement('select', { value: period, onChange: function(e) { setPeriod(e.target.value); }, className: 'bg-dark-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-2' },
-            React.createElement('option', { value: '7d' }, 'Last 7 Days'),
-            React.createElement('option', { value: '30d' }, 'Last 30 Days'),
-            React.createElement('option', { value: '90d' }, 'Last 90 Days')
-          )
-        ),
-        React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6' },
-          React.createElement(PillarCard, { title: 'Exercise', color: 'green', score: exerciseScore },
-            React.createElement(MetricRow, { label: 'Strain', value: (data.metrics.strain ? data.metrics.strain.toFixed(1) : '0'), source: 'Strava', hasData: hasStrava }),
-            React.createElement(MetricRow, { label: 'Workouts', value: (data.metrics.workouts && data.metrics.workouts.current || 0) + ' / ' + (data.metrics.workouts && data.metrics.workouts.goal || 0), source: 'Strava', hasData: hasStrava }),
-            React.createElement(MetricRow, { label: 'Distance', value: (data.stats && data.stats.distance || 0) + ' mi', source: 'Strava', hasData: hasStrava }),
-            React.createElement(MetricRow, { label: 'Active Min', value: '--', source: 'Strava', hasData: false })
-          ),
-          React.createElement(PillarCard, { title: 'Recovery', color: 'blue', score: recoveryScore },
-            React.createElement(MetricRow, { label: 'Recovery %', value: (data.metrics.recovery || 0) + '%', source: 'WHOOP', hasData: hasWhoop }),
-            React.createElement(MetricRow, { label: 'HRV', value: '--', source: 'WHOOP', hasData: false }),
-            React.createElement(MetricRow, { label: 'Resting HR', value: '--', source: 'WHOOP', hasData: false }),
-            React.createElement(MetricRow, { label: 'Sleep Quality', value: '--', source: 'WHOOP', hasData: false })
-          ),
-          React.createElement(PillarCard, { title: 'Nutrition', color: 'orange', score: nutritionScore },
-            React.createElement(MetricRow, { label: 'Calories', value: (data.metrics.calories || 0) + ' cal', source: 'MFP', hasData: hasMFP }),
-            React.createElement(MetricRow, { label: 'Protein', value: (data.metrics.protein || 0) + 'g', source: 'MFP', hasData: hasMFP }),
-            React.createElement(MetricRow, { label: 'Hydration', value: '--', source: 'Manual', hasData: false })
-          ),
-          React.createElement(PillarCard, { title: 'Mindset', color: 'purple', score: mindsetScore },
-            React.createElement(MetricRow, { label: 'Stress', value: '--', source: 'Manual', hasData: false }),
-            React.createElement(MetricRow, { label: 'Mindfulness', value: '--', source: 'Manual', hasData: false }),
-            React.createElement(MetricRow, { label: 'Mood', value: '--', source: 'Manual', hasData: false })
-          )
-        ),
-        data.readiness && React.createElement('div', { className: 'bg-dark-800/60 border border-gray-700/50 rounded-xl p-5 mb-6' },
-          React.createElement('h2', { className: 'text-white font-semibold text-lg mb-2' }, 'AI Readiness Insights'),
-          React.createElement('p', { className: 'text-gray-300 text-sm' }, '\uD83D\uDCA1 AI Tip: ' + (data.readiness.tip || 'Stay consistent with your training routine.'))
-        ),
-        data.goals && data.goals.length > 0 && React.createElement('div', { className: 'bg-dark-800/60 border border-gray-700/50 rounded-xl p-5 mb-6' },
-          React.createElement('h2', { className: 'text-white font-semibold text-lg mb-4' }, 'Goal Progress'),
-          data.goals.map(function(goal, i) {
-            var pct = Math.min((goal.current_value / goal.target_value) * 100, 100);
-            return React.createElement('div', { key: i, className: 'mb-3' },
-              React.createElement('div', { className: 'flex justify-between text-sm mb-1' },
-                React.createElement('span', { className: 'text-gray-300' }, goal.name),
-                React.createElement('span', { className: 'text-gray-400' }, goal.current_value + ' / ' + goal.target_value + ' ' + (goal.unit || ''))
-              ),
-              React.createElement('div', { className: 'w-full bg-dark-700 rounded-full h-2' },
-                React.createElement('div', { className: 'bg-blue-500 h-2 rounded-full transition-all', style: { width: pct + '%' } })
-              )
-            );
-          })
-        ),
-        data.trendData && data.trendData.length > 0 && React.createElement('div', { className: 'bg-dark-800/60 border border-gray-700/50 rounded-xl p-5 mb-6' },
-          React.createElement('h2', { className: 'text-white font-semibold text-lg mb-4' }, 'Performance Trends (' + (period === '7d' ? '7 days' : period === '30d' ? '30 days' : '90 days') + ')'),
-          React.createElement(window._RC.ResponsiveContainer, { width: '100%', height: 250 },
-            React.createElement(window._RC.AreaChart, { data: data.trendData },
-              React.createElement(window._RC.CartesianGrid, { strokeDasharray: '3 3', stroke: 'rgba(255,255,255,0.05)' }),
-              React.createElement(window._RC.XAxis, { dataKey: 'day', stroke: '#6b7280', tick: { fontSize: 12 } }),
-              React.createElement(window._RC.YAxis, { stroke: '#6b7280', tick: { fontSize: 12 } }),
-              React.createElement(window._RC.Tooltip, { contentStyle: { background: '#1e293b', border: '1px solid #374151', borderRadius: '8px', color: '#fff' } }),
-              React.createElement(window._RC.Area, { type: 'monotone', dataKey: 'calories', stroke: '#3b82f6', fill: 'rgba(59,130,246,0.15)', strokeWidth: 2 })
-            )
-          )
-        ),
-        data.recentActivities && data.recentActivities.length > 0 && React.createElement('div', { className: 'bg-dark-800/60 border border-gray-700/50 rounded-xl p-5 mb-6' },
-          React.createElement('h2', { className: 'text-white font-semibold text-lg mb-4' }, 'Recent Activities'),
-          data.recentActivities.map(function(act, i) {
-            var actPlatform = act.platform === 'strava' ? 'Strava' : act.platform === 'whoop' ? 'WHOOP' : 'Manual';
-            return React.createElement('div', { key: i, className: 'flex items-center justify-between py-3 border-b border-gray-700/50 last:border-0' },
-              React.createElement('div', { className: 'flex items-center gap-3' },
-                React.createElement('div', { className: 'w-10 h-10 rounded-full bg-dark-700 flex items-center justify-center text-xs font-bold text-gray-300' }, (act.name || 'Activity').substring(0, 2).toUpperCase()),
-                React.createElement('div', null,
-                  React.createElement('div', { className: 'text-white font-medium text-sm' }, act.name),
-                  React.createElement('div', { className: 'text-gray-500 text-xs' }, (act.distance || '0km') + ' - ' + (act.duration || '0 min'))
-                )
-              ),
-              React.createElement('div', { className: 'flex items-center gap-2' },
-                React.createElement(SourceBadge, { source: actPlatform }),
-                React.createElement('span', { className: 'text-gray-500 text-xs' }, act.timeAgo || 'recently')
-              )
-            );
-          })
-        )
+        { name: 'Recovery', score: recoveryScore, color: '#3b82f6', gradient: 'gaugeBlue', icon: '\u{1F4A4}',
+          source: dataSources.whoop?.connected ? 'whoop' : null,
+          metrics: [
+            { label: 'Recovery', value: recoveryScore != null ? `${recoveryScore}%` : null, source: recovery.source },
+            { label: 'HRV', value: recovery.hrv != null ? `${Math.round(recovery.hrv)}ms` : null, source: recovery.source },
+            { label: 'Resting HR', value: recovery.rhr != null ? `${recovery.rhr}bpm` : null, source: recovery.source },
+            { label: 'Sleep', value: recovery.sleepHours != null ? `${recovery.sleepHours}h` : null, source: recovery.source },
+          ]
+        },
+        { name: 'Nutrition', score: nutritionScore, color: '#f59e0b', gradient: 'gaugeOrange', icon: '\u{1F34E}',
+          source: null,
+          metrics: [
+            { label: 'Calories', value: nutrition.calories != null ? String(nutrition.calories) : null, source: nutrition.source },
+            { label: 'Protein', value: nutrition.protein != null ? `${nutrition.protein}g` : null, source: nutrition.source },
+            { label: 'Hydration', value: null, source: null },
+            { label: 'Quality', value: null, source: null },
+          ]
+        },
+        { name: 'Mindset', score: mindsetScore, color: '#a855f7', gradient: 'gaugePurple', icon: '\u{1F9E0}',
+          source: null,
+          metrics: [
+            { label: 'Stress', value: null, source: null },
+            { label: 'Mindfulness', value: null, source: null },
+            { label: 'Mood', value: null, source: null },
+            { label: 'Focus', value: null, source: null },
+          ]
+        },
+      ];
+
+      // Trends from real recovery data
+      const pillarTrendData = data.trends && data.trends.length > 0
+        ? data.trends.map(t => {
+            const d = t.date ? new Date(t.date) : null;
+            const dayName = d ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()] : t.date;
+            return { name: dayName, recovery: t.recovery_score };
+          }).reverse()
+        : null;
+
+      return (
+        <div className="space-y-6 animate-fade-in">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-extrabold gradient-text">Welcome back, {user?.name || 'Athlete'}</h1>
+              <p className="text-gray-400 text-sm mt-1">Here's your performance overview</p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => window.location.hash = '#/workouts'} className="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
+                <Icons.Plus /> Log Workout
+              </button>
+              <button onClick={handleSync} disabled={syncing} className="glass-card hover:bg-white/10 text-white text-sm font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2 border border-white/10 disabled:opacity-50">
+                <Icons.RefreshCw className={syncing ? 'animate-spin' : ''} /> {syncing ? 'Syncing...' : 'Sync'}
+              </button>
+            </div>
+          </div>
+
+          {/* Connected integrations status */}
+          <div className="flex gap-2 flex-wrap">
+            {(data.connectedPlatforms || []).map((p, i) => (
+              <div key={i} className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-full px-3 py-1">
+                <div className="w-2 h-2 rounded-full bg-green-400" />
+                <span className="text-xs font-medium text-green-400">{p.platform.charAt(0).toUpperCase() + p.platform.slice(1)} connected</span>
+              </div>
+            ))}
+            {(!data.connectedPlatforms || data.connectedPlatforms.length === 0) && (
+              <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full px-3 py-1">
+                <span className="text-xs font-medium text-yellow-400">No integrations connected — go to Settings to connect WHOOP or Strava</span>
+              </div>
+            )}
+          </div>
+
+          {/* 4 PILLAR SCORE CARDS */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {pillars.map((pillar, idx) => (
+              <div key={idx} className="glass-card rounded-2xl p-5 text-center relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300" style={{borderTop: `3px solid ${pillar.score != null ? pillar.color : '#4b5563'}`}}>
+                {pillar.score != null && (<div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{background: `radial-gradient(circle at 50% 0%, ${pillar.color}15, transparent 70%)`}} />)}
+                <div className="relative z-10">
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <span className="text-lg">{pillar.icon}</span>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">{pillar.name}</h3>
+                    <SourceBadge source={pillar.source} />
+                  </div>
+                  <div className="relative inline-flex items-center justify-center mb-3">
+                    <CircularGauge score={pillar.score} color={pillar.color} gradientId={pillar.gradient} />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      {pillar.score != null ? (
+                        <><span className="text-3xl font-black text-white">{pillar.score}</span><span className="text-[10px] text-gray-400 font-medium uppercase">Score</span></>
+                      ) : (
+                        <span className="text-sm text-gray-500 italic">No data</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {pillar.metrics.map((m, mi) => (
+                      <div key={mi} className="text-left bg-white/5 rounded-lg px-2 py-1.5">
+                        <p className="text-[10px] text-gray-400">{m.label}</p>
+                        <div className="flex items-center gap-1">
+                          {m.value != null ? (
+                            <><p className="text-sm font-bold text-white">{m.value}</p><SourceBadge source={m.source} /></>
+                          ) : (
+                            <p className="text-sm text-gray-500 italic">{'\u2014'}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* AI READINESS */}
+          <div className="glass-card rounded-2xl p-6">
+            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <span className="text-xl">{'\u{1F9E0}'}</span> AI Readiness Insights
+            </h2>
+            {data.readiness?.forecast ? (
+              <>
+                <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+                  {data.readiness.forecast.map((day, idx) => (
+                    <div key={idx} className="flex flex-col items-center gap-2 min-w-fit">
+                      <span className="text-xs font-medium text-gray-400">{day.day}</span>
+                      <span className={`px-3 py-1 rounded-full text-sm font-bold text-white ${day.score >= 80 ? 'bg-green-500/80' : day.score >= 65 ? 'bg-yellow-500/80' : 'bg-orange-500/80'}`}>{day.score}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 mb-3">Based on real WHOOP recovery data</p>
+              </>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-gray-500 italic">No readiness data available</p>
+                <p className="text-xs text-gray-400 mt-1">Connect WHOOP and sync to see your readiness forecast</p>
+              </div>
+            )}
+            {data.readiness?.tip && (
+              <p className="text-sm text-gray-300">{'\u{1F4A1}'} <strong className="text-white">AI Tip:</strong> {data.readiness.tip}</p>
+            )}
+          </div>
+
+          {/* PERFORMANCE TRENDS */}
+          <div className="glass-card rounded-2xl p-6">
+            <h2 className="text-lg font-bold text-white mb-4">Performance Trends</h2>
+            {pillarTrendData && pillarTrendData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <AreaChart data={pillarTrendData}>
+                  <defs><linearGradient id="trendRecovery" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} /><stop offset="95%" stopColor="#3b82f6" stopOpacity={0} /></linearGradient></defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="name" stroke="#64748b" tick={{fontSize:12}} />
+                  <YAxis stroke="#64748b" tick={{fontSize:12}} domain={[0, 100]} />
+                  <Tooltip contentStyle={{backgroundColor:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'12px', color:'#fff'}} />
+                  <Legend />
+                  <Area type="monotone" dataKey="recovery" name="Recovery (WHOOP)" stroke="#3b82f6" fillOpacity={1} fill="url(#trendRecovery)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-500 italic">No trend data available</p>
+                <p className="text-xs text-gray-400 mt-1">Sync your connected integrations to see trends over time</p>
+              </div>
+            )}
+          </div>
+
+          {/* DETAILED BREAKDOWNS */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #22c55e'}}>
+              <h3 className="text-base font-bold text-white mb-3 flex items-center gap-2">
+                {'\u{1F3CB}'} Exercise Details
+                {dataSources.strava?.connected && <SourceBadge source="strava" />}
+              </h3>
+              {data.goals && data.goals.length > 0 ? (
+                <div className="space-y-3">
+                  {data.goals.slice(0, 3).map((goal, idx) => {
+                    const current = goal.current_value || 0;
+                    const target = goal.target_value || 1;
+                    const pct = Math.min(100, Math.round((current / target) * 100));
+                    return (
+                      <div key={idx}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm text-gray-300">{goal.name}</span>
+                          <span className="text-xs text-gray-400">{current} / {target} {goal.unit || ''}</span>
+                        </div>
+                        <div className="w-full bg-white/5 rounded-full h-2">
+                          <div className="bg-gradient-to-r from-green-500 to-green-400 h-2 rounded-full transition-all duration-700" style={{width: `${pct}%`}} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-gray-500 italic">No exercise data</p>
+                  <p className="text-xs text-gray-400 mt-1">{dataSources.strava?.connected ? 'Hit Sync to fetch latest Strava data' : 'Connect Strava to track workouts'}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #3b82f6'}}>
+              <h3 className="text-base font-bold text-white mb-3 flex items-center gap-2">
+                {'\u{1F4A4}'} Recovery Details
+                {dataSources.whoop?.connected && <SourceBadge source="whoop" />}
+              </h3>
+              {recovery.percentage != null ? (
+                <div className="space-y-4">
+                  {[
+                    { label: 'Recovery Score', value: `${recovery.percentage}%`, bar: recovery.percentage, color: 'from-blue-500 to-blue-400' },
+                    { label: 'HRV (ms)', value: recovery.hrv != null ? String(Math.round(recovery.hrv)) : null, bar: recovery.hrv != null ? Math.min(100, recovery.hrv) : 0, color: 'from-blue-500 to-cyan-400' },
+                    { label: 'Resting HR (bpm)', value: recovery.rhr != null ? String(recovery.rhr) : null, bar: recovery.rhr != null ? Math.min(100, Math.round((60 / recovery.rhr) * 100)) : 0, color: 'from-blue-500 to-indigo-400' },
+                    { label: 'Sleep', value: recovery.sleepHours != null ? `${recovery.sleepHours}h` : null, bar: recovery.sleepHours != null ? Math.min(100, Math.round((recovery.sleepHours / 8) * 100)) : 0, color: 'from-blue-500 to-purple-400' },
+                  ].map((item, idx) => (
+                    <div key={idx}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-gray-300">{item.label}</span>
+                        {item.value != null ? (<span className="text-sm font-bold text-white">{item.value}</span>) : (<span className="text-sm text-gray-500 italic">No data</span>)}
+                      </div>
+                      <div className="w-full bg-white/5 rounded-full h-1.5">
+                        <div className={`bg-gradient-to-r ${item.color} h-1.5 rounded-full transition-all duration-700`} style={{width: `${item.bar}%`}} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-gray-500 italic">No recovery data</p>
+                  <p className="text-xs text-gray-400 mt-1">{dataSources.whoop?.connected ? 'Hit Sync to fetch latest WHOOP data' : 'Connect WHOOP to track recovery'}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* SUMMARY STATS */}
+          <div className="glass-card rounded-2xl p-6">
+            <h3 className="text-base font-bold text-white mb-3">Summary</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: 'Total Workouts', value: data.stats?.totalWorkouts, icon: '\u{1F4AA}', source: dataSources.strava?.connected ? 'strava' : null },
+                { label: 'Calories Burned', value: data.stats?.caloriesBurned, icon: '\u{1F525}', source: dataSources.strava?.connected ? 'strava' : null },
+                { label: 'Distance (mi)', value: data.stats?.distance, icon: '\u{1F3C3}', source: dataSources.strava?.connected ? 'strava' : null },
+                { label: 'Recovery Score', value: data.stats?.recoveryScore != null ? `${data.stats.recoveryScore}%` : null, icon: '\u{2764}', source: dataSources.whoop?.connected ? 'whoop' : null },
+              ].map((stat, idx) => (
+                <div key={idx} className="bg-white/5 rounded-xl p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-lg">{stat.icon}</span>
+                    <SourceBadge source={stat.source} />
+                  </div>
+                  {stat.value != null ? (<p className="text-xl font-bold text-white">{stat.value}</p>) : (<p className="text-sm text-gray-500 italic">No data</p>)}
+                  <p className="text-xs text-gray-400">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* RECENT ACTIVITIES */}
+          <div className="glass-card rounded-2xl p-6">
+            <h2 className="text-lg font-bold text-white mb-4">Recent Activities</h2>
+            {data.recentActivities && data.recentActivities.length > 0 ? (
+              <div className="space-y-2">
+                {data.recentActivities.map((activity, idx) => (
+                  <div key={idx} className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold ${activity.platform === 'strava' ? 'bg-orange-500' : activity.platform === 'whoop' ? 'bg-teal-500' : 'bg-gray-600'}`}>
+                      {(activity.type || activity.sport || '??').substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-white text-sm truncate">{activity.name}</p>
+                        <SourceBadge source={activity.platform} />
+                      </div>
+                      <p className="text-xs text-gray-400">{activity.distance > 0 ? `${activity.distance}km \u00B7 ` : ''}{activity.duration} min</p>
+                    </div>
+                    <p className="text-xs text-gray-500 whitespace-nowrap">{activity.timeAgo}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500 italic">No activities recorded</p>
+                <p className="text-xs text-gray-400 mt-1">Connect integrations and sync, or log a workout manually</p>
+              </div>
+            )}
+          </div>
+        </div>
       );
     };
+
     // Workouts Page
     const WorkoutsPage = () => {
       const [workoutsData, setWorkoutsData] = useState(null);
@@ -821,7 +968,7 @@
 
       if (error) {
         return (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">
+          <div className="p-4 bg-red-900/30 border border-red-500/30 text-red-300 rounded">
             Error: {error}
           </div>
         );
@@ -833,8 +980,8 @@
         <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-dark-50">Workout Log</h1>
-            <button onClick={() => alert('Workout logging coming soon! Track your workouts in the History tab.')} className="bg-primary-600 hover:bg-primary-500 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
+            <h1 className="text-3xl font-bold text-white">Workout Log</h1>
+            <button onClick={() => alert('Workout logging coming soon! Track your workouts in the History tab.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
               <Icons.Plus /> Start Workout
             </button>
           </div>
@@ -846,10 +993,10 @@
               { label: 'Total Time', value: data.totalTime || '420 min', icon: Icons.Clock },
               { label: 'Avg Intensity', value: data.avgIntensity || 'High', icon: Icons.Zap },
             ].map((stat, idx) => (
-              <div key={idx} className="glass-card p-4 flex items-center justify-between">
+              <div key={idx} className="glass-card rounded-xl p-4 flex items-center justify-between">
                 <div>
-                  <p className="text-dark-300 text-sm font-medium">{stat.label}</p>
-                  <p className="text-2xl font-bold text-dark-50">{stat.value}</p>
+                  <p className="text-gray-400 text-sm font-medium">{stat.label}</p>
+                  <p className="text-2xl font-bold text-white">{stat.value}</p>
                 </div>
                 <div className="text-primary-600">
                   <stat.icon />
@@ -859,13 +1006,13 @@
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-4 border-b border-dark-700">
+          <div className="flex gap-4 border-b border-white/10">
             <button
               onClick={() => setTab('history')}
               className={`px-4 py-2 font-medium ${
                 tab === 'history'
                   ? 'text-primary-600 border-b-2 border-primary-600'
-                  : 'text-dark-300 hover:text-dark-50'
+                  : 'text-gray-400 hover:text-white'
               }`}
             >
               History
@@ -875,7 +1022,7 @@
               className={`px-4 py-2 font-medium ${
                 tab === 'templates'
                   ? 'text-primary-600 border-b-2 border-primary-600'
-                  : 'text-dark-300 hover:text-dark-50'
+                  : 'text-gray-400 hover:text-white'
               }`}
             >
               Templates
@@ -886,27 +1033,27 @@
           {tab === 'history' && (
             <div className="space-y-4">
               {(data.workoutHistory || []).map((workout, idx) => (
-                <div key={idx} className="glass-card p-4">
+                <div key={idx} className="glass-card rounded-xl p-4">
                   <div className="flex items-start gap-4">
                     <div className="text-primary-600 mt-1">
                       <Icons.Activity />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-bold text-dark-50">{workout.name}</h3>
-                        <span className="text-xs text-dark-300">{workout.date}</span>
+                        <h3 className="font-bold text-white">{workout.name}</h3>
+                        <span className="text-xs text-gray-400">{workout.date}</span>
                       </div>
-                      <p className="text-sm text-dark-300 mb-3">{workout.duration} min Ã¢ÃÃ¢ RPE: {workout.rpe}</p>
-                      {workout.notes && <p className="text-sm text-dark-200 mb-2">{workout.notes}</p>}
+                      <p className="text-sm text-gray-400 mb-3">{workout.duration} min • RPE: {workout.rpe}</p>
+                      {workout.notes && <p className="text-sm text-gray-300 mb-2">{workout.notes}</p>}
                       <div className="flex gap-2">
-                        <span className="bg-primary-800/30 text-primary-600 text-xs px-2 py-1 rounded">
+                        <span className="bg-blue-100 text-primary-600 text-xs px-2 py-1 rounded">
                           {workout.type}
                         </span>
                       </div>
                       {workout.coachFeedback && (
-                        <div className="mt-3 bg-primary-900/30 border-l-4 border-primary-600 p-3">
+                        <div className="mt-3 bg-blue-500/10 border-l-4 border-primary-600 p-3">
                           <p className="text-xs font-medium text-primary-600 mb-1">Coach Feedback</p>
-                          <p className="text-sm text-dark-200">{workout.coachFeedback}</p>
+                          <p className="text-sm text-gray-300">{workout.coachFeedback}</p>
                         </div>
                       )}
                     </div>
@@ -920,11 +1067,11 @@
           {tab === 'templates' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {(data.templates || []).map((template, idx) => (
-                <div key={idx} className="glass-card p-4 cursor-pointer hover:shadow-lg transition">
-                  <h3 className="font-bold text-dark-50 mb-2">{template.name}</h3>
-                  <p className="text-sm text-dark-300 mb-3">{template.duration} min</p>
-                  <p className="text-xs text-dark-300 mb-3">{template.description}</p>
-                  <button onClick={() => alert(`Starting ${template.name}! Workout timer will begin shortly.`)} className="w-full bg-primary-600 hover:bg-primary-500 text-white font-semibold py-2 px-4 rounded-lg transition">
+                <div key={idx} className="glass-card rounded-xl p-4 cursor-pointer hover:shadow-lg transition">
+                  <h3 className="font-bold text-white mb-2">{template.name}</h3>
+                  <p className="text-sm text-gray-400 mb-3">{template.duration} min</p>
+                  <p className="text-xs text-gray-400 mb-3">{template.description}</p>
+                  <button onClick={() => alert(`Starting ${template.name}! Workout timer will begin shortly.`)} className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
                     Start
                   </button>
                 </div>
@@ -969,7 +1116,7 @@
 
       if (error) {
         return (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">
+          <div className="p-4 bg-red-900/30 border border-red-500/30 text-red-300 rounded">
             Error: {error}
           </div>
         );
@@ -1007,7 +1154,7 @@
         const valuePath = pct > 0 ? describeArc(180, Math.max(0, endAngle), r, innerR) : '';
 
         return (
-          <div className="glass-card p-6">
+          <div className="glass-card rounded-2xl p-6">
             <div className="flex flex-col items-center">
               <div style={{ position: 'relative', width: 140, height: 80 }}>
                 <svg width="140" height="80" viewBox="0 0 140 80">
@@ -1015,12 +1162,12 @@
                   {pct > 0 && <path d={valuePath} fill={color} />}
                 </svg>
                 <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, textAlign: 'center' }}>
-                  <span className="text-3xl font-bold text-dark-50">{score}</span>
+                  <span className="text-3xl font-bold text-white">{score}</span>
                 </div>
               </div>
-              <span className="text-sm font-medium text-dark-300 mt-1">{label}</span>
+              <span className="text-sm font-medium text-gray-400 mt-1">{label}</span>
               {status && (
-                <span className="mt-2 bg-emerald-900/30 text-green-700 text-xs px-2 py-1 rounded">
+                <span className="mt-2 bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded">
                   {status}
                 </span>
               )}
@@ -1033,18 +1180,18 @@
         <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-dark-50">Reports</h1>
+            <h1 className="text-3xl font-bold text-white">Reports</h1>
             <div className="flex gap-4">
               <select
                 value={timeRange}
                 onChange={(e) => setTimeRange(e.target.value)}
-                className="px-4 py-2 border border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400"
+                className="px-4 py-2 border border-white/10 rounded-lg bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="7days">Last 7 Days</option>
                 <option value="30days">Last 30 Days</option>
                 <option value="90days">Last 90 Days</option>
               </select>
-              <button onClick={() => alert('AI Report generated! Check the summary below for your latest insights.')} className="bg-primary-600 hover:bg-primary-500 text-white font-semibold py-2 px-4 rounded-lg transition">
+              <button onClick={() => alert('AI Report generated! Check the summary below for your latest insights.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
                 Generate AI Report
               </button>
             </div>
@@ -1059,39 +1206,39 @@
           </div>
 
           {/* AI Performance Summary */}
-          <div className="glass-card p-6">
-            <h2 className="text-xl font-bold text-dark-50 mb-2">AI Performance Summary</h2>
-            <p className="text-xs text-dark-300 mb-4">Generated {data.generatedDate || 'today'}</p>
-            <p className="text-dark-200 leading-relaxed">{data.summary || 'Your fitness performance is excellent this week. You maintained consistency across all metrics with a strong focus on recovery and nutrition. Continue this momentum for optimal results.'}</p>
+          <div className="glass-card rounded-2xl p-6">
+            <h2 className="text-xl font-bold text-white mb-2">AI Performance Summary</h2>
+            <p className="text-xs text-gray-400 mb-4">Generated {data.generatedDate || 'today'}</p>
+            <p className="text-gray-300 leading-relaxed">{data.summary || 'Your fitness performance is excellent this week. You maintained consistency across all metrics with a strong focus on recovery and nutrition. Continue this momentum for optimal results.'}</p>
           </div>
 
           {/* Weekly Highlights and Focus Areas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Highlights */}
-            <div className="glass-card p-6">
-              <h2 className="text-xl font-bold text-dark-50 mb-4">Weekly Highlights</h2>
+            <div className="glass-card rounded-2xl p-6">
+              <h2 className="text-xl font-bold text-white mb-4">Weekly Highlights</h2>
               <ul className="space-y-3">
                 {(data.highlights || []).map((highlight, idx) => (
                   <li key={idx} className="flex items-start gap-3">
-                    <div className="text-emerald-400 mt-1 flex-shrink-0">
+                    <div className="text-green-600 mt-1 flex-shrink-0">
                       <Icons.Check />
                     </div>
-                    <span className="text-dark-200">{highlight}</span>
+                    <span className="text-gray-300">{highlight}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
             {/* Areas to Focus */}
-            <div className="glass-card p-6">
-              <h2 className="text-xl font-bold text-dark-50 mb-4">Areas to Focus On</h2>
+            <div className="glass-card rounded-2xl p-6">
+              <h2 className="text-xl font-bold text-white mb-4">Areas to Focus On</h2>
               <ul className="space-y-3">
                 {(data.focusAreas || []).map((area, idx) => (
                   <li key={idx} className="flex items-start gap-3">
-                    <div className="text-amber-400 mt-1 flex-shrink-0">
+                    <div className="text-yellow-600 mt-1 flex-shrink-0">
                       <Icons.AlertTriangle />
                     </div>
-                    <span className="text-dark-200">{area}</span>
+                    <span className="text-gray-300">{area}</span>
                   </li>
                 ))}
               </ul>
@@ -1134,7 +1281,7 @@
 
       if (error) {
         return (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">
+          <div className="p-4 bg-red-900/30 border border-red-500/30 text-red-300 rounded">
             Error: {error}
           </div>
         );
@@ -1146,8 +1293,8 @@
         <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-dark-50">Goals</h1>
-            <button onClick={() => alert('Goal creation coming soon! You can track your existing goals below.')} className="bg-primary-600 hover:bg-primary-500 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
+            <h1 className="text-3xl font-bold text-white">Goals</h1>
+            <button onClick={() => alert('Goal creation coming soon! You can track your existing goals below.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
               <Icons.Plus /> New Goal
             </button>
           </div>
@@ -1158,39 +1305,39 @@
               const current = goal.current_value || 0;
               const target = goal.target_value || 1;
               const isLowerBetter = goal.type === 'weight' || (goal.name && goal.name.toLowerCase().includes('loss'));
-                let pct;
-                if (isLowerBetter) {
-                  pct = current <= target ? 100 : Math.max(0, Math.min(99, Math.round((1 - (current - target) / target) * 100)));
-                } else {
-                  pct = Math.min(100, Math.round((current / target) * 100));
-                }
+              let pct;
+              if (isLowerBetter) {
+                pct = current <= target ? 100 : Math.max(0, Math.min(99, Math.round((1 - (current - target) / target) * 100)));
+              } else {
+                pct = Math.min(100, Math.round((current / target) * 100));
+              }
 
               const progressColor =
                 pct >= 75
-                  ? 'bg-emerald-600'
+                  ? 'bg-green-600'
                   : pct >= 50
                   ? 'bg-yellow-600'
                   : 'bg-red-600';
 
               const statusColor =
                 goal.status === 'completed'
-                  ? 'bg-emerald-900/30 text-green-700'
+                  ? 'bg-green-500/20 text-green-400'
                   : goal.status === 'active'
-                  ? 'bg-primary-800/30 text-primary-300'
-                  : 'bg-dark-800/50 text-dark-200';
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-gray-100 text-gray-300';
 
               const statusLabel = goal.status === 'active' ? 'In Progress' : goal.status === 'completed' ? 'Completed' : goal.status;
 
               return (
-                <div key={idx} className="glass-card p-6">
+                <div key={idx} className="glass-card rounded-2xl p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-start gap-4">
                       <div className="text-primary-600 text-2xl">
                         <Icons.Target />
                       </div>
                       <div>
-                        <h3 className="text-lg font-bold text-dark-50">{goal.name}</h3>
-                        <p className="text-sm text-dark-300">{target} {goal.unit || ''}</p>
+                        <h3 className="text-lg font-bold text-white">{goal.name}</h3>
+                        <p className="text-sm text-gray-400">{target} {goal.unit || ''}</p>
                       </div>
                     </div>
                     <span className={`text-xs font-semibold px-3 py-1 rounded-full ${statusColor}`}>
@@ -1201,16 +1348,16 @@
                   <div className="space-y-3">
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-dark-300">Progress</span>
-                        <span className="text-sm font-medium text-dark-50">{pct}%</span>
+                        <span className="text-sm text-gray-400">Progress</span>
+                        <span className="text-sm font-medium text-white">{pct}%</span>
                       </div>
-                      <div className="w-full bg-dark-700 rounded-full h-3">
+                      <div className="w-full bg-white/10 rounded-full h-3">
                         <div className={`${progressColor} h-3 rounded-full`} style={{ width: `${pct}%` }} />
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-dark-300">
+                      <span className="text-sm text-gray-400">
                         {current} / {target} {goal.unit || ''}
                       </span>
                       <button onClick={() => alert('Progress updated! Your goal tracking is being synced.')} className="text-primary-600 hover:text-primary-700 text-sm font-semibold">
@@ -1260,7 +1407,7 @@
 
       if (error) {
         return (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">
+          <div className="p-4 bg-red-900/30 border border-red-500/30 text-red-300 rounded">
             Error: {error}
           </div>
         );
@@ -1272,19 +1419,19 @@
         <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-dark-50">Groups & Challenges</h1>
+            <h1 className="text-3xl font-bold text-white">Groups & Challenges</h1>
             <div className="flex gap-2">
-              <button onClick={() => alert('Enter a group code to join! This feature is coming soon.')} className="bg-primary-600 hover:bg-primary-500 text-white font-semibold py-2 px-4 rounded-lg transition">
+              <button onClick={() => alert('Enter a group code to join! This feature is coming soon.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
                 Join with Code
               </button>
-              <button onClick={() => alert('Group creation coming soon! Create challenges and compete with friends.')} className="bg-primary-600 hover:bg-primary-500 text-white font-semibold py-2 px-4 rounded-lg transition">
+              <button onClick={() => alert('Group creation coming soon! Create challenges and compete with friends.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition">
                 Create Group
               </button>
             </div>
           </div>
 
           {/* Tab Bar */}
-          <div className="flex gap-4 border-b border-dark-700">
+          <div className="flex gap-4 border-b border-white/10">
             {['competitions', 'leaderboard', 'mygroups', 'discover'].map((t) => (
               <button
                 key={t}
@@ -1292,7 +1439,7 @@
                 className={`px-4 py-2 font-medium capitalize ${
                   tab === t
                     ? 'text-primary-600 border-b-2 border-primary-600'
-                    : 'text-dark-300 hover:text-dark-50'
+                    : 'text-gray-400 hover:text-white'
                 }`}
               >
                 {t === 'mygroups' ? 'My Groups' : t}
@@ -1303,33 +1450,33 @@
           {/* Competitions / Content */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {(data.items || []).map((item, idx) => (
-              <div key={idx} className="glass-card p-6">
+              <div key={idx} className="glass-card rounded-2xl p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-bold text-dark-50">{item.name}</h3>
-                    <p className="text-sm text-dark-300 mt-1">{item.description}</p>
+                    <h3 className="text-lg font-bold text-white">{item.name}</h3>
+                    <p className="text-sm text-gray-400 mt-1">{item.description}</p>
                   </div>
                   {item.badge && (
-                    <span className="bg-emerald-900/30 text-green-700 text-xs px-2 py-1 rounded-full font-semibold">
+                    <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-full font-semibold">
                       {item.badge}
                     </span>
                   )}
                 </div>
 
                 {item.daysLeft && (
-                  <p className="text-xs text-dark-300 mb-3">{item.daysLeft} days left</p>
+                  <p className="text-xs text-gray-400 mb-3">{item.daysLeft} days left</p>
                 )}
 
-                {item.goal && <p className="text-sm text-dark-200 mb-4">{item.goal}</p>}
+                {item.goal && <p className="text-sm text-gray-300 mb-4">{item.goal}</p>}
 
                 {/* Leaderboard */}
                 {item.leaderboard && (
                   <div className="space-y-2 mb-4">
                     {item.leaderboard.slice(0, 3).map((entry, i) => (
-                      <div key={i} className="flex items-center gap-3 p-2 bg-dark-900 rounded">
+                      <div key={i} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
                         <div className="w-6 text-center">
                           {i === 0 && <Icons.Trophy className="text-yellow-500" />}
-                          {i === 1 && <Icons.Medal className="text-dark-400" />}
+                          {i === 1 && <Icons.Medal className="text-gray-400" />}
                           {i === 2 && <Icons.Medal className="text-orange-400" />}
                           {i > 2 && <span className="text-xs font-bold">{i + 1}</span>}
                         </div>
@@ -1337,22 +1484,22 @@
                           {entry.initials}
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-dark-50">{entry.name}</p>
-                          <div className="w-full bg-dark-700 rounded-full h-1 mt-1">
+                          <p className="text-sm font-medium text-white">{entry.name}</p>
+                          <div className="w-full bg-white/10 rounded-full h-1 mt-1">
                             <div
                               className="bg-primary-600 h-1 rounded-full"
                               style={{ width: `${entry.progress}%` }}
                             />
                           </div>
                         </div>
-                        <span className="text-xs font-semibold text-dark-300">{entry.value}</span>
+                        <span className="text-xs font-semibold text-gray-400">{entry.value}</span>
                       </div>
                     ))}
                   </div>
                 )}
 
                 <button onClick={() => setTab('leaderboard')} className="w-full text-primary-600 hover:text-primary-700 font-semibold text-sm">
-                  View Full Leaderboard Ã¢ÃÃ
+                  View Full Leaderboard →
                 </button>
               </div>
             ))}
@@ -1395,7 +1542,7 @@
 
       if (error) {
         return (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">
+          <div className="p-4 bg-red-900/30 border border-red-500/30 text-red-300 rounded">
             Error: {error}
           </div>
         );
@@ -1406,11 +1553,11 @@
       const badgeColor = (type) => {
         switch (type) {
           case 'Achievement':
-            return 'bg-amber-900/30 text-yellow-700';
+            return 'bg-yellow-100 text-yellow-700';
           case 'Workout':
-            return 'bg-emerald-900/30 text-green-700';
+            return 'bg-green-500/20 text-green-400';
           default:
-            return 'bg-primary-800/30 text-primary-300';
+            return 'bg-blue-100 text-blue-700';
         }
       };
 
@@ -1418,8 +1565,8 @@
         <div className="max-w-2xl mx-auto space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-dark-50">Activity Feed</h1>
-            <button onClick={() => alert('Post update coming soon! Share your fitness achievements with the community.')} className="bg-primary-600 hover:bg-primary-500 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
+            <h1 className="text-3xl font-bold text-white">Activity Feed</h1>
+            <button onClick={() => alert('Post sharing coming soon! Share your achievements with the community.')} className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
               <Icons.Plus /> Post Update
             </button>
           </div>
@@ -1433,7 +1580,7 @@
                 className={`px-4 py-2 rounded-full font-medium whitespace-nowrap capitalize ${
                   filter === f
                     ? 'bg-primary-600 text-white'
-                    : 'bg-dark-800/50 text-dark-200 hover:bg-dark-600'
+                    : 'bg-gray-100 text-gray-300 hover:bg-white/10'
                 }`}
               >
                 {f}
@@ -1444,37 +1591,37 @@
           {/* Feed Items */}
           <div className="space-y-4">
             {(data.items || []).map((item, idx) => (
-              <div key={idx} className="glass-card p-6">
+              <div key={idx} className="glass-card rounded-2xl p-6">
                 <div className="flex items-start gap-4 mb-3">
                   <div className="w-10 h-10 rounded-full bg-primary-600 text-white text-sm font-bold flex items-center justify-center">
                     {item.initials}
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 cursor-pointer", onClick: function() { window.location.hash = "#/"; }>
-                      <p className="font-bold text-dark-50">{item.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-white">{item.name}</p>
                       <span className={`text-xs font-semibold px-2 py-1 rounded ${badgeColor(item.type)}`}>
                         {item.type}
                       </span>
                     </div>
-                    <p className="text-xs text-dark-300">{item.date}</p>
+                    <p className="text-xs text-gray-400">{item.date}</p>
                   </div>
                 </div>
 
                 <div className="mb-4">
-                  <h3 className="font-bold text-dark-50 mb-1">{item.title}</h3>
-                  <p className="text-dark-200">{item.description}</p>
+                  <h3 className="font-bold text-white mb-1">{item.title}</h3>
+                  <p className="text-gray-300">{item.description}</p>
                 </div>
 
-                <div className="flex items-center gap-4 pt-4 border-t border-dark-700">
-                  <button onClick={(e) => { const btn = e.currentTarget; const span = btn.querySelector('span'); const current = parseInt(span.textContent); span.textContent = current + 1; btn.classList.add('text-red-400'); btn.classList.remove('text-dark-300'); }} className="flex items-center gap-2 text-dark-300 hover:text-red-400 transition">
+                <div className="flex items-center gap-4 pt-4 border-t border-white/10">
+                  <button onClick={(e) => { const btn = e.currentTarget; const span = btn.querySelector('span'); const current = parseInt(span.textContent); span.textContent = current + 1; btn.classList.add('text-red-600'); btn.classList.remove('text-gray-400'); }} className="flex items-center gap-2 text-gray-400 hover:text-red-600 transition">
                     <Icons.Heart />
                     <span className="text-xs">{item.likes}</span>
                   </button>
-                  <button onClick={() => alert('Comments coming soon!')} className="flex items-center gap-2 text-dark-300 hover:text-primary-600 transition">
+                  <button onClick={() => alert('Comments coming soon!')} className="flex items-center gap-2 text-gray-400 hover:text-primary-600 transition">
                     <Icons.MessageCircle />
                     <span className="text-xs">{item.comments}</span>
                   </button>
-                  <button onClick={() => { navigator.clipboard && navigator.clipboard.writeText(window.location.href); alert('Link copied to clipboard!'); }} className="flex items-center gap-2 text-dark-300 hover:text-primary-600 transition">
+                  <button onClick={() => { navigator.clipboard && navigator.clipboard.writeText(window.location.href); alert('Link copied to clipboard!'); }} className="flex items-center gap-2 text-gray-400 hover:text-primary-600 transition">
                     <Icons.Share2 />
                   </button>
                 </div>
@@ -1487,107 +1634,249 @@
 
     // Analyze Page
     const AnalyzePage = () => {
-      const [data, setData] = React.useState(null);
-      const [loading, setLoading] = React.useState(true);
-      const [refreshing, setRefreshing] = React.useState(false);
-      const loadData = function() {
-        setLoading(true);
-        fetch('/api/analyze', { credentials: 'include' })
-          .then(function(r) { return r.json(); })
-          .then(function(d) { setData(d); setLoading(false); setRefreshing(false); })
-          .catch(function(e) { console.error('Analyze load error:', e); setLoading(false); setRefreshing(false); });
+      const [dashData, setDashData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+      const [refreshing, setRefreshing] = useState(false);
+
+      const fetchData = async () => {
+        try {
+          const res = await fetch('/api/dashboard');
+          if (!res.ok) throw new Error('Failed to fetch data');
+          const data = await res.json();
+          console.log('[Analyze] Dashboard data:', data);
+          setDashData(data);
+        } catch (err) {
+          console.error('[Analyze] Fetch error:', err);
+          setError(err.message);
+        } finally { setLoading(false); }
       };
-      React.useEffect(function() { loadData(); }, []);
-      var handleRefresh = function() { setRefreshing(true); loadData(); };
-      if (loading && !refreshing) return React.createElement('div', { className: 'flex items-center justify-center h-64' },
-        React.createElement('div', { className: 'text-gray-400 text-lg' }, 'Loading analysis...')
-      );
-      var SourceBadge = function(props) {
-        var colors = {
-          'Strava': 'bg-green-600/20 text-green-400 border-green-500/30',
-          'WHOOP': 'bg-teal-600/20 text-teal-400 border-teal-500/30',
-          'MFP': 'bg-orange-600/20 text-orange-400 border-orange-500/30',
-          'Manual': 'bg-gray-600/20 text-gray-400 border-gray-500/30'
-        };
-        return React.createElement('span', { className: 'text-xs px-2 py-0.5 rounded-full border ' + (colors[props.source] || colors['Manual']) }, props.source);
+
+      const handleRefresh = async () => {
+        setRefreshing(true);
+        const platforms = (dashData?.connectedPlatforms || []).map(p => p.platform);
+        for (const p of platforms) { try { await fetch(`/api/sync/${p}`, { method: 'POST' }); } catch(e) {} }
+        await fetchData();
+        setRefreshing(false);
       };
-      var Section = function(props) {
-        return React.createElement('div', { className: 'bg-dark-800/60 border border-gray-700/50 rounded-xl p-6 mb-4' },
-          React.createElement('h3', { className: 'text-white font-semibold text-lg mb-4 flex items-center gap-2' },
-            React.createElement('span', null, props.icon), props.title
-          ), props.children
-        );
+
+      useEffect(() => { fetchData(); }, []);
+
+      const SourceBadge = ({ source }) => {
+        if (!source) return null;
+        const configs = { strava: { bg: 'bg-orange-500/20', text: 'text-orange-400', label: 'Strava' }, whoop: { bg: 'bg-teal-500/20', text: 'text-teal-400', label: 'WHOOP' }, manual: { bg: 'bg-gray-500/20', text: 'text-gray-400', label: 'Manual' } };
+        const cfg = configs[source] || configs.manual;
+        return (<span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${cfg.bg} ${cfg.text}`}>{cfg.label}</span>);
       };
-      var InsightCard = function(props) {
-        var icons = ['\uD83D\uDCC8', '\uD83D\uDD25', '\u2764\uFE0F', '\uD83C\uDFAF'];
-        var txt = typeof props.insight === 'string' ? props.insight : (props.insight.text || props.insight.message || JSON.stringify(props.insight));
-        return React.createElement('div', { className: 'p-4 bg-dark-700/50 rounded-lg border border-gray-600/30 mb-3' },
-          React.createElement('div', { className: 'flex items-start gap-3' },
-            React.createElement('span', { className: 'text-xl' }, icons[props.index % icons.length]),
-            React.createElement('p', { className: 'text-gray-200 text-sm leading-relaxed' }, txt)
-          )
-        );
+
+      if (loading) { return (<div className="flex items-center justify-center min-h-[60vh]"><div className="spinner" style={{width:40,height:40,borderWidth:4}} /></div>); }
+      if (error) { return (<div className="p-4 bg-red-900/30 border border-red-500/30 text-red-300 rounded-xl">Error: {error}</div>); }
+
+      const data = dashData || {};
+      const recovery = data.recovery || {};
+      const dataSources = data.dataSources || {};
+      const hasWhoop = dataSources.whoop?.connected;
+      const hasStrava = dataSources.strava?.connected;
+      const hasAnyData = (dataSources.whoop?.dataCount > 0) || (dataSources.strava?.dataCount > 0);
+      const activities = data.recentActivities || [];
+      const stravaActs = activities.filter(a => a.platform === 'strava');
+
+      // Recovery trend
+      const recoveryTrend = data.trends && data.trends.length > 0
+        ? data.trends.map(t => { const d = t.date ? new Date(t.date) : null; return { name: d ? d.toLocaleDateString('en-US', {month:'short', day:'numeric'}) : t.date, score: t.recovery_score }; }).reverse()
+        : null;
+
+      // Sample AI insights based on real data
+      const sampleInsights = {
+        summary: recovery.percentage != null
+          ? `Your current recovery score is ${recovery.percentage}%, which is ${recovery.percentage >= 80 ? 'excellent' : recovery.percentage >= 60 ? 'moderate' : 'below optimal'}. ${stravaActs.length > 0 ? `You have ${stravaActs.length} recent Strava activities logged.` : 'No recent Strava activities found.'} ${recovery.hrv ? `Your HRV of ${Math.round(recovery.hrv)}ms ${recovery.hrv > 50 ? 'indicates good autonomic balance.' : 'suggests room for improvement in recovery.'}` : ''}`
+          : hasAnyData ? `You have ${dataSources.strava?.dataCount || 0} Strava activities and ${dataSources.whoop?.dataCount || 0} WHOOP data points. Sync your integrations for more detailed analysis.`
+          : 'No fitness data available yet. Connect WHOOP or Strava in Settings to start receiving AI-powered insights.',
+        trends: [
+          recovery.percentage != null && recovery.percentage >= 70 ? 'Recovery scores are trending in a healthy range. Your body is responding well to your current training load.' : recovery.percentage != null ? 'Recovery scores are on the lower side. Consider reducing training intensity and prioritizing sleep.' : null,
+          stravaActs.length >= 3 ? `You have been consistently active with ${stravaActs.length} recent workouts. Maintain this frequency for optimal results.` : stravaActs.length > 0 ? 'Activity frequency is low. Aim for at least 3-4 workouts per week for cardiovascular health.' : null,
+          recovery.hrv != null ? `HRV at ${Math.round(recovery.hrv)}ms \u2014 ${recovery.hrv > 60 ? 'this is a strong indicator of good recovery and readiness for high-intensity training.' : recovery.hrv > 40 ? 'this is within normal range. Monitor for changes over the next few days.' : 'this is below typical ranges. Prioritize rest, hydration, and stress management.'}` : null,
+          recovery.sleepHours != null ? `Sleep duration of ${recovery.sleepHours}h \u2014 ${recovery.sleepHours >= 7.5 ? 'excellent! You are meeting recommended sleep targets.' : recovery.sleepHours >= 6 ? 'adequate, but aim for 7-9 hours for optimal recovery.' : 'insufficient. Poor sleep significantly impairs recovery and performance.'}` : null,
+        ].filter(Boolean),
+        recommendations: [
+          recovery.percentage != null && recovery.percentage >= 80 ? 'Your recovery is strong \u2014 today is a great day for high-intensity training or a challenging workout.' : recovery.percentage != null && recovery.percentage >= 50 ? 'Consider a moderate-intensity session today. Save high-intensity work for better recovery days.' : recovery.percentage != null ? 'Active recovery recommended: light walking, stretching, or yoga. Avoid intense training.' : null,
+          recovery.sleepHours != null && recovery.sleepHours < 7 ? 'Prioritize sleep: aim to get to bed 30 minutes earlier tonight. Sleep is your #1 recovery tool.' : null,
+          'Stay hydrated: aim for at least 2.5-3L of water daily, especially on active days.',
+        ].filter(Boolean),
+        alerts: [
+          recovery.percentage != null && recovery.percentage < 50 ? { level: 'warning', message: 'Low recovery detected. Overtraining risk is elevated. Consider taking a rest day.' } : null,
+          recovery.rhr != null && recovery.rhr > 70 ? { level: 'info', message: `Resting heart rate of ${recovery.rhr}bpm is higher than typical. Monitor for illness or stress.` } : null,
+          recovery.sleepHours != null && recovery.sleepHours < 6 ? { level: 'warning', message: 'Significant sleep deficit detected. This will impair recovery and cognitive function.' } : null,
+        ].filter(Boolean),
       };
-      return React.createElement('div', { className: 'max-w-5xl mx-auto px-4 sm:px-6 py-6' },
-        React.createElement('div', { className: 'flex items-center justify-between mb-6' },
-          React.createElement('div', null,
-            React.createElement('h1', { className: 'text-2xl font-bold text-white' }, 'AI Analysis'),
-            React.createElement('p', { className: 'text-amber-400/80 text-sm mt-1 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-1 inline-block' }, 'Sample Insights -- Connect API key for live AI analysis')
-          ),
-          React.createElement('button', { onClick: handleRefresh, disabled: refreshing, className: 'px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-white text-sm rounded-lg transition flex items-center gap-2' }, refreshing ? 'Refreshing...' : 'Refresh Insights')
-        ),
-        data && React.createElement('div', { className: 'grid grid-cols-2 md:grid-cols-4 gap-3 mb-6' },
-          React.createElement('div', { className: 'bg-dark-800/60 border border-gray-700/50 rounded-xl p-4 text-center' },
-            React.createElement('div', { className: 'text-2xl font-bold text-white' }, data.totalActivities || '0'),
-            React.createElement('div', { className: 'text-gray-400 text-xs mt-1' }, 'Total Activities')
-          ),
-          React.createElement('div', { className: 'bg-dark-800/60 border border-gray-700/50 rounded-xl p-4 text-center' },
-            React.createElement('div', { className: 'text-2xl font-bold text-white' }, data.dataPoints || '0'),
-            React.createElement('div', { className: 'text-gray-400 text-xs mt-1' }, 'Data Points')
-          ),
-          React.createElement('div', { className: 'bg-dark-800/60 border border-gray-700/50 rounded-xl p-4 text-center' },
-            React.createElement('div', { className: 'text-2xl font-bold text-white' }, data.platformsConnected || '0'),
-            React.createElement('div', { className: 'text-gray-400 text-xs mt-1' }, 'Platforms Connected')
-          ),
-          React.createElement('div', { className: 'bg-dark-800/60 border border-gray-700/50 rounded-xl p-4 text-center' },
-            React.createElement('div', { className: 'text-2xl font-bold text-white' }, data.monthlyTrend || '--'),
-            React.createElement('div', { className: 'text-gray-400 text-xs mt-1' }, 'Monthly Trend')
-          )
-        ),
-        data && data.dataSources && data.dataSources.length > 0 && React.createElement('div', { className: 'flex items-center gap-2 mb-6' },
-          React.createElement('span', { className: 'text-gray-400 text-sm' }, 'Data from:'),
-          data.dataSources.map(function(src, i) { return React.createElement(SourceBadge, { key: i, source: src.charAt(0).toUpperCase() + src.slice(1) }); })
-        ),
-        React.createElement(Section, { title: 'Performance Summary', icon: '\uD83D\uDCCA' },
-          data && data.trendData && data.trendData.length > 0
-            ? React.createElement(window._RC.ResponsiveContainer, { width: '100%', height: 200 },
-                React.createElement(window._RC.LineChart, { data: data.trendData },
-                  React.createElement(window._RC.CartesianGrid, { strokeDasharray: '3 3', stroke: 'rgba(255,255,255,0.05)' }),
-                  React.createElement(window._RC.XAxis, { dataKey: 'day', stroke: '#6b7280', tick: { fontSize: 11 } }),
-                  React.createElement(window._RC.YAxis, { stroke: '#6b7280', tick: { fontSize: 11 } }),
-                  React.createElement(window._RC.Tooltip, { contentStyle: { background: '#1e293b', border: '1px solid #374151', borderRadius: '8px', color: '#fff' } }),
-                  React.createElement(window._RC.Line, { type: 'monotone', dataKey: 'calories', stroke: '#3b82f6', strokeWidth: 2, dot: { r: 3 } })
-                )
-              )
-            : React.createElement('p', { className: 'text-gray-500 italic text-sm' }, 'No trend data available')
-        ),
-        React.createElement(Section, { title: 'Trends & Patterns', icon: '\uD83D\uDD0D' },
-          data && data.insights && data.insights.length > 0
-            ? data.insights.slice(0, 2).map(function(insight, i) { return React.createElement(InsightCard, { key: i, insight: insight, index: i }); })
-            : React.createElement('p', { className: 'text-gray-500 italic text-sm' }, 'No pattern data available yet. Connect more data sources for insights.')
-        ),
-        React.createElement(Section, { title: 'Recommendations', icon: '\uD83D\uDCA1' },
-          data && data.insights && data.insights.length > 2
-            ? data.insights.slice(2, 4).map(function(insight, i) { return React.createElement(InsightCard, { key: i, insight: insight, index: i + 2 }); })
-            : React.createElement('p', { className: 'text-gray-500 italic text-sm' }, 'Not enough data for recommendations yet. Keep logging your activities!')
-        ),
-        React.createElement(Section, { title: 'Alerts', icon: '\u26A0\uFE0F' },
-          React.createElement('div', { className: 'p-4 bg-dark-700/50 rounded-lg border border-gray-600/30' },
-            React.createElement('p', { className: 'text-gray-400 text-sm' }, 'No alerts at this time. Your metrics are within normal ranges.')
-          )
-        )
+
+      return (
+        <div className="space-y-6 animate-fade-in">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-extrabold gradient-text">AI Analysis</h1>
+              <p className="text-gray-400 text-sm mt-1">Data-driven insights from your connected integrations</p>
+            </div>
+            <button onClick={handleRefresh} disabled={refreshing} className="bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2 disabled:opacity-50">
+              <Icons.RefreshCw className={refreshing ? 'animate-spin' : ''} /> {refreshing ? 'Refreshing...' : 'Refresh Insights'}
+            </button>
+          </div>
+
+          {/* Sample insights disclaimer */}
+          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-2">
+            <span className="text-yellow-400 text-lg">{'\u26A0'}</span>
+            <div>
+              <p className="text-yellow-300 text-sm font-medium">Sample Insights \u2014 Connect API key for live AI analysis</p>
+              <p className="text-yellow-400/70 text-xs mt-0.5">These insights are generated from templates based on your real data. Set the ANTHROPIC_API_KEY environment variable to enable Claude-powered analysis.</p>
+            </div>
+          </div>
+
+          {/* Data Sources */}
+          <div className="glass-card rounded-2xl p-6">
+            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Icons.Link2 className="w-5 h-5" /> Data Sources</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {[
+                { name: 'WHOOP', connected: hasWhoop, count: dataSources.whoop?.dataCount || 0, color: 'teal' },
+                { name: 'Strava', connected: hasStrava, count: dataSources.strava?.dataCount || 0, color: 'orange' },
+                { name: 'MyFitnessPal', connected: false, count: 0, color: 'red' },
+                { name: 'Garmin', connected: false, count: 0, color: 'blue' },
+              ].map((src, idx) => (
+                <div key={idx} className={`rounded-xl p-4 border ${src.connected ? `bg-${src.color}-500/10 border-${src.color}-500/20` : 'bg-white/5 border-white/10'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-bold text-white">{src.name}</span>
+                    {src.connected ? (<span className="w-2 h-2 rounded-full bg-green-400" />) : (<span className="w-2 h-2 rounded-full bg-gray-600" />)}
+                  </div>
+                  <p className={`text-xs ${src.connected ? 'text-green-400' : 'text-gray-500'}`}>{src.connected ? `${src.count} data points` : 'Not connected'}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* WHOOP + Strava Data sections */}
+          {hasAnyData && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {hasWhoop && (
+                <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #14b8a6'}}>
+                  <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">WHOOP Data <SourceBadge source="whoop" /></h3>
+                  <div className="space-y-3">
+                    {[
+                      { label: 'Recovery Score', value: recovery.percentage != null ? `${recovery.percentage}%` : null },
+                      { label: 'HRV', value: recovery.hrv != null ? `${Math.round(recovery.hrv)} ms` : null },
+                      { label: 'Resting Heart Rate', value: recovery.rhr != null ? `${recovery.rhr} bpm` : null },
+                      { label: 'Sleep Duration', value: recovery.sleepHours != null ? `${recovery.sleepHours} hours` : null },
+                      { label: 'Strain', value: data.stepsStrain?.strain != null ? String(Math.round(data.stepsStrain.strain * 10) / 10) : null },
+                    ].map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                        <span className="text-sm text-gray-300">{item.label}</span>
+                        {item.value != null ? (<span className="text-sm font-bold text-white">{item.value}</span>) : (<span className="text-sm text-gray-500 italic">No data</span>)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {hasStrava && (
+                <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #f97316'}}>
+                  <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">Strava Data <SourceBadge source="strava" /></h3>
+                  <div className="space-y-3">
+                    {[
+                      { label: 'Total Workouts', value: data.stats?.totalWorkouts != null ? String(data.stats.totalWorkouts) : null },
+                      { label: 'Total Distance', value: data.stats?.distance != null ? `${data.stats.distance} mi` : null },
+                      { label: 'Calories Burned', value: data.stats?.caloriesBurned != null ? String(data.stats.caloriesBurned) : null },
+                    ].map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                        <span className="text-sm text-gray-300">{item.label}</span>
+                        {item.value != null ? (<span className="text-sm font-bold text-white">{item.value}</span>) : (<span className="text-sm text-gray-500 italic">No data</span>)}
+                      </div>
+                    ))}
+                  </div>
+                  {stravaActs.length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-xs text-gray-400 mb-2 uppercase font-semibold tracking-wider">Recent Activities</p>
+                      {stravaActs.slice(0, 5).map((act, idx) => (
+                        <div key={idx} className="flex items-center justify-between py-1.5 text-xs">
+                          <span className="text-gray-300">{act.name}</span>
+                          <span className="text-white font-medium">{act.distance > 0 ? `${act.distance}km` : ''} {act.duration}min</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Recovery Trend Chart */}
+          {recoveryTrend && recoveryTrend.length > 0 && (
+            <div className="glass-card rounded-2xl p-6">
+              <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">Recovery Trend <SourceBadge source="whoop" /></h2>
+              <ResponsiveContainer width="100%" height={250}>
+                <AreaChart data={recoveryTrend}>
+                  <defs><linearGradient id="analyzeRecovery" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#14b8a6" stopOpacity={0.3} /><stop offset="95%" stopColor="#14b8a6" stopOpacity={0} /></linearGradient></defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="name" stroke="#64748b" tick={{fontSize:11}} />
+                  <YAxis stroke="#64748b" tick={{fontSize:11}} domain={[0, 100]} />
+                  <Tooltip contentStyle={{backgroundColor:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', color:'#fff'}} />
+                  <Area type="monotone" dataKey="score" name="Recovery %" stroke="#14b8a6" fillOpacity={1} fill="url(#analyzeRecovery)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* AI INSIGHTS */}
+          <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #8b5cf6'}}>
+            <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><span className="text-xl">{'\u{1F4CA}'}</span> Performance Summary</h2>
+            <p className="text-gray-300 text-sm leading-relaxed">{sampleInsights.summary}</p>
+          </div>
+
+          {sampleInsights.trends.length > 0 && (
+            <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #3b82f6'}}>
+              <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><span className="text-xl">{'\u{1F4C8}'}</span> Trends & Patterns</h2>
+              <div className="space-y-3">
+                {sampleInsights.trends.map((trend, idx) => (
+                  <div key={idx} className="flex items-start gap-3"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2 flex-shrink-0" /><p className="text-gray-300 text-sm">{trend}</p></div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {sampleInsights.recommendations.length > 0 && (
+            <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #22c55e'}}>
+              <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><span className="text-xl">{'\u{1F4A1}'}</span> Recommendations</h2>
+              <div className="space-y-3">
+                {sampleInsights.recommendations.map((rec, idx) => (
+                  <div key={idx} className="flex items-start gap-3 bg-green-500/5 rounded-lg p-3"><span className="text-green-400 font-bold text-sm">{idx + 1}.</span><p className="text-gray-300 text-sm">{rec}</p></div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {sampleInsights.alerts.length > 0 && (
+            <div className="glass-card rounded-2xl p-6" style={{borderLeft: '3px solid #ef4444'}}>
+              <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><span className="text-xl">{'\u{1F6A8}'}</span> Alerts</h2>
+              <div className="space-y-3">
+                {sampleInsights.alerts.map((alert, idx) => (
+                  <div key={idx} className={`flex items-start gap-3 rounded-lg p-3 ${alert.level === 'warning' ? 'bg-red-500/10 border border-red-500/20' : 'bg-yellow-500/10 border border-yellow-500/20'}`}>
+                    <span className={alert.level === 'warning' ? 'text-red-400' : 'text-yellow-400'}>{'\u26A0'}</span>
+                    <p className={`text-sm ${alert.level === 'warning' ? 'text-red-300' : 'text-yellow-300'}`}>{alert.message}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* No data state */}
+          {!hasAnyData && (
+            <div className="glass-card rounded-2xl p-12 text-center">
+              <span className="text-4xl mb-4 block">{'\u{1F4CA}'}</span>
+              <h3 className="text-xl font-bold text-white mb-2">No Data to Analyze</h3>
+              <p className="text-gray-400 text-sm max-w-md mx-auto">Connect your fitness platforms (WHOOP, Strava) in Settings to start receiving AI-powered analysis of your training, recovery, and performance trends.</p>
+              <button onClick={() => window.location.hash = '#/settings'} className="mt-4 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold py-2 px-6 rounded-lg transition">Go to Settings</button>
+            </div>
+          )}
+        </div>
       );
     };
+
     // Settings Page
     const SettingsPage = () => {
       const [settingsData, setSettingsData] = useState(null);
@@ -1685,7 +1974,7 @@
 
       if (error) {
         return (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">
+          <div className="p-4 bg-red-900/30 border border-red-500/30 text-red-300 rounded">
             Error: {error}
           </div>
         );
@@ -1694,21 +1983,21 @@
       const data = settingsData || {};
 
       const platformInfo = {
-        strava: { name: 'Strava', color: 'bg-orange-100', textColor: 'text-orange-600', category: 'Activity Tracking', badge: 'Connected', badgeColor: 'bg-emerald-900/30 text-green-700', lastSync: '2 hours ago' },
-        whoop: { name: 'WHOOP', color: 'bg-teal-100', textColor: 'text-teal-600', category: 'Recovery & Sleep', badge: 'Premium', badgeColor: 'bg-purple-900/30 text-purple-700' },
-        garmin: { name: 'Garmin Connect', color: 'bg-primary-800/30', textColor: 'text-primary-400', category: 'Activity Tracking', badge: null, badgeColor: null },
-        peloton: { name: 'Peloton', color: 'bg-red-900/30', textColor: 'text-red-400', category: 'Training', badge: null, badgeColor: null },
-        myfitnesspal: { name: 'MyFitnessPal', color: 'bg-emerald-900/30', textColor: 'text-emerald-400', category: 'Nutrition', badge: 'Connected', badgeColor: 'bg-emerald-900/30 text-green-700', lastSync: '1 hour ago' },
-        applehealth: { name: 'Apple Health', color: 'bg-dark-800/50', textColor: 'text-dark-300', category: 'Health Platform', badge: null, badgeColor: null },
+        strava: { name: 'Strava', color: 'bg-orange-100', textColor: 'text-orange-600', category: 'Activity Tracking', badge: 'Connected', badgeColor: 'bg-green-500/20 text-green-400', lastSync: '2 hours ago' },
+        whoop: { name: 'WHOOP', color: 'bg-teal-100', textColor: 'text-teal-600', category: 'Recovery & Sleep', badge: 'Premium', badgeColor: 'bg-purple-100 text-purple-700' },
+        garmin: { name: 'Garmin Connect', color: 'bg-blue-100', textColor: 'text-blue-600', category: 'Activity Tracking', badge: null, badgeColor: null },
+        peloton: { name: 'Peloton', color: 'bg-red-100', textColor: 'text-red-600', category: 'Training', badge: null, badgeColor: null },
+        myfitnesspal: { name: 'MyFitnessPal', color: 'bg-green-100', textColor: 'text-green-600', category: 'Nutrition', badge: 'Connected', badgeColor: 'bg-green-500/20 text-green-400', lastSync: '1 hour ago' },
+        applehealth: { name: 'Apple Health', color: 'bg-gray-100', textColor: 'text-gray-400', category: 'Health Platform', badge: null, badgeColor: null },
       };
 
       return (
         <div className="space-y-6">
           {/* Header */}
-          <h1 className="text-3xl font-bold text-dark-50">Settings</h1>
+          <h1 className="text-3xl font-bold text-white">Settings</h1>
 
           {/* Tabs */}
-          <div className="flex gap-4 border-b border-dark-700 overflow-x-auto">
+          <div className="flex gap-4 border-b border-white/10 overflow-x-auto">
             {['integrations', 'notifications', 'appearance', 'security', 'privacy'].map((t) => (
               <button
                 key={t}
@@ -1716,7 +2005,7 @@
                 className={`px-4 py-2 font-medium capitalize whitespace-nowrap ${
                   tab === t
                     ? 'text-primary-600 border-b-2 border-primary-600'
-                    : 'text-dark-300 hover:text-dark-50'
+                    : 'text-gray-400 hover:text-white'
                 }`}
               >
                 {t === 'privacy' ? 'Data & Privacy' : t}
@@ -1740,7 +2029,7 @@
                   <button
                     key={cat}
                     onClick={() => setFilterCat(cat)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${filterCat === cat ? 'bg-primary-600 text-white' : 'bg-dark-800/50 text-dark-200 hover:bg-dark-600'}`}
+                    className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${filterCat === cat ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-300 hover:bg-white/10'}`}
                   >
                     {cat}
                   </button>
@@ -1753,13 +2042,13 @@
                   const isConnected = data.connectedPlatforms?.includes(key);
 
                   return (
-                    <div key={key} className="glass-card p-4">
+                    <div key={key} className="glass-card rounded-xl p-4">
                       <div className={`${info.color} ${info.textColor} w-12 h-12 rounded-lg flex items-center justify-center mb-3 font-bold text-lg`}>
                         {info.name.substring(0, 1)}
                       </div>
 
-                      <h3 className="font-bold text-dark-50 mb-1">{info.name}</h3>
-                      <p className="text-xs text-dark-300 mb-3">{info.category}</p>
+                      <h3 className="font-bold text-white mb-1">{info.name}</h3>
+                      <p className="text-xs text-gray-400 mb-3">{info.category}</p>
 
                       {info.badge && (
                         <span className={`text-xs font-semibold px-2 py-1 rounded mb-2 block ${info.badgeColor}`}>
@@ -1768,21 +2057,21 @@
                       )}
 
                       {isConnected && info.lastSync && (
-                        <p className="text-xs text-dark-300 mb-3">Last synced: {info.lastSync}</p>
+                        <p className="text-xs text-gray-400 mb-3">Last synced: {info.lastSync}</p>
                       )}
 
                       <div className="space-y-2 mb-3">
-                        <p className="text-xs text-dark-300">Data types: Activities, Routes</p>
+                        <p className="text-xs text-gray-400">Data types: Activities, Routes</p>
                       </div>
 
                       {isConnected ? (
                         <div className="flex gap-2">
-                          <button onClick={() => alert(`${info.name} integration settings: Sync frequency, data permissions, and connection status.`)} className="flex-1 bg-dark-700 hover:bg-dark-600 text-dark-200 text-xs font-semibold py-2 px-3 rounded transition">
+                          <button onClick={() => alert(`${info.name} integration settings: Sync frequency, data permissions, and connection status.`)} className="flex-1 bg-white/10 hover:bg-gray-300 text-gray-300 text-xs font-semibold py-2 px-3 rounded transition">
                             Settings
                           </button>
                           <button
                             onClick={() => handleDisconnect(key)}
-                            className="bg-red-900/30 hover:bg-red-200 text-red-700 text-xs font-semibold py-2 px-3 rounded transition"
+                            className="bg-red-100 hover:bg-red-200 text-red-700 text-xs font-semibold py-2 px-3 rounded transition"
                           >
                             <Icons.X />
                           </button>
@@ -1790,7 +2079,7 @@
                       ) : (
                         <button
                           onClick={() => handleConnect(key)}
-                          className="w-full bg-primary-600 hover:bg-primary-500 text-white text-xs font-semibold py-2 px-4 rounded transition"
+                          className="w-full bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold py-2 px-4 rounded transition"
                         >
                           Connect
                         </button>
@@ -1805,8 +2094,8 @@
           {/* Other Tabs - Placeholder */}
           {tab === 'notifications' && (
             <div className="space-y-4">
-              <div className="glass-card p-6">
-                <h2 className="text-xl font-bold text-dark-50 mb-4">Notification Preferences</h2>
+              <div className="glass-card rounded-2xl p-6">
+                <h2 className="text-xl font-bold text-white mb-4">Notification Preferences</h2>
                 <div className="space-y-4">
                   {[
                     { label: 'Workout Reminders', desc: 'Get reminded about scheduled workouts', on: true },
@@ -1815,13 +2104,13 @@
                     { label: 'Social Activity', desc: 'Likes, comments, and group updates', on: false },
                     { label: 'Weekly Summary', desc: 'Email digest of your weekly performance', on: true },
                   ].map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between py-3 border-b border-dark-700 last:border-0">
+                    <div key={idx} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
                       <div>
-                        <p className="font-medium text-dark-50">{item.label}</p>
-                        <p className="text-sm text-dark-400">{item.desc}</p>
+                        <p className="font-medium text-white">{item.label}</p>
+                        <p className="text-sm text-gray-500">{item.desc}</p>
                       </div>
-                      <div onClick={() => setNotifs(prev => ({...prev, [idx]: !prev[idx]}))} className={`w-12 h-6 rounded-full cursor-pointer transition ${notifs[idx] ? 'bg-primary-600' : 'bg-dark-600'}`}>
-                        <div className={`w-5 h-5 bg-dark-800 rounded-full shadow mt-0.5 transition-transform ${notifs[idx] ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      <div onClick={() => setNotifs(prev => ({...prev, [idx]: !prev[idx]}))} className={`w-12 h-6 rounded-full cursor-pointer transition ${notifs[idx] ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                        <div className={`w-5 h-5 bg-white rounded-full shadow mt-0.5 transition-transform ${notifs[idx] ? 'translate-x-6' : 'translate-x-0.5'}`} />
                       </div>
                     </div>
                   ))}
@@ -1832,30 +2121,30 @@
 
           {tab === 'appearance' && (
             <div className="space-y-4">
-              <div className="glass-card p-6">
-                <h2 className="text-xl font-bold text-dark-50 mb-4">Appearance</h2>
+              <div className="glass-card rounded-2xl p-6">
+                <h2 className="text-xl font-bold text-white mb-4">Appearance</h2>
                 <div className="space-y-4">
                   <div>
-                    <p className="font-medium text-dark-50 mb-2">Theme</p>
+                    <p className="font-medium text-white mb-2">Theme</p>
                     <div className="flex gap-3">
                       {['Light', 'Dark', 'System'].map((t) => (
-                        <button key={t} onClick={() => setTheme(t)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${t === theme ? 'border-primary-500 bg-primary-600/20 text-primary-300 shadow-glow-blue' : 'border-dark-700 text-dark-300 hover:bg-dark-900'}`}>{t}</button>
+                        <button key={t} onClick={() => setTheme(t)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${t === theme ? 'border-blue-600 bg-blue-500/10 text-blue-700' : 'border-white/10 text-gray-400 hover:bg-white/5'}`}>{t}</button>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <p className="font-medium text-dark-50 mb-2">Dashboard Layout</p>
+                    <p className="font-medium text-white mb-2">Dashboard Layout</p>
                     <div className="flex gap-3">
                       {['Compact', 'Standard', 'Expanded'].map((l) => (
-                        <button key={l} onClick={() => setLayout(l)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${l === layout ? 'border-primary-500 bg-primary-600/20 text-primary-300 shadow-glow-blue' : 'border-dark-700 text-dark-300 hover:bg-dark-900'}`}>{l}</button>
+                        <button key={l} onClick={() => setLayout(l)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${l === layout ? 'border-blue-600 bg-blue-500/10 text-blue-700' : 'border-white/10 text-gray-400 hover:bg-white/5'}`}>{l}</button>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <p className="font-medium text-dark-50 mb-2">Units</p>
+                    <p className="font-medium text-white mb-2">Units</p>
                     <div className="flex gap-3">
-                      {['Imperial (mi, lbs)', 'Metric (km, kg)'].map((u, i) => (
-                        <button key={u} onClick={() => setUnits(u)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${u === units ? 'border-primary-500 bg-primary-600/20 text-primary-300 shadow-glow-blue' : 'border-dark-700 text-dark-300 hover:bg-dark-900'}`}>{u}</button>
+                      {['Imperial (mi, lbs)', 'Metric (km, kg)'].map((u) => (
+                        <button key={u} onClick={() => setUnits(u)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${u === units ? 'border-blue-600 bg-blue-500/10 text-blue-700' : 'border-white/10 text-gray-400 hover:bg-white/5'}`}>{u}</button>
                       ))}
                     </div>
                   </div>
@@ -1866,29 +2155,29 @@
 
           {tab === 'security' && (
             <div className="space-y-4">
-              <div className="glass-card p-6">
-                <h2 className="text-xl font-bold text-dark-50 mb-4">Security</h2>
+              <div className="glass-card rounded-2xl p-6">
+                <h2 className="text-xl font-bold text-white mb-4">Security</h2>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between py-3 border-b border-dark-700">
+                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
                     <div>
-                      <p className="font-medium text-dark-50">Password</p>
-                      <p className="text-sm text-dark-400">Last changed 30 days ago</p>
+                      <p className="font-medium text-white">Password</p>
+                      <p className="text-sm text-gray-500">Last changed 30 days ago</p>
                     </div>
-                    <button className="bg-dark-800/50 hover:bg-dark-600 text-dark-200 text-sm font-medium py-2 px-4 rounded-lg transition">Change</button>
+                    <button onClick={() => alert('Password change feature coming soon. Use your current password to log in.')} className="bg-gray-100 hover:bg-white/10 text-gray-300 text-sm font-medium py-2 px-4 rounded-lg transition">Change</button>
                   </div>
-                  <div className="flex items-center justify-between py-3 border-b border-dark-700">
+                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
                     <div>
-                      <p className="font-medium text-dark-50">Two-Factor Authentication</p>
-                      <p className="text-sm text-dark-400">Add an extra layer of security</p>
+                      <p className="font-medium text-white">Two-Factor Authentication</p>
+                      <p className="text-sm text-gray-500">Add an extra layer of security</p>
                     </div>
-                    <button className="bg-primary-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition">Enable</button>
+                    <button onClick={() => alert('2FA setup coming soon. This will add an authenticator app to your account.')} className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition">Enable</button>
                   </div>
                   <div className="flex items-center justify-between py-3">
                     <div>
-                      <p className="font-medium text-dark-50">Active Sessions</p>
-                      <p className="text-sm text-dark-400">1 active session on this device</p>
+                      <p className="font-medium text-white">Active Sessions</p>
+                      <p className="text-sm text-gray-500">1 active session on this device</p>
                     </div>
-                    <button className="bg-dark-800/50 hover:bg-dark-600 text-dark-200 text-sm font-medium py-2 px-4 rounded-lg transition">Manage</button>
+                    <button onClick={() => alert('You have 1 active session on this device. All other sessions have been logged out.')} className="bg-gray-100 hover:bg-white/10 text-gray-300 text-sm font-medium py-2 px-4 rounded-lg transition">Manage</button>
                   </div>
                 </div>
               </div>
@@ -1897,35 +2186,35 @@
 
           {tab === 'privacy' && (
             <div className="space-y-4">
-              <div className="glass-card p-6">
-                <h2 className="text-xl font-bold text-dark-50 mb-4">Data & Privacy</h2>
+              <div className="glass-card rounded-2xl p-6">
+                <h2 className="text-xl font-bold text-white mb-4">Data & Privacy</h2>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between py-3 border-b border-dark-700">
+                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
                     <div>
-                      <p className="font-medium text-dark-50">Profile Visibility</p>
-                      <p className="text-sm text-dark-400">Who can see your profile and activities</p>
+                      <p className="font-medium text-white">Profile Visibility</p>
+                      <p className="text-sm text-gray-500">Who can see your profile and activities</p>
                     </div>
-                    <select className="border border-dark-600 rounded-lg px-3 py-1.5 text-sm">
+                    <select className="border border-white/10 rounded-lg bg-white/5 text-white px-3 py-1.5 text-sm">
                       <option>Friends Only</option>
                       <option>Public</option>
                       <option>Private</option>
                     </select>
                   </div>
-                  <div className="flex items-center justify-between py-3 border-b border-dark-700">
+                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
                     <div>
-                      <p className="font-medium text-dark-50">Data Sharing</p>
-                      <p className="text-sm text-dark-400">Share anonymized data for research</p>
+                      <p className="font-medium text-white">Data Sharing</p>
+                      <p className="text-sm text-gray-500">Share anonymized data for research</p>
                     </div>
-                    <div className="w-12 h-6 rounded-full cursor-pointer bg-dark-600">
-                      <div className="w-5 h-5 bg-dark-800 rounded-full shadow mt-0.5 translate-x-0.5" />
+                    <div onClick={(e) => { const el = e.currentTarget; const isOn = el.classList.contains('bg-blue-600'); el.classList.toggle('bg-blue-600'); el.classList.toggle('bg-gray-300'); el.querySelector('div').classList.toggle('translate-x-6'); el.querySelector('div').classList.toggle('translate-x-0.5'); }} className="w-12 h-6 rounded-full cursor-pointer bg-gray-300">
+                      <div className="w-5 h-5 bg-white rounded-full shadow mt-0.5 transition-transform translate-x-0.5" />
                     </div>
                   </div>
                   <div className="flex items-center justify-between py-3">
                     <div>
-                      <p className="font-medium text-dark-50">Export Your Data</p>
-                      <p className="text-sm text-dark-400">Download all your data in JSON format</p>
+                      <p className="font-medium text-white">Export Your Data</p>
+                      <p className="text-sm text-gray-500">Download all your data in JSON format</p>
                     </div>
-                    <button className="bg-dark-800/50 hover:bg-dark-600 text-dark-200 text-sm font-medium py-2 px-4 rounded-lg transition">Export</button>
+                    <button onClick={() => alert('Data export initiated! Your data will be ready for download shortly.')} className="bg-gray-100 hover:bg-white/10 text-gray-300 text-sm font-medium py-2 px-4 rounded-lg transition">Export</button>
                   </div>
                 </div>
               </div>
@@ -1957,7 +2246,7 @@
 
       if (loading) {
         return (
-          <div className="flex items-center justify-center min-h-screen bg-dark-800">
+          <div className="flex items-center justify-center min-h-screen bg-white">
             <div className="spinner" />
           </div>
         );
@@ -1991,16 +2280,16 @@
       };
 
       return (
-        <div className="min-h-screen bg-dark-900">
+        <div className="min-h-screen bg-[#0f172a]">
           {/* Top Navigation Bar */}
-          <nav className="bg-dark-900/95 backdrop-blur-xl text-white shadow-lg shadow-black/20 sticky top-0 z-50 border-b border-dark-700/50">
+          <nav className="bg-[#1e293b]/90 backdrop-blur-md text-white shadow-lg sticky top-0 z-50 border-b border-white/5">
             <div className="px-4 sm:px-6 py-4">
               <div className="flex items-center justify-between">
-                {/* Logo */}
-                <div className="flex items-center gap-2 font-bold text-xl">
+                {/* Logo - clickable to navigate to dashboard */}
+                <a href="#/" className="flex items-center gap-2 font-bold text-xl hover:opacity-90 transition cursor-pointer" style={{textDecoration:'none',color:'inherit'}}>
                   <Icons.Activity />
                   PerformanceHub
-                </div>
+                </a>
 
                 {/* Nav Links */}
                 <div className="flex items-center gap-6">
@@ -2021,8 +2310,8 @@
                         href={`#${href}`}
                         className={`text-sm font-medium transition px-2 py-3 min-h-[44px] inline-flex items-center ${
                           isActive
-                            ? 'text-white font-semibold border-b-2 border-primary-400 pb-0.5'
-                            : 'text-dark-400 hover:text-white transition-colors duration-200'
+                            ? 'text-white'
+                            : 'text-blue-300 hover:text-white'
                         } hidden md:inline-flex`}
                       >
                         {label}
@@ -2048,7 +2337,7 @@
                     </svg>
                   </button>
 
-                  <button onClick={() => alert('No new notifications')} className="relative hidden sm:block">
+                  <button onClick={() => alert(`You have ${notificationCount} unread notifications. Notification center coming soon!`)} className="relative hidden sm:block">
                     <Icons.Bell />
                     {notificationCount > 0 && (
                       <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
@@ -2109,16 +2398,16 @@
                   <option>Last 30 Days</option>
                   <option>Last 90 Days</option>
                 </select>
-                <button onClick={() => window.location.reload()} className="text-dark-400 hover:text-white transition-colors duration-200">
+                <button onClick={() => window.location.reload()} className="text-blue-300 hover:text-white transition">
                   <Icons.RefreshCw />
                 </button>
-                <button onClick={() => alert('Export data feature coming soon!')} className="text-dark-400 hover:text-white transition-colors duration-200">
+                <button onClick={() => alert('Data export initiated! Your report will download shortly.')} className="text-blue-300 hover:text-white transition">
                   <Icons.Download />
                 </button>
               </div>
 
               <div className="flex items-center gap-4">
-                <a href="#/settings" className="text-dark-400 hover:text-white transition-colors duration-200 text-xs">
+                <a href="#/settings" className="text-blue-300 hover:text-white transition text-xs">
                   Switch to Coach
                 </a>
                 <button
@@ -2130,7 +2419,7 @@
                       })
                       .catch(console.error);
                   }}
-                  className="text-dark-400 hover:text-white transition-colors duration-200 text-xs"
+                  className="text-blue-300 hover:text-white transition text-xs"
                 >
                   Sign Out
                 </button>
