@@ -2567,29 +2567,35 @@ class WhoopSyncHandler(BaseHandler):
                     )
                     synced += 1
 
-            # Store aggregated WHOOP data in daily_summaries for dashboard
-            today = datetime.datetime.utcnow().strftime('%Y-%m-%d')
-            best_recovery = None
-            cursor.execute("SELECT recovery_score FROM recovery_metrics WHERE user_id = ? AND recovery_score IS NOT NULL ORDER BY date DESC LIMIT 1", (user_id,))
-            rm_row = cursor.fetchone()
-            if rm_row:
-                best_recovery = rm_row['recovery_score']
-            latest_sleep = None
-            cursor.execute("SELECT duration_seconds FROM activities WHERE user_id = ? AND platform = 'whoop' AND type = 'sleep' ORDER BY start_time DESC LIMIT 1", (user_id,))
-            sl_row = cursor.fetchone()
-            if sl_row:
-                latest_sleep = round(sl_row['duration_seconds'] / 3600, 1)
-            latest_strain = None
-            cursor.execute("SELECT name FROM activities WHERE user_id = ? AND platform = 'whoop' AND type = 'cycle' ORDER BY start_time DESC LIMIT 1", (user_id,))
-            cy_row = cursor.fetchone()
-            if cy_row:
+            # Store per-day WHOOP data in daily_summaries for dashboard trends
+            # Build per-day strain from cycle records
+            strain_by_date = {}
+            cursor.execute("SELECT name, DATE(start_time) as day FROM activities WHERE user_id = ? AND platform = 'whoop' AND type = 'cycle' ORDER BY start_time", (user_id,))
+            for row in cursor.fetchall():
                 import re as re_mod
-                strain_m = re_mod.search(r'Strain ([\d.]+)', cy_row['name'] or '')
+                strain_m = re_mod.search(r'Strain ([\\d.]+)', row['name'] or '')
                 if strain_m:
-                    latest_strain = float(strain_m.group(1))
-            if best_recovery is not None or latest_sleep is not None or latest_strain is not None:
-                cursor.execute("INSERT OR REPLACE INTO daily_summaries (user_id, date, recovery_score, sleep_hours, strain, source) VALUES (?, ?, ?, ?, ?, 'whoop')", (user_id, today, best_recovery, latest_sleep, latest_strain))
-                print(f"[WHOOP SYNC] Updated daily_summaries: recovery={best_recovery}, sleep={latest_sleep}h, strain={latest_strain}", flush=True)
+                    strain_by_date[row['day']] = float(strain_m.group(1))
+            # Build per-day sleep hours
+            sleep_by_date_sync = {}
+            cursor.execute("SELECT DATE(start_time) as day, duration_seconds FROM activities WHERE user_id = ? AND platform = 'whoop' AND type = 'sleep' ORDER BY start_time", (user_id,))
+            for row in cursor.fetchall():
+                sleep_by_date_sync[row['day']] = round(row['duration_seconds'] / 3600, 1)
+            # Build per-day recovery, HRV, RHR from recovery_metrics
+            recovery_by_date_sync = {}
+            cursor.execute("SELECT date, recovery_score, hrv, rhr FROM recovery_metrics WHERE user_id = ? ORDER BY date", (user_id,))
+            for row in cursor.fetchall():
+                recovery_by_date_sync[row['date']] = {'recovery': row['recovery_score'], 'hrv': row['hrv'], 'rhr': row['rhr']}
+            # Write all dates to daily_summaries
+            all_sync_dates = set(list(strain_by_date.keys()) + list(sleep_by_date_sync.keys()) + list(recovery_by_date_sync.keys()))
+            for sync_date in all_sync_dates:
+                s = strain_by_date.get(sync_date)
+                sl = sleep_by_date_sync.get(sync_date)
+                rd = recovery_by_date_sync.get(sync_date, {})
+                rc = rd.get('recovery') if rd else None
+                if s is not None or sl is not None or rc is not None:
+                    cursor.execute("INSERT OR REPLACE INTO daily_summaries (user_id, date, recovery_score, sleep_hours, strain, source) VALUES (?, ?, ?, ?, ?, 'whoop')", (user_id, sync_date, rc, sl, s))
+            print(f"[WHOOP SYNC] Updated daily_summaries for {len(all_sync_dates)} dates", flush=True)
 
             cursor.execute(
                 "UPDATE platform_connections SET last_synced = ? WHERE user_id = ? AND platform = 'whoop'",
