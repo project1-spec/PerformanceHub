@@ -783,11 +783,11 @@ class DashboardHandler(BaseHandler):
             tip = None
             if recovery_score is not None:
                 if recovery_score >= 80:
-                    tip = "Your recovery is strong ÃÂ¢ÃÂÃÂ great day for a high-intensity session."
+                    tip = "Your recovery is strong ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ great day for a high-intensity session."
                 elif recovery_score >= 50:
-                    tip = "Moderate recovery ÃÂ¢ÃÂÃÂ consider a lighter training day."
+                    tip = "Moderate recovery ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ consider a lighter training day."
                 else:
-                    tip = "Low recovery detected ÃÂ¢ÃÂÃÂ prioritize rest and active recovery."
+                    tip = "Low recovery detected ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ prioritize rest and active recovery."
 
             self.write({
                 "user": user,
@@ -2715,6 +2715,100 @@ class AnalyzeHandler(BaseHandler):
                     "count": row['count']
                 })
 
+                        # Enrich trend data with recovery, sleep, and strain from WHOOP
+            cursor.execute(
+                "SELECT date, recovery_score, hrv, rhr FROM recovery_metrics WHERE user_id = ? AND date >= ? ORDER BY date",
+                (user_id, cutoff[:10])
+            )
+            recovery_by_date = {}
+            for row in cursor.fetchall():
+                recovery_by_date[row['date']] = {
+                    'recovery': row['recovery_score'],
+                    'hrv': row['hrv'],
+                    'rhr': row['rhr']
+                }
+
+            cursor.execute(
+                "SELECT date, sleep_hours, strain FROM daily_summaries WHERE user_id = ? AND date >= ? ORDER BY date",
+                (user_id, cutoff[:10])
+            )
+            summary_by_date = {}
+            for row in cursor.fetchall():
+                summary_by_date[row['date']] = {
+                    'sleep': row['sleep_hours'],
+                    'strain': row['strain']
+                }
+
+            cursor.execute(
+                "SELECT DATE(start_time) as day, duration_seconds FROM activities WHERE user_id = ? AND platform = 'whoop' AND type = 'sleep' AND start_time >= ? ORDER BY start_time",
+                (user_id, cutoff)
+            )
+            sleep_by_date = {}
+            for row in cursor.fetchall():
+                sleep_by_date[row['day']] = round(row['duration_seconds'] / 3600, 1)
+
+            for point in trend_data:
+                try:
+                    for fmt in ['%b %d', '%Y-%m-%d']:
+                        try:
+                            parsed = datetime.datetime.strptime(point['name'], fmt)
+                            if parsed.year == 1900:
+                                parsed = parsed.replace(year=datetime.date.today().year)
+                            date_key = parsed.strftime('%Y-%m-%d')
+                            break
+                        except ValueError:
+                            date_key = None
+                except Exception:
+                    date_key = None
+                if date_key:
+                    if date_key in recovery_by_date:
+                        point['recovery'] = recovery_by_date[date_key].get('recovery')
+                        point['hrv'] = recovery_by_date[date_key].get('hrv')
+                        point['rhr'] = recovery_by_date[date_key].get('rhr')
+                    if date_key in summary_by_date:
+                        if summary_by_date[date_key].get('sleep') is not None:
+                            point['sleep'] = summary_by_date[date_key]['sleep']
+                        if summary_by_date[date_key].get('strain') is not None:
+                            point['strain'] = summary_by_date[date_key]['strain']
+                    if date_key in sleep_by_date and 'sleep' not in point:
+                        point['sleep'] = sleep_by_date[date_key]
+
+            all_dates = sorted(set(list(recovery_by_date.keys()) + list(summary_by_date.keys()) + list(sleep_by_date.keys())))
+            full_recovery_trend = []
+            full_sleep_trend = []
+            full_strain_trend = []
+            for date_key in all_dates:
+                if not date_key:
+                    continue
+                try:
+                    d = datetime.date.fromisoformat(date_key)
+                    label = d.strftime('%b %d')
+                except Exception:
+                    label = date_key
+                if date_key in recovery_by_date and recovery_by_date[date_key].get('recovery') is not None:
+                    full_recovery_trend.append({"date": label, "value": recovery_by_date[date_key]['recovery']})
+                if date_key in summary_by_date and summary_by_date[date_key].get('sleep') is not None:
+                    full_sleep_trend.append({"date": label, "value": summary_by_date[date_key]['sleep']})
+                elif date_key in sleep_by_date:
+                    full_sleep_trend.append({"date": label, "value": sleep_by_date[date_key]})
+                if date_key in summary_by_date and summary_by_date[date_key].get('strain') is not None:
+                    full_strain_trend.append({"date": label, "value": summary_by_date[date_key]['strain']})
+
+            real_insights = []
+            if full_recovery_trend:
+                avg_recovery = sum(p['value'] for p in full_recovery_trend) / len(full_recovery_trend)
+                real_insights.append(f"Your average recovery score is {avg_recovery:.0f}% over the selected period.")
+            if full_sleep_trend:
+                avg_sleep = sum(p['value'] for p in full_sleep_trend) / len(full_sleep_trend)
+                real_insights.append(f"You are averaging {avg_sleep:.1f} hours of sleep per night.")
+            if full_strain_trend:
+                avg_strain = sum(p['value'] for p in full_strain_trend) / len(full_strain_trend)
+                real_insights.append(f"Your average daily strain is {avg_strain:.1f}.")
+            if total_activities > 0:
+                real_insights.append(f"You completed {total_activities} activities in the past {days} days.")
+            if not real_insights:
+                real_insights = ["Connect WHOOP or Strava to see personalized insights."]
+
             # If no real data, provide demo trend
             if not trend_data:
                 import random
@@ -2778,12 +2872,10 @@ class AnalyzeHandler(BaseHandler):
                 "dataPoints": str(total_activities * 6) if total_activities else "156",
                 "platformsConnected": f"{platforms_connected}/4",
                 "trendData": trend_data,
-                "insights": [
-                    "Your workout consistency has improved by 15% over the selected period.",
-                    "Recovery scores peak on days following rest days - consider spacing workouts more evenly.",
-                    "Morning workouts show 12% higher performance compared to evening sessions.",
-                    "Calorie burn rate has increased steadily, suggesting improved fitness capacity."
-                ],
+                "insights": real_insights,
+                "sleepTrend": full_sleep_trend,
+                "strainTrend": full_strain_trend,
+                "recoveryTrend": full_recovery_trend,
                 "dataSources": data_sources
             })
         except Exception as e:
