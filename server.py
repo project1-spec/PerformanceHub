@@ -1,9 +1,6 @@
-#!/usr/bin/env python3
-"""
-PerformanceHub - Fitness Analytics Backend Server
-Complete production-quality implementation using Tornado, SQLite, and secure cookies.
-"""
 
+<<<<<<< HEAD
+=======
 import tornado.ioloop
 import tornado.web
 import tornado.options
@@ -3242,3 +3239,5 @@ if __name__ == "__main__":
     # Start server
     app.listen(PORT)
     tornado.ioloop.IOLoop.current().start()
+
+>>>>>>> 40890c243280fc9e4229b46651c6587845dd622b
