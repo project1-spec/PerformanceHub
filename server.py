@@ -2915,6 +2915,17 @@ class AnalyzeHandler(BaseHandler):
                 "strava": {"connected": has_strava_a, "dataCount": strava_count}
             }
 
+            # Get latest recovery for recovery_obj
+            latest_recovery = cursor.execute(
+                "SELECT recovery_score, hrv, rhr FROM recovery_metrics WHERE user_id=? AND recovery_score IS NOT NULL ORDER BY date DESC LIMIT 1",
+                (user_id,)
+            ).fetchone()
+            recovery_obj = {
+                "percentage": latest_recovery["recovery_score"] if latest_recovery else None,
+                "hrv": latest_recovery["hrv"] if latest_recovery else None,
+                "resting_hr": latest_recovery["rhr"] if latest_recovery else None
+            }
+
             conn.close()
 
             self.write({
